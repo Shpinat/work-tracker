@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Мои Смены</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#3498db" />
+    <link rel="apple-touch-icon" href="icon-192.png" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>Учет рабочего времени</h1>
+
+      <div class="timer-controls">
+        <button id="start-shift" class="btn start">Начать смену</button>
+        <button id="end-shift" class="btn end" disabled>Завершить смену</button>
+        <button id="add-manual-shift" class="btn add-manual">
+          Добавить смену вручную
+        </button>
+      </div>
+
+      <div id="status-message">Смена не начата</div>
+
+      <div class="history-section">
+        <div class="history-header-row">
+          <h2>История смен</h2>
+          <div class="rate-input-group">
+            <label for="hourly-rate">Ставка/час (₽):</label>
+            <input type="number" id="hourly-rate" placeholder="Например, 500" />
+          </div>
+        </div>
+
+        <div id="history-container"></div>
+      </div>
+    </div>
+
+    <!-- Всплывающее окно редактирования -->
+    <div id="edit-modal" class="modal hidden">
+      <div class="modal-content">
+        <h3>Редактировать смену</h3>
+        <label>Начало смены:</label>
+        <input type="datetime-local" id="edit-start" />
+        <label>Конец смены:</label>
+        <input type="datetime-local" id="edit-end" />
+        <div class="modal-actions">
+          <button id="save-edit" class="btn start">Сохранить</button>
+          <button id="cancel-edit" class="btn end">Отмена</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Всплывающее окно добавления вручную -->
+    <div id="add-modal" class="modal hidden">
+      <div class="modal-content">
+        <h3>Добавить смену</h3>
+        <label>Начало смены:</label>
+        <input type="datetime-local" id="add-start" />
+        <label>Конец смены:</label>
+        <input type="datetime-local" id="add-end" />
+        <div class="modal-actions">
+          <button id="save-add" class="btn start">Добавить</button>
+          <button id="cancel-add" class="btn end">Отмена</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+                .then(reg => console.log('Service Worker зарегистрирован'))
+                .catch(err => console.log('Ошибка', err));
+        });
+    }
+</script>
+  </body>
+</html>

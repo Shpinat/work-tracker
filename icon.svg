@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Сплошной фон иконки -->
+  <rect width="512" height="512" rx="115" fill="#3498db"/>
+  <!-- Внешний круг таймера -->
+  <circle cx="256" cy="256" r="170" fill="#ffffff" stroke="#2ecc71" stroke-width="16"/>
+  <!-- Стрелки часов -->
+  <path d="M256 140v125l80 80" fill="none" stroke="#2c3e50" stroke-width="36" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Центральная точка -->
+  <circle cx="256" cy="256" r="24" fill="#e74c3c"/>
+</svg>

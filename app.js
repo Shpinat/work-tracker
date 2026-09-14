@@ -1,38 +1,39 @@
-// Элементы таймера и статуса
+// Элементы таймера
 const startBtn = document.getElementById('start-shift');
 const endBtn = document.getElementById('end-shift');
 const statusMessage = document.getElementById('status-message');
 
-// Элементы истории и расчета
+// Элементы истории и ставки
 const historyContainer = document.getElementById('history-container');
 const rateInput = document.getElementById('hourly-rate');
 
-// Элементы модального окна редактирования
+// Элементы редактирования
 const editModal = document.getElementById('edit-modal');
 const editStartInput = document.getElementById('edit-start');
 const editEndInput = document.getElementById('edit-end');
 const saveEditBtn = document.getElementById('save-edit');
 const cancelEditBtn = document.getElementById('cancel-edit');
 
-// Элементы модального окна ручного добавления
+// Элементы ручного ввода с клавиатуры
 const addManualBtn = document.getElementById('add-manual-shift');
 const addModal = document.getElementById('add-modal');
-const addStartInput = document.getElementById('add-start');
-const addEndInput = document.getElementById('add-end');
+const addDateInput = document.getElementById('add-date');
+const addStartTimeInput = document.getElementById('add-start-time');
+const addEndTimeInput = document.getElementById('add-end-time');
 const saveAddBtn = document.getElementById('save-add');
 const cancelAddBtn = document.getElementById('cancel-add');
 
 let currentShiftStart = localStorage.getItem('currentShiftStart');
 let currentEditIndex = null;
 
-// Настройки калькулятора (localStorage)
+// Настройка калькулятора (сохранение в Local Storage)
 rateInput.value = localStorage.getItem('hourlyRate') || '';
 rateInput.addEventListener('input', (e) => {
     localStorage.setItem('hourlyRate', e.target.value);
     renderHistory();
 });
 
-// Управление умными кнопками
+// Логика умных кнопок
 startBtn.addEventListener('click', () => {
     const now = new Date(); 
     currentShiftStart = now.toISOString();
@@ -50,7 +51,6 @@ endBtn.addEventListener('click', () => {
     const diffHours = (diffMs / (1000 * 60 * 60)).toFixed(2);
 
     saveShiftToHistory(startTime, endTime, diffHours);
-
     localStorage.removeItem('currentShiftStart');
     currentShiftStart = null;
     
@@ -59,12 +59,12 @@ endBtn.addEventListener('click', () => {
     alert(`Смена завершена! Вы отработали: ${diffHours} ч.`);
 });
 
-// Ручное добавление смены
+// Ручное добавление смены (текстовый ввод)
 addManualBtn.addEventListener('click', () => {
     const now = new Date();
-    addStartInput.value = toLocalISOString(now);
-    const endNow = new Date(now.getTime() + 8 * 60 * 60 * 1000); 
-    addEndInput.value = toLocalISOString(endNow);
+    addDateInput.value = now.toISOString().split('T')[0];
+    addStartTimeInput.value = "";
+    addEndTimeInput.value = "";
     addModal.classList.remove('hidden');
 });
 
@@ -73,12 +73,22 @@ cancelAddBtn.addEventListener('click', () => {
 });
 
 saveAddBtn.addEventListener('click', () => {
-    const start = new Date(addStartInput.value);
-    const end = new Date(addEndInput.value);
+    const dateVal = addDateInput.value;
+    const startVal = addStartTimeInput.value.trim();
+    const endVal = addEndTimeInput.value.trim();
 
-    if (isNaN(start) || isNaN(end) || start >= end) {
-        alert("Пожалуйста, проверьте правильность введенных дат.");
+    const timeRegex = /^([0-9]|0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/;
+    if (!dateVal || !timeRegex.test(startVal) || !timeRegex.test(endVal)) {
+        alert("Пожалуйста, введите время в правильном формате (например, 09:00 или 18:30).");
         return;
+    }
+
+    const start = new Date(`${dateVal}T${startVal.padStart(5, '0')}:00`);
+    const end = new Date(`${dateVal}T${endVal.padStart(5, '0')}:00`);
+
+    // Если конец меньше начала — смена ушла в следующий день
+    if (end <= start) {
+        end.setDate(end.getDate() + 1);
     }
 
     const diffMs = end - start;
@@ -112,12 +122,11 @@ function saveShiftToHistory(start, end, hours) {
     localStorage.setItem('shiftsHistory', JSON.stringify(history));
 }
 
-// Отрисовка свернутой истории
+// Отрисовка истории с запоминанием состояния списков
 function renderHistory() {
     const history = JSON.parse(localStorage.getItem('shiftsHistory')) || [];
     
-    // 1. ЗАПОМИНАЕМ СОСТОЯНИЕ СПИСКОВ
-    // Читаем текущие блоки на экране и сохраняем, какие из них были свернуты
+    // Запоминаем открытые/закрытые месяцы
     const collapsedStates = {};
     document.querySelectorAll('.month-block').forEach(block => {
         const monthName = block.querySelector('h3').textContent;
@@ -159,13 +168,9 @@ function renderHistory() {
         const monthBlock = document.createElement('div');
         monthBlock.className = 'month-block';
         
-        // 2. ВОССТАНАВЛИВАЕМ СОСТОЯНИЕ
-        // Если мы помним состояние этого месяца из collapsedStates, применяем его.
-        // Если не помним (например, при первом запуске), сворачиваем все кроме первого.
+        // Восстанавливаем состояние сворачивания
         if (collapsedStates[month] !== undefined) {
-            if (collapsedStates[month]) {
-                monthBlock.classList.add('collapsed');
-            }
+            if (collapsedStates[month]) monthBlock.classList.add('collapsed');
         } else if (!isFirstMonth) {
             monthBlock.classList.add('collapsed');
         }
@@ -211,7 +216,7 @@ function renderHistory() {
     }
 }
 
-// Удаление смены
+// Удаление
 window.deleteShift = function(index) {
     if (confirm("Вы уверены, что хотите удалить эту смену?")) {
         let history = JSON.parse(localStorage.getItem('shiftsHistory')) || [];
@@ -221,7 +226,7 @@ window.deleteShift = function(index) {
     }
 }
 
-// Редактирование смены
+// Редактирование
 window.openEditModal = function(index) {
     let history = JSON.parse(localStorage.getItem('shiftsHistory')) || [];
     const shift = history[index];
@@ -263,6 +268,6 @@ function toLocalISOString(date) {
     return d.toISOString().slice(0, 16);
 }
 
-// Инициализация
+// Инициализация при открытии приложения
 updateUI();
 renderHistory();

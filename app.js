@@ -268,9 +268,7 @@ function toLocalISOString(date) {
     return d.toISOString().slice(0, 16);
 }
 
-// Инициализация при открытии приложения
-updateUI();
-renderHistory();
+// --- НОВЫЙ ФУНКЦИОНАЛ: Выгрузка смен ---
 
 // Элементы выгрузки
 const exportBtn = document.getElementById('export-shifts-btn');
@@ -281,85 +279,92 @@ const copyExportBtn = document.getElementById('copy-export');
 const cancelExportBtn = document.getElementById('cancel-export');
 
 // Открытие и закрытие окна выгрузки
-exportBtn.addEventListener('click', () => {
-    const now = new Date();
-    // По умолчанию ставим текущий месяц
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-    exportStartInput.value = firstDay.toISOString().split('T')[0];
-    exportEndInput.value = now.toISOString().split('T')[0];
-    exportModal.classList.remove('hidden');
-});
+if (exportBtn) {
+    exportBtn.addEventListener('click', () => {
+        const now = new Date();
+        // По умолчанию ставим текущий месяц
+        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+        exportStartInput.value = firstDay.toISOString().split('T')[0];
+        exportEndInput.value = now.toISOString().split('T')[0];
+        exportModal.classList.remove('hidden');
+    });
+}
 
-cancelExportBtn.addEventListener('click', () => {
-    exportModal.classList.add('hidden');
-});
+if (cancelExportBtn) {
+    cancelExportBtn.addEventListener('click', () => {
+        exportModal.classList.add('hidden');
+    });
+}
 
 // Логика формирования и копирования списка
-copyExportBtn.addEventListener('click', () => {
-    const startVal = exportStartInput.value;
-    const endVal = exportEndInput.value;
+if (copyExportBtn) {
+    copyExportBtn.addEventListener('click', () => {
+        const startVal = exportStartInput.value;
+        const endVal = exportEndInput.value;
 
-    if (!startVal || !endVal) {
-        alert("Пожалуйста, выберите обе даты.");
-        return;
-    }
-
-    const startDate = new Date(startVal);
-    startDate.setHours(0, 0, 0, 0);
-    
-    const endDate = new Date(endVal);
-    endDate.setHours(23, 59, 59, 999);
-
-    const history = JSON.parse(localStorage.getItem('shiftsHistory')) || [];
-
-    // Фильтрация смен по выбранному периоду
-    const filteredShifts = history.filter(shift => {
-        const shiftDate = new Date(shift.start);
-        return shiftDate >= startDate && shiftDate <= endDate;
-    });
-
-    if (filteredShifts.length === 0) {
-        alert("За выбранный период нет смен.");
-        return;
-    }
-
-    // Группировка часов по дням (на случай нескольких смен в один день)
-    const groupedByDay = {};
-    
-    filteredShifts.forEach(shift => {
-        const dateObj = new Date(shift.start);
-        const day = String(dateObj.getDate()).padStart(2, '0');
-        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-        const formattedDate = `${day}.${month}`;
-
-        if (!groupedByDay[formattedDate]) {
-            groupedByDay[formattedDate] = 0;
+        if (!startVal || !endVal) {
+            alert("Пожалуйста, выберите обе даты.");
+            return;
         }
-        groupedByDay[formattedDate] += parseFloat(shift.hours);
-    });
 
-    // Формирование текстового списка вида: DD.MM - Количество часов
-    let exportText = "";
-    Object.keys(groupedByDay)
-        .sort((a, b) => {
-            // Сортировка по дате по возрастанию
-            const [dayA, monthA] = a.split('.');
-            const [dayB, monthB] = b.split('.');
-            return new Date(2000, monthA - 1, dayA) - new Date(2000, monthB - 1, dayB);
-        })
-        .forEach(date => {
-            const hours = groupedByDay[date];
-            // Убираем нули после запятой, если число целое
-            const displayHours = Number.isInteger(hours) ? hours : hours.toFixed(2);
-            exportText += `${date} - ${displayHours}\n`;
+        const startDate = new Date(startVal);
+        startDate.setHours(0, 0, 0, 0);
+        
+        const endDate = new Date(endVal);
+        endDate.setHours(23, 59, 59, 999);
+
+        const history = JSON.parse(localStorage.getItem('shiftsHistory')) || [];
+
+        // Фильтрация смен по выбранному периоду
+        const filteredShifts = history.filter(shift => {
+            const shiftDate = new Date(shift.start);
+            return shiftDate >= startDate && shiftDate <= endDate;
         });
 
-    // Копирование в буфер обмена
-    navigator.clipboard.writeText(exportText).then(() => {
-        alert("Смены скопированы в буфер обмена!\n\n" + exportText);
-        exportModal.classList.add('hidden');
-    }).catch(err => {
-        // Резервный вариант, если API буфера обмена заблокировано браузером
-        alert("Не удалось скопировать автоматически. Вот ваши данные:\n\n" + exportText);
+        if (filteredShifts.length === 0) {
+            alert("За выбранный период нет смен.");
+            return;
+        }
+
+        // Группировка часов по дням
+        const groupedByDay = {};
+        
+        filteredShifts.forEach(shift => {
+            const dateObj = new Date(shift.start);
+            const day = String(dateObj.getDate()).padStart(2, '0');
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const formattedDate = `${day}.${month}`;
+
+            if (!groupedByDay[formattedDate]) {
+                groupedByDay[formattedDate] = 0;
+            }
+            groupedByDay[formattedDate] += parseFloat(shift.hours);
+        });
+
+        // Формирование текстового списка
+        let exportText = "";
+        Object.keys(groupedByDay)
+            .sort((a, b) => {
+                const [dayA, monthA] = a.split('.');
+                const [dayB, monthB] = b.split('.');
+                return new Date(2000, monthA - 1, dayA) - new Date(2000, monthB - 1, dayB);
+            })
+            .forEach(date => {
+                const hours = groupedByDay[date];
+                const displayHours = Number.isInteger(hours) ? hours : hours.toFixed(2);
+                exportText += `${date} - ${displayHours}\n`;
+            });
+
+        // Копирование
+        navigator.clipboard.writeText(exportText).then(() => {
+            alert("Смены скопированы в буфер обмена!\n\n" + exportText);
+            exportModal.classList.add('hidden');
+        }).catch(err => {
+            alert("Не удалось скопировать автоматически. Вот ваши данные:\n\n" + exportText);
+        });
     });
-});
+}
+
+// Инициализация при открытии приложения
+updateUI();
+renderHistory();

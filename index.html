@@ -22,16 +22,7 @@
         </button>
       </div>
 
-      <button
-        id="export-shifts-btn"
-        class="btn add-manual"
-        style="
-          margin: 0 auto 20px auto;
-          display: block;
-          width: 100%;
-          background-color: #9b59b6;
-        "
-      >
+      <button id="export-shifts-btn" class="btn export-btn">
         Выгрузить смены (период)
       </button>
 
@@ -60,6 +51,21 @@
         <div class="modal-actions">
           <button id="save-edit" class="btn start">Сохранить</button>
           <button id="cancel-edit" class="btn end">Отмена</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Всплывающее окно выгрузки -->
+    <div id="export-modal" class="modal hidden">
+      <div class="modal-content">
+        <h3>Выгрузить смены</h3>
+        <label>Начало периода:</label>
+        <input type="date" id="export-start" />
+        <label>Конец периода:</label>
+        <input type="date" id="export-end" />
+        <div class="modal-actions">
+          <button id="copy-export" class="btn start">Скопировать</button>
+          <button id="cancel-export" class="btn end">Отмена</button>
         </div>
       </div>
     </div>

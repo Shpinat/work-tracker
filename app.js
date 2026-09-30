@@ -25,6 +25,7 @@ const cancelAddBtn = document.getElementById('cancel-add');
 
 let currentShiftStart = localStorage.getItem('currentShiftStart');
 let currentEditIndex = null;
+let activeShiftTimer = null; // Таймер для активной смены
 
 // Настройка калькулятора (сохранение в Local Storage)
 rateInput.value = localStorage.getItem('hourlyRate') || '';
@@ -35,7 +36,7 @@ rateInput.addEventListener('input', (e) => {
 
 // Логика умных кнопок
 startBtn.addEventListener('click', () => {
-    const now = new Date(); 
+    const now = new Date();
     currentShiftStart = now.toISOString();
     localStorage.setItem('currentShiftStart', currentShiftStart);
     updateUI();
@@ -44,16 +45,16 @@ startBtn.addEventListener('click', () => {
 endBtn.addEventListener('click', () => {
     if (!currentShiftStart) return;
 
-    const endTime = new Date(); 
+    const endTime = new Date();
     const startTime = new Date(currentShiftStart);
-    
+
     const diffMs = endTime - startTime;
     const diffHours = (diffMs / (1000 * 60 * 60)).toFixed(2);
 
     saveShiftToHistory(startTime, endTime, diffHours);
     localStorage.removeItem('currentShiftStart');
     currentShiftStart = null;
-    
+
     updateUI();
     renderHistory();
     alert(`Смена завершена! Вы отработали: ${diffHours} ч.`);
@@ -62,9 +63,20 @@ endBtn.addEventListener('click', () => {
 // Ручное добавление смены (текстовый ввод)
 addManualBtn.addEventListener('click', () => {
     const now = new Date();
-    addDateInput.value = now.toISOString().split('T')[0];
-    addStartTimeInput.value = "";
-    addEndTimeInput.value = "";
+
+    // Формируем дату в формате YYYY-MM-DD для локального времени
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    addDateInput.value = `${year}-${month}-${day}`;
+
+    // Формируем время в формате HH:MM
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const currentTimeStr = `${hours}:${minutes}`;
+
+    addStartTimeInput.value = currentTimeStr;
+    addEndTimeInput.value = currentTimeStr;
     addModal.classList.remove('hidden');
 });
 
@@ -99,12 +111,36 @@ saveAddBtn.addEventListener('click', () => {
     renderHistory();
 });
 
+function updateActiveShiftTimer() {
+    if (!currentShiftStart) return;
+
+    const startTime = new Date(currentShiftStart);
+    const now = new Date();
+    const diffMs = now - startTime;
+
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
+
+    const hStr = String(hours).padStart(2, '0');
+    const mStr = String(minutes).padStart(2, '0');
+    const sStr = String(seconds).padStart(2, '0');
+
+    const timeStr = startTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    statusMessage.textContent = `Смена идет (Начало в ${timeStr}) - ${hStr}:${mStr}:${sStr}`;
+}
+
 function updateUI() {
+    if (activeShiftTimer) {
+        clearInterval(activeShiftTimer);
+        activeShiftTimer = null;
+    }
+
     if (currentShiftStart) {
         startBtn.disabled = true;
         endBtn.disabled = false;
-        const timeStr = new Date(currentShiftStart).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-        statusMessage.textContent = `Смена идет (Начало в ${timeStr})`;
+        updateActiveShiftTimer(); // сразу обновляем текст
+        activeShiftTimer = setInterval(updateActiveShiftTimer, 1000); // запускаем интервал
     } else {
         startBtn.disabled = false;
         endBtn.disabled = true;
@@ -125,7 +161,7 @@ function saveShiftToHistory(start, end, hours) {
 // Отрисовка истории с запоминанием состояния списков
 function renderHistory() {
     const history = JSON.parse(localStorage.getItem('shiftsHistory')) || [];
-    
+
     // Запоминаем открытые/закрытые месяцы
     const collapsedStates = {};
     document.querySelectorAll('.month-block').forEach(block => {
@@ -134,7 +170,7 @@ function renderHistory() {
     });
 
     historyContainer.innerHTML = '';
-    
+
     if (history.length === 0) {
         historyContainer.innerHTML = '<p style="text-align:center; color:#7f8c8d; padding: 20px;">Нет записей</p>';
         return;
@@ -147,34 +183,34 @@ function renderHistory() {
         .sort((a, b) => new Date(b.start) - new Date(a.start));
 
     const groupedByMonth = {};
-    
+
     sortedHistory.forEach(shift => {
         const date = new Date(shift.start);
         const monthYear = date.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
-        
+
         if (!groupedByMonth[monthYear]) {
             groupedByMonth[monthYear] = { shifts: [], totalHours: 0, totalShifts: 0 };
         }
-        
+
         groupedByMonth[monthYear].shifts.push(shift);
         groupedByMonth[monthYear].totalHours += parseFloat(shift.hours);
         groupedByMonth[monthYear].totalShifts += 1;
     });
 
-    let isFirstMonth = true; 
+    let isFirstMonth = true;
 
     for (const [month, data] of Object.entries(groupedByMonth)) {
         const totalMoney = (data.totalHours * rate).toFixed(2);
         const monthBlock = document.createElement('div');
         monthBlock.className = 'month-block';
-        
+
         // Восстанавливаем состояние сворачивания
         if (collapsedStates[month] !== undefined) {
             if (collapsedStates[month]) monthBlock.classList.add('collapsed');
         } else if (!isFirstMonth) {
             monthBlock.classList.add('collapsed');
         }
-        
+
         monthBlock.innerHTML = `
             <div class="month-header" onclick="this.parentElement.classList.toggle('collapsed')">
                 <div class="month-header-content">
@@ -188,9 +224,9 @@ function renderHistory() {
             </div>
             <ul class="history-list"></ul>
         `;
-        
+
         const ul = monthBlock.querySelector('.history-list');
-        
+
         data.shifts.forEach(shift => {
             const startDate = new Date(shift.start).toLocaleDateString('ru-RU');
             const startTime = new Date(shift.start).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
@@ -210,7 +246,7 @@ function renderHistory() {
             `;
             ul.appendChild(li);
         });
-        
+
         historyContainer.appendChild(monthBlock);
         isFirstMonth = false;
     }
@@ -220,9 +256,9 @@ function renderHistory() {
 window.deleteShift = function(index) {
     if (confirm("Вы уверены, что хотите удалить эту смену?")) {
         let history = JSON.parse(localStorage.getItem('shiftsHistory')) || [];
-        history.splice(index, 1); 
+        history.splice(index, 1);
         localStorage.setItem('shiftsHistory', JSON.stringify(history));
-        renderHistory(); 
+        renderHistory();
     }
 }
 
@@ -247,6 +283,16 @@ saveEditBtn.addEventListener('click', () => {
     let history = JSON.parse(localStorage.getItem('shiftsHistory')) || [];
     const newStart = new Date(editStartInput.value);
     const newEnd = new Date(editEndInput.value);
+
+    if (isNaN(newStart.getTime()) || isNaN(newEnd.getTime())) {
+        alert("Пожалуйста, введите корректные даты и время.");
+        return;
+    }
+
+    if (newEnd <= newStart) {
+        alert("Время окончания смены должно быть позже времени начала.");
+        return;
+    }
 
     const diffMs = newEnd - newStart;
     const diffHours = (diffMs / (1000 * 60 * 60)).toFixed(2);
@@ -309,7 +355,7 @@ if (copyExportBtn) {
 
         const startDate = new Date(startVal);
         startDate.setHours(0, 0, 0, 0);
-        
+
         const endDate = new Date(endVal);
         endDate.setHours(23, 59, 59, 999);
 
@@ -328,7 +374,7 @@ if (copyExportBtn) {
 
         // Группировка часов по дням
         const groupedByDay = {};
-        
+
         filteredShifts.forEach(shift => {
             const dateObj = new Date(shift.start);
             const day = String(dateObj.getDate()).padStart(2, '0');

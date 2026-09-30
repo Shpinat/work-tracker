@@ -1,3 +1,29 @@
+// Тема оформления
+const themeToggleBtn = document.getElementById('theme-toggle');
+const themeIcon = document.getElementById('theme-icon');
+const themeColorMeta = document.getElementById('theme-color-meta');
+
+function applyTheme(theme) {
+    if (theme === 'dark') {
+        document.body.setAttribute('data-theme', 'dark');
+        themeIcon.textContent = 'light_mode';
+        themeColorMeta.setAttribute('content', '#1e1e1e');
+    } else {
+        document.body.removeAttribute('data-theme');
+        themeIcon.textContent = 'dark_mode';
+        themeColorMeta.setAttribute('content', '#6200ea');
+    }
+}
+
+let savedTheme = localStorage.getItem('theme') || 'light';
+applyTheme(savedTheme);
+
+themeToggleBtn.addEventListener('click', () => {
+    savedTheme = savedTheme === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('theme', savedTheme);
+    applyTheme(savedTheme);
+});
+
 // Элементы таймера
 const startBtn = document.getElementById('start-shift');
 const endBtn = document.getElementById('end-shift');
@@ -172,7 +198,12 @@ function renderHistory() {
     historyContainer.innerHTML = '';
 
     if (history.length === 0) {
-        historyContainer.innerHTML = '<p style="text-align:center; color:#7f8c8d; padding: 20px;">Нет записей</p>';
+        historyContainer.innerHTML = `
+            <div class="empty-state">
+                <span class="material-symbols-outlined">event_busy</span>
+                <p>Пока нет добавленных смен</p>
+            </div>
+        `;
         return;
     }
 
@@ -211,6 +242,26 @@ function renderHistory() {
             monthBlock.classList.add('collapsed');
         }
 
+        // Данные для графика
+        const chartData = {};
+        let maxHoursInDay = 0;
+
+        data.shifts.forEach(shift => {
+            const dateStr = new Date(shift.start).getDate();
+            chartData[dateStr] = (chartData[dateStr] || 0) + parseFloat(shift.hours);
+            if (chartData[dateStr] > maxHoursInDay) maxHoursInDay = chartData[dateStr];
+        });
+
+        // Создаем бары графика
+        const daysInMonth = new Date(new Date(data.shifts[0].start).getFullYear(), new Date(data.shifts[0].start).getMonth() + 1, 0).getDate();
+        let chartHtml = '<div class="chart-container">';
+        for (let i = 1; i <= daysInMonth; i++) {
+            const hours = chartData[i] || 0;
+            const heightPercent = maxHoursInDay > 0 ? (hours / maxHoursInDay) * 100 : 0;
+            chartHtml += `<div class="chart-bar" style="height: ${heightPercent}%" data-tooltip="${i} число: ${hours.toFixed(1)}ч"></div>`;
+        }
+        chartHtml += '</div>';
+
         monthBlock.innerHTML = `
             <div class="month-header" onclick="this.parentElement.classList.toggle('collapsed')">
                 <div class="month-header-content">
@@ -220,8 +271,9 @@ function renderHistory() {
                         ${rate > 0 ? `<strong>Зарплата: ${totalMoney} ₽</strong>` : '<em>Введите ставку для расчета ЗП</em>'}
                     </div>
                 </div>
-                <div class="toggle-icon">▼</div>
+                <div class="toggle-icon material-symbols-outlined">expand_more</div>
             </div>
+            ${chartHtml}
             <ul class="history-list"></ul>
         `;
 
@@ -231,17 +283,21 @@ function renderHistory() {
             const startDate = new Date(shift.start).toLocaleDateString('ru-RU');
             const startTime = new Date(shift.start).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
             const endTime = new Date(shift.end).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            const shiftMoney = rate > 0 ? `<br><span style="color:#2ecc71; font-size:12px;">+ ${(shift.hours * rate).toFixed(2)} ₽</span>` : '';
+            const shiftMoney = rate > 0 ? `<br><span class="shift-money">+ ${(shift.hours * rate).toFixed(2)} ₽</span>` : '';
 
             const li = document.createElement('li');
             li.innerHTML = `
                 <div class="shift-info">
-                    <span><strong>${startDate}</strong> (${startTime} - ${endTime})</span>
+                    <span><strong>${startDate}</strong><br><span style="font-size:12px; opacity:0.8;">${startTime} - ${endTime}</span></span>
                     <span style="text-align: right;"><strong>${shift.hours} ч.</strong> ${shiftMoney}</span>
                 </div>
                 <div class="shift-actions">
-                    <button class="action-btn btn-edit" onclick="openEditModal(${shift.originalIndex})">Изменить</button>
-                    <button class="action-btn btn-delete" onclick="deleteShift(${shift.originalIndex})">Удалить</button>
+                    <button class="action-btn-icon edit-btn" onclick="openEditModal(${shift.originalIndex})" title="Изменить">
+                        <span class="material-symbols-outlined" style="font-size: 20px;">edit</span>
+                    </button>
+                    <button class="action-btn-icon delete-btn" onclick="deleteShift(${shift.originalIndex})" title="Удалить">
+                        <span class="material-symbols-outlined" style="font-size: 20px;">delete</span>
+                    </button>
                 </div>
             `;
             ul.appendChild(li);
@@ -387,8 +443,9 @@ if (copyExportBtn) {
             groupedByDay[formattedDate] += parseFloat(shift.hours);
         });
 
-        // Формирование текстового списка
-        let exportText = "";
+        // Формирование CSV
+        let csvContent = "Дата,Часы\n";
+
         Object.keys(groupedByDay)
             .sort((a, b) => {
                 const [dayA, monthA] = a.split('.');
@@ -398,16 +455,21 @@ if (copyExportBtn) {
             .forEach(date => {
                 const hours = groupedByDay[date];
                 const displayHours = Number.isInteger(hours) ? hours : hours.toFixed(2);
-                exportText += `${date} - ${displayHours}\n`;
+                csvContent += `${date},${displayHours}\n`;
             });
 
-        // Копирование
-        navigator.clipboard.writeText(exportText).then(() => {
-            alert("Смены скопированы в буфер обмена!\n\n" + exportText);
-            exportModal.classList.add('hidden');
-        }).catch(err => {
-            alert("Не удалось скопировать автоматически. Вот ваши данные:\n\n" + exportText);
-        });
+        // Скачивание файла CSV
+        const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' }); // BOM для Excel
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `Смены_${startVal}_${endVal}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        exportModal.classList.add('hidden');
     });
 }
 

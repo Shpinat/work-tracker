@@ -174,19 +174,27 @@ function updateUI() {
     }
 }
 
+function getShiftsHistory() {
+    return JSON.parse(localStorage.getItem('shiftsHistory')) || [];
+}
+
+function setShiftsHistory(history) {
+    localStorage.setItem('shiftsHistory', JSON.stringify(history));
+}
+
 function saveShiftToHistory(start, end, hours) {
-    let history = JSON.parse(localStorage.getItem('shiftsHistory')) || [];
+    let history = getShiftsHistory();
     history.push({
         start: start.toISOString(),
         end: end.toISOString(),
         hours: parseFloat(hours)
     });
-    localStorage.setItem('shiftsHistory', JSON.stringify(history));
+    setShiftsHistory(history);
 }
 
 // Отрисовка истории с запоминанием состояния списков
 function renderHistory() {
-    const history = JSON.parse(localStorage.getItem('shiftsHistory')) || [];
+    const history = getShiftsHistory();
 
     // Запоминаем открытые/закрытые месяцы
     const collapsedStates = {};
@@ -311,16 +319,16 @@ function renderHistory() {
 // Удаление
 window.deleteShift = function(index) {
     if (confirm("Вы уверены, что хотите удалить эту смену?")) {
-        let history = JSON.parse(localStorage.getItem('shiftsHistory')) || [];
+        let history = getShiftsHistory();
         history.splice(index, 1);
-        localStorage.setItem('shiftsHistory', JSON.stringify(history));
+        setShiftsHistory(history);
         renderHistory();
     }
 }
 
 // Редактирование
 window.openEditModal = function(index) {
-    let history = JSON.parse(localStorage.getItem('shiftsHistory')) || [];
+    let history = getShiftsHistory();
     const shift = history[index];
     currentEditIndex = index;
 
@@ -336,7 +344,7 @@ cancelEditBtn.addEventListener('click', () => {
 
 saveEditBtn.addEventListener('click', () => {
     if (currentEditIndex === null) return;
-    let history = JSON.parse(localStorage.getItem('shiftsHistory')) || [];
+    let history = getShiftsHistory();
     const newStart = new Date(editStartInput.value);
     const newEnd = new Date(editEndInput.value);
 
@@ -359,7 +367,7 @@ saveEditBtn.addEventListener('click', () => {
         hours: parseFloat(diffHours)
     };
 
-    localStorage.setItem('shiftsHistory', JSON.stringify(history));
+    setShiftsHistory(history);
     editModal.classList.add('hidden');
     renderHistory();
 });
@@ -415,7 +423,7 @@ if (copyExportBtn) {
         const endDate = new Date(endVal);
         endDate.setHours(23, 59, 59, 999);
 
-        const history = JSON.parse(localStorage.getItem('shiftsHistory')) || [];
+        const history = getShiftsHistory();
 
         // Фильтрация смен по выбранному периоду
         const filteredShifts = history.filter(shift => {

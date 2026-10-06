@@ -10,17 +10,17 @@ const themeColorMeta = document.getElementById('theme-color-meta');
 
 function applyTheme(theme) {
     if (theme === 'dark') {
-        document.body.setAttribute('data-theme', 'dark');
+        document.documentElement.classList.add('dark');
         themeIcon.textContent = 'light_mode';
-        themeColorMeta.setAttribute('content', '#1e1e1e');
+        themeColorMeta.setAttribute('content', '#0f172a'); // slate-900
     } else {
-        document.body.removeAttribute('data-theme');
+        document.documentElement.classList.remove('dark');
         themeIcon.textContent = 'dark_mode';
-        themeColorMeta.setAttribute('content', '#6200ea');
+        themeColorMeta.setAttribute('content', '#f8fafc'); // slate-50
     }
 }
 
-let savedTheme = localStorage.getItem('theme') || 'light';
+let savedTheme = localStorage.getItem('theme') || 'dark';
 applyTheme(savedTheme);
 
 themeToggleBtn.addEventListener('click', () => {
@@ -276,18 +276,18 @@ function renderHistory() {
         chartHtml += '</div>';
 
         monthBlock.innerHTML = `
-            <div class="month-header" onclick="this.parentElement.classList.toggle('collapsed')">
-                <div class="month-header-content">
-                    <h3>${month}</h3>
-                    <div class="month-stats">
+            <div class="bg-slate-200 dark:bg-slate-700 p-3 rounded-xl flex justify-between items-center cursor-pointer mb-3 transition-colors month-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                <div class="flex-grow">
+                    <h3 class="m-0 text-lg font-medium capitalize text-slate-900 dark:text-slate-100">${month}</h3>
+                    <div class="text-sm text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
                         Отработано: ${data.totalShifts} смен / ${data.totalHours.toFixed(2)} ч.<br>
-                        ${rate > 0 ? `<strong>Зарплата: ${totalMoney} ₽</strong>` : '<em>Введите ставку для расчета ЗП</em>'}
+                        ${rate > 0 ? `<strong class="text-primary font-medium">Зарплата: ${totalMoney} ₽</strong>` : '<em class="opacity-80">Введите ставку для расчета ЗП</em>'}
                     </div>
                 </div>
-                <div class="toggle-icon material-symbols-outlined">expand_more</div>
+                <div class="material-symbols-outlined transition-transform duration-300 text-slate-500 dark:text-slate-400 toggle-icon">expand_more</div>
             </div>
             ${chartHtml}
-            <ul class="history-list"></ul>
+            <ul class="flex flex-col gap-3 m-0 p-0 list-none history-list"></ul>
         `;
 
         const ul = monthBlock.querySelector('.history-list');
@@ -296,20 +296,21 @@ function renderHistory() {
             const startDate = new Date(shift.start).toLocaleDateString('ru-RU');
             const startTime = new Date(shift.start).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
             const endTime = new Date(shift.end).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            const shiftMoney = rate > 0 ? `<br><span class="shift-money">+ ${(shift.hours * rate).toFixed(2)} ₽</span>` : '';
+            const shiftMoney = rate > 0 ? `<br><span class="text-green-600 dark:text-green-400 font-medium text-sm">+ ${(shift.hours * rate).toFixed(2)} ₽</span>` : '';
 
             const li = document.createElement('li');
+            li.className = "bg-slate-50 dark:bg-slate-900 p-4 rounded-xl flex flex-col gap-3 border-l-4 border-primary shadow-sm mb-3";
             li.innerHTML = `
-                <div class="shift-info">
-                    <span><strong>${startDate}</strong><br><span style="font-size:12px; opacity:0.8;">${startTime} - ${endTime}</span></span>
-                    <span style="text-align: right;"><strong>${shift.hours} ч.</strong> ${shiftMoney}</span>
+                <div class="flex justify-between w-full text-sm text-slate-900 dark:text-slate-100">
+                    <span><strong class="font-medium text-base">${startDate}</strong><br><span class="text-xs opacity-75">${startTime} - ${endTime}</span></span>
+                    <span class="text-right"><strong class="font-medium text-base">${shift.hours} ч.</strong> ${shiftMoney}</span>
                 </div>
-                <div class="shift-actions">
-                    <button class="action-btn-icon edit-btn" onclick="openEditModal(${shift.originalIndex})" title="Изменить">
-                        <span class="material-symbols-outlined" style="font-size: 20px;">edit</span>
+                <div class="flex gap-2 justify-end">
+                    <button class="p-2 rounded-full text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-primary transition-colors flex items-center justify-center" onclick="openEditModal(${shift.originalIndex})" title="Изменить">
+                        <span class="material-symbols-outlined text-[20px]">edit</span>
                     </button>
-                    <button class="action-btn-icon delete-btn" onclick="deleteShift(${shift.originalIndex})" title="Удалить">
-                        <span class="material-symbols-outlined" style="font-size: 20px;">delete</span>
+                    <button class="p-2 rounded-full text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-red-500 transition-colors flex items-center justify-center" onclick="deleteShift(${shift.originalIndex})" title="Удалить">
+                        <span class="material-symbols-outlined text-[20px]">delete</span>
                     </button>
                 </div>
             `;

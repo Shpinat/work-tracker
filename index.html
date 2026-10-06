@@ -9,41 +9,54 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              primary: '#3b82f6'
+            }
+          }
+        }
+      }
+    </script>
     <link rel="stylesheet" href="style.css" />
     <!-- PWA Метатеги -->
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#6200ea" id="theme-color-meta" />
     <link rel="apple-touch-icon" href="icon-192.png" />
   </head>
-  <body>
-    <div class="container">
-      <header class="app-header">
-        <h1>Мои Смены</h1>
-        <button id="theme-toggle" class="icon-btn" aria-label="Переключить тему">
+  <body class="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 flex justify-center items-start min-h-screen p-6 transition-colors duration-300">
+    <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-md w-full max-w-md transition-colors duration-300">
+      <header class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-medium text-slate-900 dark:text-slate-100">Мои Смены</h1>
+        <button id="theme-toggle" class="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" aria-label="Переключить тему">
           <span class="material-symbols-outlined" id="theme-icon">dark_mode</span>
         </button>
       </header>
 
-      <div class="timer-controls">
-        <button id="start-shift" class="btn start">Начать смену</button>
-        <button id="end-shift" class="btn end" disabled>Завершить смену</button>
-        <button id="add-manual-shift" class="btn add-manual">
+      <div class="flex flex-col gap-3 mb-4">
+        <button id="start-shift" class="py-3 px-6 rounded-full font-medium transition-transform active:scale-95 flex items-center justify-center gap-2 w-full bg-primary text-white shadow-md hover:shadow-lg disabled:opacity-50">Начать смену</button>
+        <button id="end-shift" class="py-3 px-6 rounded-full font-medium transition-transform active:scale-95 flex items-center justify-center gap-2 w-full bg-red-500 text-white shadow-md hover:shadow-lg disabled:opacity-50" disabled>Завершить смену</button>
+        <button id="add-manual-shift" class="py-3 px-6 rounded-full font-medium transition-transform active:scale-95 flex items-center justify-center gap-2 w-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600">
           Добавить смену вручную
         </button>
       </div>
 
-      <button id="export-shifts-btn" class="btn export-btn">
+      <button id="export-shifts-btn" class="py-3 px-6 rounded-full font-medium transition-transform active:scale-95 flex items-center justify-center gap-2 w-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600 mb-6">
         Выгрузить смены (период)
       </button>
 
-      <div id="status-message">Смена не начата</div>
+      <div id="status-message" class="text-sm font-medium text-slate-500 dark:text-slate-400 mt-2 text-center">Смена не начата</div>
 
-      <div class="history-section">
-        <div class="history-header-row">
-          <h2>История смен</h2>
-          <div class="rate-input-group">
-            <label for="hourly-rate">Ставка:</label>
-            <input type="number" id="hourly-rate" placeholder="₽ / час" />
+      <div class="mt-6 text-left border-t border-slate-300 dark:border-slate-600 pt-6">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-medium text-slate-900 dark:text-slate-100">История смен</h2>
+          <div class="flex items-center gap-2">
+            <label for="hourly-rate" class="text-sm text-slate-500 dark:text-slate-400">Ставка:</label>
+            <input type="number" id="hourly-rate" placeholder="₽ / час" class="w-24 p-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary" />
           </div>
         </div>
         <div id="history-container"></div>
@@ -51,58 +64,60 @@
     </div>
 
     <!-- Всплывающее окно редактирования -->
-    <div id="edit-modal" class="modal hidden">
-      <div class="modal-content">
-        <h3>Редактировать смену</h3>
-        <label>Начало смены:</label>
-        <input type="datetime-local" id="edit-start" />
-        <label>Конец смены:</label>
-        <input type="datetime-local" id="edit-end" />
-        <div class="modal-actions">
-          <button id="save-edit" class="btn start">Сохранить</button>
-          <button id="cancel-edit" class="btn end">Отмена</button>
+    <div id="edit-modal" class="modal hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 transition-opacity">
+      <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl w-[90%] max-w-sm shadow-xl transition-transform text-slate-900 dark:text-slate-100">
+        <h3 class="mb-5 text-2xl">Редактировать смену</h3>
+        <label class="text-sm text-slate-500 dark:text-slate-400 mb-1 block">Начало смены:</label>
+        <input type="datetime-local" id="edit-start" class="w-full p-3 mb-5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
+        <label class="text-sm text-slate-500 dark:text-slate-400 mb-1 block">Конец смены:</label>
+        <input type="datetime-local" id="edit-end" class="w-full p-3 mb-5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
+        <div class="flex gap-3 mt-2">
+          <button id="save-edit" class="py-3 px-6 rounded-full font-medium transition-transform active:scale-95 flex items-center justify-center gap-2 w-full bg-primary text-white shadow-md hover:shadow-lg disabled:opacity-50">Сохранить</button>
+          <button id="cancel-edit" class="py-3 px-6 rounded-full font-medium transition-transform active:scale-95 flex items-center justify-center gap-2 w-full bg-red-500 text-white shadow-md hover:shadow-lg disabled:opacity-50">Отмена</button>
         </div>
       </div>
     </div>
 
     <!-- Всплывающее окно выгрузки -->
-    <div id="export-modal" class="modal hidden">
-      <div class="modal-content">
-        <h3>Выгрузить смены</h3>
-        <label>Начало периода:</label>
-        <input type="date" id="export-start" />
-        <label>Конец периода:</label>
-        <input type="date" id="export-end" />
-        <div class="modal-actions">
-          <button id="copy-export" class="btn start">CSV</button>
-          <button id="cancel-export" class="btn end">Отмена</button>
+    <div id="export-modal" class="modal hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 transition-opacity">
+      <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl w-[90%] max-w-sm shadow-xl transition-transform text-slate-900 dark:text-slate-100">
+        <h3 class="mb-5 text-2xl">Выгрузить смены</h3>
+        <label class="text-sm text-slate-500 dark:text-slate-400 mb-1 block">Начало периода:</label>
+        <input type="date" id="export-start" class="w-full p-3 mb-5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
+        <label class="text-sm text-slate-500 dark:text-slate-400 mb-1 block">Конец периода:</label>
+        <input type="date" id="export-end" class="w-full p-3 mb-5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
+        <div class="flex gap-3 mt-2">
+          <button id="copy-export" class="py-3 px-6 rounded-full font-medium transition-transform active:scale-95 flex items-center justify-center gap-2 w-full bg-primary text-white shadow-md hover:shadow-lg disabled:opacity-50">CSV</button>
+          <button id="cancel-export" class="py-3 px-6 rounded-full font-medium transition-transform active:scale-95 flex items-center justify-center gap-2 w-full bg-red-500 text-white shadow-md hover:shadow-lg disabled:opacity-50">Отмена</button>
         </div>
       </div>
     </div>
 
     <!-- Обновленное окно добавления вручную (с клавиатурой) -->
-    <div id="add-modal" class="modal hidden">
-      <div class="modal-content">
-        <h3>Добавить смену</h3>
-        <label>Дата смены:</label>
-        <input type="date" id="add-date" />
-        <label>Время начала (ЧЧ:ММ):</label>
+    <div id="add-modal" class="modal hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 transition-opacity">
+      <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl w-[90%] max-w-sm shadow-xl transition-transform text-slate-900 dark:text-slate-100">
+        <h3 class="mb-5 text-2xl">Добавить смену</h3>
+        <label class="text-sm text-slate-500 dark:text-slate-400 mb-1 block">Дата смены:</label>
+        <input type="date" id="add-date" class="w-full p-3 mb-5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
+        <label class="text-sm text-slate-500 dark:text-slate-400 mb-1 block">Время начала (ЧЧ:ММ):</label>
         <input
           type="text"
           inputmode="numeric"
           id="add-start-time"
           placeholder="Например: 09:00"
+          class="w-full p-3 mb-5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
         />
-        <label>Время конца (ЧЧ:ММ):</label>
+        <label class="text-sm text-slate-500 dark:text-slate-400 mb-1 block">Время конца (ЧЧ:ММ):</label>
         <input
           type="text"
           inputmode="numeric"
           id="add-end-time"
           placeholder="Например: 18:00"
+          class="w-full p-3 mb-5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
         />
-        <div class="modal-actions">
-          <button id="save-add" class="btn start">Добавить</button>
-          <button id="cancel-add" class="btn end">Отмена</button>
+        <div class="flex gap-3 mt-2">
+          <button id="save-add" class="py-3 px-6 rounded-full font-medium transition-transform active:scale-95 flex items-center justify-center gap-2 w-full bg-primary text-white shadow-md hover:shadow-lg disabled:opacity-50">Добавить</button>
+          <button id="cancel-add" class="py-3 px-6 rounded-full font-medium transition-transform active:scale-95 flex items-center justify-center gap-2 w-full bg-red-500 text-white shadow-md hover:shadow-lg disabled:opacity-50">Отмена</button>
         </div>
       </div>
     </div>

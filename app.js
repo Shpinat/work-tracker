@@ -1,3 +1,8 @@
+// Утилиты
+function calculateShiftHours(diffMs) {
+    return (diffMs / (1000 * 60 * 60)).toFixed(2);
+}
+
 // Тема оформления
 const themeToggleBtn = document.getElementById('theme-toggle');
 const themeIcon = document.getElementById('theme-icon');
@@ -75,7 +80,7 @@ endBtn.addEventListener('click', () => {
     const startTime = new Date(currentShiftStart);
 
     const diffMs = endTime - startTime;
-    const diffHours = (diffMs / (1000 * 60 * 60)).toFixed(2);
+    const diffHours = calculateShiftHours(diffMs);
 
     saveShiftToHistory(startTime, endTime, diffHours);
     localStorage.removeItem('currentShiftStart');
@@ -130,7 +135,7 @@ saveAddBtn.addEventListener('click', () => {
     }
 
     const diffMs = end - start;
-    const diffHours = (diffMs / (1000 * 60 * 60)).toFixed(2);
+    const diffHours = calculateShiftHours(diffMs);
 
     saveShiftToHistory(start, end, diffHours);
     addModal.classList.add('hidden');
@@ -359,7 +364,7 @@ saveEditBtn.addEventListener('click', () => {
     }
 
     const diffMs = newEnd - newStart;
-    const diffHours = (diffMs / (1000 * 60 * 60)).toFixed(2);
+    const diffHours = calculateShiftHours(diffMs);
 
     history[currentEditIndex] = {
         start: newStart.toISOString(),

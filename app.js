@@ -183,6 +183,10 @@ function getShiftsHistory() {
     return JSON.parse(localStorage.getItem('shiftsHistory')) || [];
 }
 
+function setShiftsHistory(history) {
+    localStorage.setItem('shiftsHistory', JSON.stringify(history));
+}
+
 function saveShiftToHistory(start, end, hours) {
     let history = getShiftsHistory();
     history.push({
@@ -190,7 +194,7 @@ function saveShiftToHistory(start, end, hours) {
         end: end.toISOString(),
         hours: parseFloat(hours)
     });
-    localStorage.setItem('shiftsHistory', JSON.stringify(history));
+    setShiftsHistory(history);
 }
 
 // Отрисовка истории с запоминанием состояния списков
@@ -322,7 +326,7 @@ window.deleteShift = function(index) {
     if (confirm("Вы уверены, что хотите удалить эту смену?")) {
         let history = getShiftsHistory();
         history.splice(index, 1);
-        localStorage.setItem('shiftsHistory', JSON.stringify(history));
+        setShiftsHistory(history);
         renderHistory();
     }
 }
@@ -368,7 +372,7 @@ saveEditBtn.addEventListener('click', () => {
         hours: parseFloat(diffHours)
     };
 
-    localStorage.setItem('shiftsHistory', JSON.stringify(history));
+    setShiftsHistory(history);
     editModal.classList.add('hidden');
     renderHistory();
 });

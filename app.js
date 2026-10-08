@@ -285,12 +285,12 @@ function renderHistory() {
         chartHtml += '</div>';
 
         monthBlock.innerHTML = `
-            <div class="bg-slate-200 dark:bg-slate-700 p-3 rounded-xl flex justify-between items-center cursor-pointer mb-3 transition-colors month-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <div class="bg-white/50 dark:bg-slate-800/50 backdrop-blur-md p-4 rounded-2xl border border-slate-200/50 dark:border-slate-700/50 hover:bg-white/80 dark:hover:bg-slate-800/80 shadow-sm transition-all flex justify-between items-center cursor-pointer mb-3 month-header" onclick="this.parentElement.classList.toggle('collapsed')">
                 <div class="flex-grow">
                     <h3 class="m-0 text-lg font-medium capitalize text-slate-900 dark:text-slate-100">${month}</h3>
                     <div class="text-sm text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
                         Отработано: ${data.totalShifts} смен / ${data.totalHours.toFixed(2)} ч.<br>
-                        ${rate > 0 ? `<strong class="text-primary font-medium">Зарплата: ${totalMoney} ₽</strong>` : '<em class="opacity-80">Введите ставку для расчета ЗП</em>'}
+                        ${rate > 0 ? `<strong class="text-indigo-600 dark:text-indigo-400 font-semibold">Зарплата: ${totalMoney} ₽</strong>` : '<em class="opacity-80">Введите ставку для расчета ЗП</em>'}
                     </div>
                 </div>
                 <div class="material-symbols-outlined transition-transform duration-300 text-slate-500 dark:text-slate-400 toggle-icon">expand_more</div>
@@ -312,7 +312,7 @@ function renderHistory() {
             const shiftMoney = rate > 0 ? `<br><span class="text-green-600 dark:text-green-400 font-medium text-sm">+ ${(shift.hours * rate).toFixed(2)} ₽</span>` : '';
 
             const li = document.createElement('li');
-            li.className = "bg-slate-50 dark:bg-slate-900 p-4 rounded-xl flex flex-col gap-3 border-l-4 border-primary shadow-sm mb-3";
+            li.className = "bg-white dark:bg-slate-800/80 p-4 rounded-2xl flex flex-col gap-3 border border-slate-100 dark:border-slate-700/50 border-l-4 border-l-indigo-500 shadow-sm hover:shadow-md transition-all mb-3";
             li.innerHTML = `
                 <div class="flex justify-between w-full text-sm text-slate-900 dark:text-slate-100">
                     <span><strong class="font-medium text-base">${startDate}</strong><br><span class="text-xs opacity-75">${startTime} - ${endTime}</span></span>

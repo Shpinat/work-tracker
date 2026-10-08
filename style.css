@@ -1,10 +1,30 @@
-.modal { opacity: 1; visibility: visible; }
-.modal.hidden { opacity: 0; visibility: hidden; }
-.month-block.collapsed .history-list { display: none; }
 .month-block.collapsed .toggle-icon { transform: rotate(-180deg); }
 .chart-container::-webkit-scrollbar { display: none; }
 .chart-container { scrollbar-width: none; }
-.chart-bar { position: relative; }
+
+.history-wrapper {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.3s ease-in-out, opacity 0.3s ease-in-out;
+  opacity: 1;
+}
+
+.month-block.collapsed .history-wrapper {
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+
+@keyframes growUp {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+.chart-bar {
+  position: relative;
+  transform-origin: bottom;
+  animation: growUp 0.5s ease-out forwards;
+}
+
 .chart-bar::after {
   content: attr(data-tooltip);
   position: absolute;

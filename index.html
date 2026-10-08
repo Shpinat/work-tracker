@@ -38,14 +38,14 @@
       </header>
 
       <div class="flex flex-col gap-3 mb-4">
-        <button id="start-shift" class="py-3 px-6 rounded-full font-medium transition-transform active:scale-95 flex items-center justify-center gap-2 w-full bg-primary text-white shadow-md hover:shadow-lg disabled:opacity-50">Начать смену</button>
-        <button id="end-shift" class="py-3 px-6 rounded-full font-medium transition-transform active:scale-95 flex items-center justify-center gap-2 w-full bg-red-500 text-white shadow-md hover:shadow-lg disabled:opacity-50" disabled>Завершить смену</button>
-        <button id="add-manual-shift" class="py-3 px-6 rounded-full font-medium transition-transform active:scale-95 flex items-center justify-center gap-2 w-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600">
+        <button id="start-shift" class="py-3 px-6 rounded-full font-medium transition-all duration-300 ease-in-out active:scale-95 flex items-center justify-center gap-2 w-full bg-primary text-white shadow-md hover:shadow-lg disabled:opacity-50">Начать смену</button>
+        <button id="end-shift" class="py-3 px-6 rounded-full font-medium transition-all duration-300 ease-in-out active:scale-95 flex items-center justify-center gap-2 w-full bg-red-500 text-white shadow-md hover:shadow-lg disabled:opacity-50" disabled>Завершить смену</button>
+        <button id="add-manual-shift" class="py-3 px-6 rounded-full font-medium transition-all duration-300 ease-in-out active:scale-95 flex items-center justify-center gap-2 w-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600">
           Добавить смену вручную
         </button>
       </div>
 
-      <button id="export-shifts-btn" class="py-3 px-6 rounded-full font-medium transition-transform active:scale-95 flex items-center justify-center gap-2 w-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600 mb-6">
+      <button id="export-shifts-btn" class="py-3 px-6 rounded-full font-medium transition-all duration-300 ease-in-out active:scale-95 flex items-center justify-center gap-2 w-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600 mb-6">
         Выгрузить смены (период)
       </button>
 
@@ -64,38 +64,38 @@
     </div>
 
     <!-- Всплывающее окно редактирования -->
-    <div id="edit-modal" class="modal hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 transition-opacity">
-      <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl w-[90%] max-w-sm shadow-xl transition-transform text-slate-900 dark:text-slate-100">
+    <div id="edit-modal" class="modal opacity-0 pointer-events-none fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 transition-all duration-300 ease-in-out">
+      <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl w-[90%] max-w-sm shadow-xl scale-95 transition-all duration-300 ease-out text-slate-900 dark:text-slate-100">
         <h3 class="mb-5 text-2xl">Редактировать смену</h3>
         <label class="text-sm text-slate-500 dark:text-slate-400 mb-1 block">Начало смены:</label>
         <input type="datetime-local" id="edit-start" class="w-full p-3 mb-5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
         <label class="text-sm text-slate-500 dark:text-slate-400 mb-1 block">Конец смены:</label>
         <input type="datetime-local" id="edit-end" class="w-full p-3 mb-5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
         <div class="flex gap-3 mt-2">
-          <button id="save-edit" class="py-3 px-6 rounded-full font-medium transition-transform active:scale-95 flex items-center justify-center gap-2 w-full bg-primary text-white shadow-md hover:shadow-lg disabled:opacity-50">Сохранить</button>
-          <button id="cancel-edit" class="py-3 px-6 rounded-full font-medium transition-transform active:scale-95 flex items-center justify-center gap-2 w-full bg-red-500 text-white shadow-md hover:shadow-lg disabled:opacity-50">Отмена</button>
+          <button id="save-edit" class="py-3 px-6 rounded-full font-medium transition-all duration-300 ease-in-out active:scale-95 flex items-center justify-center gap-2 w-full bg-primary text-white shadow-md hover:shadow-lg disabled:opacity-50">Сохранить</button>
+          <button id="cancel-edit" class="py-3 px-6 rounded-full font-medium transition-all duration-300 ease-in-out active:scale-95 flex items-center justify-center gap-2 w-full bg-red-500 text-white shadow-md hover:shadow-lg disabled:opacity-50">Отмена</button>
         </div>
       </div>
     </div>
 
     <!-- Всплывающее окно выгрузки -->
-    <div id="export-modal" class="modal hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 transition-opacity">
-      <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl w-[90%] max-w-sm shadow-xl transition-transform text-slate-900 dark:text-slate-100">
+    <div id="export-modal" class="modal opacity-0 pointer-events-none fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 transition-all duration-300 ease-in-out">
+      <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl w-[90%] max-w-sm shadow-xl scale-95 transition-all duration-300 ease-out text-slate-900 dark:text-slate-100">
         <h3 class="mb-5 text-2xl">Выгрузить смены</h3>
         <label class="text-sm text-slate-500 dark:text-slate-400 mb-1 block">Начало периода:</label>
         <input type="date" id="export-start" class="w-full p-3 mb-5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
         <label class="text-sm text-slate-500 dark:text-slate-400 mb-1 block">Конец периода:</label>
         <input type="date" id="export-end" class="w-full p-3 mb-5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
         <div class="flex gap-3 mt-2">
-          <button id="copy-export" class="py-3 px-6 rounded-full font-medium transition-transform active:scale-95 flex items-center justify-center gap-2 w-full bg-primary text-white shadow-md hover:shadow-lg disabled:opacity-50">CSV</button>
-          <button id="cancel-export" class="py-3 px-6 rounded-full font-medium transition-transform active:scale-95 flex items-center justify-center gap-2 w-full bg-red-500 text-white shadow-md hover:shadow-lg disabled:opacity-50">Отмена</button>
+          <button id="copy-export" class="py-3 px-6 rounded-full font-medium transition-all duration-300 ease-in-out active:scale-95 flex items-center justify-center gap-2 w-full bg-primary text-white shadow-md hover:shadow-lg disabled:opacity-50">CSV</button>
+          <button id="cancel-export" class="py-3 px-6 rounded-full font-medium transition-all duration-300 ease-in-out active:scale-95 flex items-center justify-center gap-2 w-full bg-red-500 text-white shadow-md hover:shadow-lg disabled:opacity-50">Отмена</button>
         </div>
       </div>
     </div>
 
     <!-- Обновленное окно добавления вручную (с клавиатурой) -->
-    <div id="add-modal" class="modal hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 transition-opacity">
-      <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl w-[90%] max-w-sm shadow-xl transition-transform text-slate-900 dark:text-slate-100">
+    <div id="add-modal" class="modal opacity-0 pointer-events-none fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 transition-all duration-300 ease-in-out">
+      <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl w-[90%] max-w-sm shadow-xl scale-95 transition-all duration-300 ease-out text-slate-900 dark:text-slate-100">
         <h3 class="mb-5 text-2xl">Добавить смену</h3>
         <label class="text-sm text-slate-500 dark:text-slate-400 mb-1 block">Дата смены:</label>
         <input type="date" id="add-date" class="w-full p-3 mb-5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
@@ -116,8 +116,8 @@
           class="w-full p-3 mb-5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
         />
         <div class="flex gap-3 mt-2">
-          <button id="save-add" class="py-3 px-6 rounded-full font-medium transition-transform active:scale-95 flex items-center justify-center gap-2 w-full bg-primary text-white shadow-md hover:shadow-lg disabled:opacity-50">Добавить</button>
-          <button id="cancel-add" class="py-3 px-6 rounded-full font-medium transition-transform active:scale-95 flex items-center justify-center gap-2 w-full bg-red-500 text-white shadow-md hover:shadow-lg disabled:opacity-50">Отмена</button>
+          <button id="save-add" class="py-3 px-6 rounded-full font-medium transition-all duration-300 ease-in-out active:scale-95 flex items-center justify-center gap-2 w-full bg-primary text-white shadow-md hover:shadow-lg disabled:opacity-50">Добавить</button>
+          <button id="cancel-add" class="py-3 px-6 rounded-full font-medium transition-all duration-300 ease-in-out active:scale-95 flex items-center justify-center gap-2 w-full bg-red-500 text-white shadow-md hover:shadow-lg disabled:opacity-50">Отмена</button>
         </div>
       </div>
     </div>

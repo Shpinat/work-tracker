@@ -108,11 +108,17 @@ addManualBtn.addEventListener('click', () => {
 
     addStartTimeInput.value = currentTimeStr;
     addEndTimeInput.value = currentTimeStr;
-    addModal.classList.remove('hidden');
+    addModal.classList.remove('opacity-0', 'pointer-events-none');
+    addModal.classList.add('opacity-100', 'pointer-events-auto');
+    addModal.querySelector('div').classList.remove('scale-95');
+    addModal.querySelector('div').classList.add('scale-100');
 });
 
 cancelAddBtn.addEventListener('click', () => {
-    addModal.classList.add('hidden');
+    addModal.classList.add('opacity-0', 'pointer-events-none');
+    addModal.classList.remove('opacity-100', 'pointer-events-auto');
+    addModal.querySelector('div').classList.add('scale-95');
+    addModal.querySelector('div').classList.remove('scale-100');
 });
 
 saveAddBtn.addEventListener('click', () => {
@@ -138,7 +144,10 @@ saveAddBtn.addEventListener('click', () => {
     const diffHours = calculateShiftHours(diffMs);
 
     saveShiftToHistory(start, end, diffHours);
-    addModal.classList.add('hidden');
+    addModal.classList.add('opacity-0', 'pointer-events-none');
+    addModal.classList.remove('opacity-100', 'pointer-events-auto');
+    addModal.querySelector('div').classList.add('scale-95');
+    addModal.querySelector('div').classList.remove('scale-100');
     renderHistory();
 });
 
@@ -286,8 +295,12 @@ function renderHistory() {
                 </div>
                 <div class="material-symbols-outlined transition-transform duration-300 text-slate-500 dark:text-slate-400 toggle-icon">expand_more</div>
             </div>
-            ${chartHtml}
-            <ul class="flex flex-col gap-3 m-0 p-0 list-none history-list"></ul>
+            <div class="history-wrapper">
+                <div class="overflow-hidden">
+                    ${chartHtml}
+                    <ul class="flex flex-col gap-3 m-0 p-0 list-none history-list mt-3"></ul>
+                </div>
+            </div>
         `;
 
         const ul = monthBlock.querySelector('.history-list');
@@ -340,11 +353,17 @@ window.openEditModal = function(index) {
 
     editStartInput.value = toLocalISOString(new Date(shift.start));
     editEndInput.value = toLocalISOString(new Date(shift.end));
-    editModal.classList.remove('hidden');
+    editModal.classList.remove('opacity-0', 'pointer-events-none');
+    editModal.classList.add('opacity-100', 'pointer-events-auto');
+    editModal.querySelector('div').classList.remove('scale-95');
+    editModal.querySelector('div').classList.add('scale-100');
 }
 
 cancelEditBtn.addEventListener('click', () => {
-    editModal.classList.add('hidden');
+    editModal.classList.add('opacity-0', 'pointer-events-none');
+    editModal.classList.remove('opacity-100', 'pointer-events-auto');
+    editModal.querySelector('div').classList.add('scale-95');
+    editModal.querySelector('div').classList.remove('scale-100');
     currentEditIndex = null;
 });
 
@@ -374,7 +393,10 @@ saveEditBtn.addEventListener('click', () => {
     };
 
     setShiftsHistory(history);
-    editModal.classList.add('hidden');
+    editModal.classList.add('opacity-0', 'pointer-events-none');
+    editModal.classList.remove('opacity-100', 'pointer-events-auto');
+    editModal.querySelector('div').classList.add('scale-95');
+    editModal.querySelector('div').classList.remove('scale-100');
     renderHistory();
 });
 
@@ -402,13 +424,19 @@ if (exportBtn) {
         const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
         exportStartInput.value = firstDay.toISOString().split('T')[0];
         exportEndInput.value = now.toISOString().split('T')[0];
-        exportModal.classList.remove('hidden');
+        exportModal.classList.remove('opacity-0', 'pointer-events-none');
+    exportModal.classList.add('opacity-100', 'pointer-events-auto');
+    exportModal.querySelector('div').classList.remove('scale-95');
+    exportModal.querySelector('div').classList.add('scale-100');
     });
 }
 
 if (cancelExportBtn) {
     cancelExportBtn.addEventListener('click', () => {
-        exportModal.classList.add('hidden');
+        exportModal.classList.add('opacity-0', 'pointer-events-none');
+    exportModal.classList.remove('opacity-100', 'pointer-events-auto');
+    exportModal.querySelector('div').classList.add('scale-95');
+    exportModal.querySelector('div').classList.remove('scale-100');
     });
 }
 
@@ -483,7 +511,10 @@ if (copyExportBtn) {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        exportModal.classList.add('hidden');
+        exportModal.classList.add('opacity-0', 'pointer-events-none');
+    exportModal.classList.remove('opacity-100', 'pointer-events-auto');
+    exportModal.querySelector('div').classList.add('scale-95');
+    exportModal.querySelector('div').classList.remove('scale-100');
     });
 }
 

@@ -48,3 +48,27 @@
   color: #1e293b;
 }
 .chart-bar:hover::after { opacity: 1; }
+
+.btn-squircle {
+  /* Provide border-radius for non-supporting browsers and when mask is not working perfectly */
+  border-radius: 24px;
+
+  /* Modern squircle corner shape support */
+  corner-shape: squircle;
+
+  /* Fallback to SVG mask for perfectly smooth squircle (iOS like).
+     The SVG is drawn for a ~48px tall button.
+     It has 4 corner paths of 24x24 each, placed at corners,
+     and two rectangles spanning the rest of the space to allow the button to stretch horizontally. */
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'%3E%3Crect x='24' y='0' width='calc(100%25 - 48px)' height='100%25' fill='black'/%3E%3Crect x='0' y='24' width='100%25' height='calc(100%25 - 48px)' fill='black'/%3E%3Cpath d='M0,24 C0,5.37 5.37,0 24,0 L24,24 Z' fill='black'/%3E%3Csvg x='100%25' overflow='visible'%3E%3Cpath d='M0,24 C0,5.37 -5.37,0 -24,0 L-24,24 Z' fill='black'/%3E%3C/svg%3E%3Csvg y='100%25' overflow='visible'%3E%3Cpath d='M0,-24 C0,-5.37 5.37,0 24,0 L24,-24 Z' fill='black'/%3E%3C/svg%3E%3Csvg x='100%25' y='100%25' overflow='visible'%3E%3Cpath d='M0,-24 C0,-5.37 -5.37,0 -24,0 L-24,-24 Z' fill='black'/%3E%3C/svg%3E%3C/svg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'%3E%3Crect x='24' y='0' width='calc(100%25 - 48px)' height='100%25' fill='black'/%3E%3Crect x='0' y='24' width='100%25' height='calc(100%25 - 48px)' fill='black'/%3E%3Cpath d='M0,24 C0,5.37 5.37,0 24,0 L24,24 Z' fill='black'/%3E%3Csvg x='100%25' overflow='visible'%3E%3Cpath d='M0,24 C0,5.37 -5.37,0 -24,0 L-24,24 Z' fill='black'/%3E%3C/svg%3E%3Csvg y='100%25' overflow='visible'%3E%3Cpath d='M0,-24 C0,-5.37 5.37,0 24,0 L24,-24 Z' fill='black'/%3E%3C/svg%3E%3Csvg x='100%25' y='100%25' overflow='visible'%3E%3Cpath d='M0,-24 C0,-5.37 -5.37,0 -24,0 L-24,-24 Z' fill='black'/%3E%3C/svg%3E%3C/svg%3E");
+}
+
+/* If the browser supports corner-shape: squircle, we can disable the mask
+   so we don't have overlapping visual effects, though it's optional. */
+@supports (corner-shape: squircle) {
+  .btn-squircle {
+    mask-image: none;
+    -webkit-mask-image: none;
+  }
+}

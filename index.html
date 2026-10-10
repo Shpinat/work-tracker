@@ -33,20 +33,20 @@
     <div class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-6 rounded-[2rem] border border-white/50 dark:border-slate-700/50 shadow-xl w-full max-w-md transition-colors duration-300">
       <header class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-medium text-slate-900 dark:text-slate-100">Мои Смены</h1>
-        <button id="theme-toggle" class="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" aria-label="Переключить тему">
+        <button id="theme-toggle" class="p-2 btn-squircle text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" aria-label="Переключить тему">
           <span class="material-symbols-outlined" id="theme-icon">dark_mode</span>
         </button>
       </header>
 
       <div class="flex flex-col gap-3 mb-4">
-        <button id="start-shift" class="py-3 px-6 rounded-full font-medium transition-all duration-300 ease-in-out active:scale-95 hover:-translate-y-0.5 flex items-center justify-center gap-2 w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/40 disabled:opacity-50 disabled:hover:translate-y-0">Начать смену</button>
-        <button id="end-shift" class="py-3 px-6 rounded-full font-medium transition-all duration-300 ease-in-out active:scale-95 hover:-translate-y-0.5 flex items-center justify-center gap-2 w-full bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-lg shadow-rose-500/30 hover:shadow-rose-500/40 disabled:opacity-50 disabled:hover:translate-y-0" disabled>Завершить смену</button>
-        <button id="add-manual-shift" class="py-3 px-6 rounded-full font-medium transition-all duration-300 ease-in-out active:scale-95 hover:-translate-y-0.5 flex items-center justify-center gap-2 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700/80 hover:shadow-md">
+        <button id="start-shift" class="py-3 px-6 btn-squircle font-medium transition-all duration-300 ease-in-out active:scale-95 hover:-translate-y-0.5 flex items-center justify-center gap-2 w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/40 disabled:opacity-50 disabled:hover:translate-y-0">Начать смену</button>
+        <button id="end-shift" class="py-3 px-6 btn-squircle font-medium transition-all duration-300 ease-in-out active:scale-95 hover:-translate-y-0.5 flex items-center justify-center gap-2 w-full bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-lg shadow-rose-500/30 hover:shadow-rose-500/40 disabled:opacity-50 disabled:hover:translate-y-0" disabled>Завершить смену</button>
+        <button id="add-manual-shift" class="py-3 px-6 btn-squircle font-medium transition-all duration-300 ease-in-out active:scale-95 hover:-translate-y-0.5 flex items-center justify-center gap-2 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700/80 hover:shadow-md">
           Добавить смену вручную
         </button>
       </div>
 
-      <button id="export-shifts-btn" class="py-3 px-6 rounded-full font-medium transition-all duration-300 ease-in-out active:scale-95 hover:-translate-y-0.5 flex items-center justify-center gap-2 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700/80 hover:shadow-md mb-6">
+      <button id="export-shifts-btn" class="py-3 px-6 btn-squircle font-medium transition-all duration-300 ease-in-out active:scale-95 hover:-translate-y-0.5 flex items-center justify-center gap-2 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700/80 hover:shadow-md mb-6">
         Выгрузить смены (период)
       </button>
 
@@ -73,8 +73,8 @@
         <label class="text-sm text-slate-500 dark:text-slate-400 mb-1 block">Конец смены:</label>
         <input type="datetime-local" id="edit-end" class="w-full p-3 mb-5 bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow" />
         <div class="flex gap-3 mt-2">
-          <button id="save-edit" class="py-3 px-6 rounded-full font-medium transition-all duration-300 ease-in-out active:scale-95 hover:-translate-y-0.5 flex items-center justify-center gap-2 w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/40 disabled:opacity-50 disabled:hover:translate-y-0">Сохранить</button>
-          <button id="cancel-edit" class="py-3 px-6 rounded-full font-medium transition-all duration-300 ease-in-out active:scale-95 hover:-translate-y-0.5 flex items-center justify-center gap-2 w-full bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-lg shadow-rose-500/30 hover:shadow-rose-500/40 disabled:opacity-50 disabled:hover:translate-y-0">Отмена</button>
+          <button id="save-edit" class="py-3 px-6 btn-squircle font-medium transition-all duration-300 ease-in-out active:scale-95 hover:-translate-y-0.5 flex items-center justify-center gap-2 w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/40 disabled:opacity-50 disabled:hover:translate-y-0">Сохранить</button>
+          <button id="cancel-edit" class="py-3 px-6 btn-squircle font-medium transition-all duration-300 ease-in-out active:scale-95 hover:-translate-y-0.5 flex items-center justify-center gap-2 w-full bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-lg shadow-rose-500/30 hover:shadow-rose-500/40 disabled:opacity-50 disabled:hover:translate-y-0">Отмена</button>
         </div>
       </div>
     </div>
@@ -88,8 +88,8 @@
         <label class="text-sm text-slate-500 dark:text-slate-400 mb-1 block">Конец периода:</label>
         <input type="date" id="export-end" class="w-full p-3 mb-5 bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow" />
         <div class="flex gap-3 mt-2">
-          <button id="copy-export" class="py-3 px-6 rounded-full font-medium transition-all duration-300 ease-in-out active:scale-95 hover:-translate-y-0.5 flex items-center justify-center gap-2 w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/40 disabled:opacity-50 disabled:hover:translate-y-0">CSV</button>
-          <button id="cancel-export" class="py-3 px-6 rounded-full font-medium transition-all duration-300 ease-in-out active:scale-95 hover:-translate-y-0.5 flex items-center justify-center gap-2 w-full bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-lg shadow-rose-500/30 hover:shadow-rose-500/40 disabled:opacity-50 disabled:hover:translate-y-0">Отмена</button>
+          <button id="copy-export" class="py-3 px-6 btn-squircle font-medium transition-all duration-300 ease-in-out active:scale-95 hover:-translate-y-0.5 flex items-center justify-center gap-2 w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/40 disabled:opacity-50 disabled:hover:translate-y-0">CSV</button>
+          <button id="cancel-export" class="py-3 px-6 btn-squircle font-medium transition-all duration-300 ease-in-out active:scale-95 hover:-translate-y-0.5 flex items-center justify-center gap-2 w-full bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-lg shadow-rose-500/30 hover:shadow-rose-500/40 disabled:opacity-50 disabled:hover:translate-y-0">Отмена</button>
         </div>
       </div>
     </div>
@@ -117,8 +117,8 @@
           class="w-full p-3 mb-5 bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
         />
         <div class="flex gap-3 mt-2">
-          <button id="save-add" class="py-3 px-6 rounded-full font-medium transition-all duration-300 ease-in-out active:scale-95 hover:-translate-y-0.5 flex items-center justify-center gap-2 w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/40 disabled:opacity-50 disabled:hover:translate-y-0">Добавить</button>
-          <button id="cancel-add" class="py-3 px-6 rounded-full font-medium transition-all duration-300 ease-in-out active:scale-95 hover:-translate-y-0.5 flex items-center justify-center gap-2 w-full bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-lg shadow-rose-500/30 hover:shadow-rose-500/40 disabled:opacity-50 disabled:hover:translate-y-0">Отмена</button>
+          <button id="save-add" class="py-3 px-6 btn-squircle font-medium transition-all duration-300 ease-in-out active:scale-95 hover:-translate-y-0.5 flex items-center justify-center gap-2 w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/40 disabled:opacity-50 disabled:hover:translate-y-0">Добавить</button>
+          <button id="cancel-add" class="py-3 px-6 btn-squircle font-medium transition-all duration-300 ease-in-out active:scale-95 hover:-translate-y-0.5 flex items-center justify-center gap-2 w-full bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-lg shadow-rose-500/30 hover:shadow-rose-500/40 disabled:opacity-50 disabled:hover:translate-y-0">Отмена</button>
         </div>
       </div>
     </div>

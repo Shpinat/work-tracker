@@ -72,7 +72,7 @@
           </svg>
         </button>
       </nav>
-     <div style="display: flex; gap: 8px;">
+     <div class="header__actions">
             <!-- Кнопка смены темы -->
             <button class="btn btn--icon" onclick="toggleTheme()" aria-label="Сменить тему">
                 <svg id="themeIcon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -126,7 +126,7 @@
       <section class="shifts main__shifts" aria-label="Детализация смен">
         <header class="shifts__header">
           <h2 class="shifts__title">Детализация за месяц</h2>
-          <button class="btn btn--secondary shifts__export-btn" onclick="exportCSV()" style="display: inline-flex; align-items: center; gap: 8px; font-size: 0.85rem; padding: 8px 16px; width: auto; height: auto;">
+          <button class="btn btn--secondary shifts__export-btn" onclick="exportCSV()">
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
         <polyline points="7 10 12 15 17 10"></polyline>
@@ -386,7 +386,7 @@
         <hr class="modal__divider" />
         <h4 class="modal__subtitle">Резервная копия данных</h4>
         <div class="modal__actions">
-          <button class="btn btn--secondary modal__action-btn" onclick="downloadBackup()" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
+          <button class="btn btn--secondary modal__action-btn" onclick="downloadBackup()">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
             <polyline points="17 21 17 13 7 13 7 21"></polyline>
@@ -394,7 +394,7 @@
         </svg>
         Скачать бэкап
     </button>
-          <button class="btn btn--secondary modal__action-btn" onclick="document.getElementById('importFile').click()" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
+          <button class="btn btn--secondary modal__action-btn" onclick="document.getElementById('importFile').click()">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
             <polyline points="17 8 12 3 7 8"></polyline>

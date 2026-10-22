@@ -33,7 +33,7 @@
 
 [data-theme="light"] body {
     background-color: var(--bg);
-    background-image: 
+    background-image:
         radial-gradient(circle at 10% 90%, rgba(168, 85, 247, 0.05), transparent 50%),
         radial-gradient(circle at 90% 10%, rgba(59, 130, 246, 0.05), transparent 50%);
     color: var(--text);
@@ -228,6 +228,11 @@ body {
     padding-top: 10px;
 }
 
+.header__actions {
+    display: flex;
+    gap: 8px;
+}
+
 /* Month Selector (Block) */
 .month-selector {
     display: flex;
@@ -393,10 +398,13 @@ body {
 }
 
 .shifts__export-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    padding: 8px 16px;
     width: auto;
-    padding: 0 10px;
-    font-size: 0.8rem;
-    height: 32px;
+    height: auto;
 }
 
 .shift-list {
@@ -560,6 +568,10 @@ body {
 
 .modal__action-btn {
     flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
 }
 
 /* Form (Block) */
@@ -663,4 +675,74 @@ body {
 .form__btn--full {
     width: 100%;
     margin-bottom: 16px;
+}
+
+/* Media Queries for Mobile Responsiveness */
+@media (max-width: 480px) {
+    body {
+        padding: 12px;
+        padding-bottom: 80px;
+    }
+
+    .header {
+        margin-bottom: 16px;
+    }
+
+    .month-selector__title {
+        font-size: 1.1rem;
+        min-width: 120px;
+    }
+
+    .stats {
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+
+    .stats__card {
+        padding: 12px 8px;
+    }
+
+    .stats__value {
+        font-size: 1.1rem;
+    }
+
+    .stats__label {
+        font-size: 0.7rem;
+    }
+
+    .shifts__header {
+        flex-wrap: wrap;
+        gap: 12px;
+        justify-content: flex-start;
+    }
+
+    .shifts__title {
+        white-space: nowrap;
+        font-size: 1.05rem;
+    }
+
+    .shifts__export-btn {
+        white-space: nowrap;
+        font-size: 0.8rem;
+        padding: 6px 12px;
+        width: 100%;
+        justify-content: center;
+    }
+
+    .shift-list__item {
+        padding: 12px;
+    }
+
+    .shift-list__pay {
+        font-size: 0.95rem;
+    }
+
+    .modal {
+        padding: 20px 16px;
+    }
+
+    .modal__actions {
+        flex-direction: column;
+        gap: 8px;
+    }
 }

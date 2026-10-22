@@ -35,12 +35,13 @@
     background-color: var(--bg);
     background-image:
         radial-gradient(circle at 10% 90%, rgba(168, 85, 247, 0.05), transparent 50%),
-        radial-gradient(circle at 90% 10%, rgba(59, 130, 246, 0.05), transparent 50%);
+        radial-gradient(circle at 90% 10%, rgba(172, 174, 176, 0.05), transparent 50%);
     color: var(--text);
 }
 
 [data-theme="light"] .modal-overlay {
-    background: rgba(255, 255, 255, 0.6); /* Светлый блюр */
+    background: rgba(255, 255, 255, 0.6);
+    /* Светлый блюр */
 }
 
 [data-theme="light"] .calendar__day-cell {
@@ -92,7 +93,8 @@
 [data-theme="light"] .shift-list__item,
 [data-theme="light"] .modal,
 [data-theme="light"] .update-toast {
-    box-shadow: 0 8px 24px rgba(149, 157, 165, 0.12); /* Мягкая тень */
+    box-shadow: 0 8px 24px rgba(149, 157, 165, 0.12);
+    /* Мягкая тень */
 }
 
 [data-theme="light"] .shift-list__item:hover {
@@ -118,8 +120,28 @@
 body {
     background-color: var(--bg);
     background-image:
-        radial-gradient(circle at 10% 90%, rgba(168, 85, 247, 0.15), transparent 50%),
-        radial-gradient(circle at 90% 10%, rgba(59, 130, 246, 0.12), transparent 50%);
+        /* Усиленный слой зернистости (SVG-шум) */
+        url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://w3.org id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.09'/%3E%3C/svg%3E"),
+
+        /* Темные неоновые круги */
+        radial-gradient(circle at 62.5% 71.0%, rgba(0, 0, 0, 1), transparent 50%),
+        radial-gradient(circle at 47.7% 67.4%, rgba(62, 73, 204, 0.2), transparent 50%),
+        radial-gradient(circle at 8.1% 22.3%, rgba(117, 139, 253, 0.2), transparent 50%),
+        radial-gradient(circle at 10.5% 59.1%, rgba(0, 0, 0, 1), transparent 50%),
+        radial-gradient(circle at 98.8% 54.0%, rgba(62, 73, 204, 0.2), transparent 50%),
+        radial-gradient(circle at 8.3% 4.8%, rgba(117, 139, 253, 0.2), transparent 50%),
+        radial-gradient(circle at 21.6% 90.4%, rgba(0, 0, 0, 1), transparent 50%),
+        radial-gradient(circle at 10.5% 96.7%, rgba(62, 73, 204, 0.2), transparent 50%),
+        radial-gradient(circle at 48.4% 27.0%, rgba(117, 139, 253, 0.2), transparent 50%),
+        radial-gradient(circle at 57.0% 92.8%, rgba(0, 0, 0, 1), transparent 50%),
+        radial-gradient(circle at 70.8% 65.1%, rgba(62, 73, 204, 0.2), transparent 50%),
+        radial-gradient(circle at 94.4% 33.4%, rgba(117, 139, 253, 0.2), transparent 50%),
+
+        /* Абсолютно черный фон-подложка */
+        linear-gradient(rgba(0, 0, 0, 1), rgba(0, 0, 0, 1));
+
+
+
     background-attachment: fixed;
     color: var(--text);
     padding: 16px;
@@ -131,15 +153,17 @@ body {
 
 /* Update Toast (Block) */
 .update-toast {
+    min-width: 90vw;
+    font-size: 0.85rem;
     position: fixed;
-    bottom: 24px;
+    bottom: 15px;
     left: 50%;
     transform: translateX(-50%);
     background: var(--card);
     backdrop-filter: blur(20px);
     border: 1px solid var(--border);
     color: #fff;
-    padding: 12px 20px;
+    padding: 10px 20px;
     border-radius: var(--radius-pill);
     display: none;
     align-items: center;

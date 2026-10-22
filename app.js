@@ -406,7 +406,7 @@ function applyTheme(theme) {
     if (theme === "light") {
       metaThemeColor.setAttribute("content", "#f3f4f6");
     } else {
-      metaThemeColor.setAttribute("content", "#000000");
+      metaThemeColor.setAttribute("content", "#131535");
     }
   }
 

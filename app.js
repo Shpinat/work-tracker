@@ -399,6 +399,17 @@ let currentTheme = localStorage.getItem(THEME_KEY) || "dark";
 // Функция применения темы
 function applyTheme(theme) {
   document.documentElement.setAttribute("data-theme", theme);
+
+  // Обновляем theme-color
+  const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+  if (metaThemeColor) {
+    if (theme === "light") {
+      metaThemeColor.setAttribute("content", "#f3f4f6");
+    } else {
+      metaThemeColor.setAttribute("content", "#000000");
+    }
+  }
+
   const icon = document.getElementById("themeIcon");
   if (icon) {
     if (theme === "light") {

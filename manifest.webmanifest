@@ -2,10 +2,14 @@
   "name": "Трекер Смен",
   "short_name": "Смены",
   "description": "Удобный учет рабочих смен и доходов",
+  "lang": "ru",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#000000",
   "theme_color": "#131535",
+  "categories": ["productivity", "finance"],
   "icons": [
     {
       "src": "./icon-192x192.png",

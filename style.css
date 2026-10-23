@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
 :root {
     color-scheme: dark;
     --bg: #000000;
@@ -41,7 +39,6 @@
 
 [data-theme="light"] .modal-overlay {
     background: rgba(255, 255, 255, 0.6);
-    /* Светлый блюр */
 }
 
 [data-theme="light"] .calendar__day-cell {
@@ -94,7 +91,6 @@
 [data-theme="light"] .modal,
 [data-theme="light"] .update-toast {
     box-shadow: 0 8px 24px rgba(149, 157, 165, 0.12);
-    /* Мягкая тень */
 }
 
 [data-theme="light"] .shift-list__item:hover {
@@ -105,9 +101,9 @@
     color-scheme: light;
 }
 
-
-
-
+[data-theme="light"] .month-selector__title:hover {
+    color: #2563eb;
+}
 
 * {
     box-sizing: border-box;
@@ -120,8 +116,8 @@
 body {
     background-color: var(--bg);
     background-image:
-        /* Усиленный слой зернистости (SVG-шум) */
-        url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://w3.org id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.09'/%3E%3C/svg%3E"),
+        /* SVG-шум (зернистость) */
+        url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.5' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.09'/%3E%3C/svg%3E"),
 
         /* Темные неоновые круги */
         radial-gradient(circle at 62.5% 71.0%, rgba(0, 0, 0, 1), transparent 50%),
@@ -140,8 +136,6 @@ body {
         /* Абсолютно черный фон-подложка */
         linear-gradient(rgba(0, 0, 0, 1), rgba(0, 0, 0, 1));
 
-
-
     background-attachment: fixed;
     color: var(--text);
     padding: 16px;
@@ -159,8 +153,7 @@ body {
     bottom: 15px;
     left: 50%;
     transform: translateX(-50%);
-    background: var(--card);
-    backdrop-filter: blur(20px);
+    background: var(--card-solid);
     border: 1px solid var(--border);
     color: #fff;
     padding: 10px 20px;
@@ -271,6 +264,13 @@ body {
     text-align: center;
     text-transform: capitalize;
     letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: color 0.2s ease;
+    user-select: none;
+}
+
+.month-selector__title:hover {
+    color: var(--primary);
 }
 
 /* Stats (Block) */
@@ -282,8 +282,7 @@ body {
 }
 
 .stats__card {
-    background: var(--card);
-    backdrop-filter: blur(24px);
+    background: var(--card-solid);
     border: 1px solid var(--border);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
     padding: 16px 12px;
@@ -318,6 +317,7 @@ body {
     border-radius: var(--radius);
     padding: 16px;
     margin-bottom: 20px;
+    touch-action: pan-y;
 }
 
 .calendar__weekdays {
@@ -388,8 +388,21 @@ body {
     border: 1px solid rgba(168, 85, 247, 0.2);
 }
 
+.calendar__day-cell--has-shift.calendar__day-cell--extra {
+    background: linear-gradient(135deg, rgba(251, 146, 60, 0.15), rgba(251, 146, 60, 0.05));
+    border: 1px solid rgba(251, 146, 60, 0.2);
+}
+
 .calendar__day-cell--has-shift:hover {
     background: linear-gradient(135deg, rgba(59, 131, 246, 0.315), rgba(59, 130, 246, 0.05));
+}
+
+.calendar__day-cell--has-shift.calendar__day-cell--night:hover {
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.3), rgba(168, 85, 247, 0.05));
+}
+
+.calendar__day-cell--has-shift.calendar__day-cell--extra:hover {
+    background: linear-gradient(135deg, rgba(251, 146, 60, 0.3), rgba(251, 146, 60, 0.05));
 }
 
 .calendar__shift-badge {
@@ -397,7 +410,6 @@ body {
     font-weight: 600;
     color: #fff;
     background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(4px);
     padding: 3px 4px;
     border-radius: 6px;
     width: 100%;
@@ -421,6 +433,14 @@ body {
     font-weight: 600;
 }
 
+.shifts__export-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
 .shifts__export-btn {
     display: inline-flex;
     align-items: center;
@@ -431,6 +451,17 @@ body {
     height: auto;
 }
 
+.shifts__export-btn--subtle {
+    font-size: 0.78rem;
+    padding: 6px 12px;
+    opacity: 0.7;
+    transition: opacity 0.2s ease, background 0.2s ease;
+}
+
+.shifts__export-btn--subtle:hover {
+    opacity: 1;
+}
+
 .shift-list {
     display: flex;
     flex-direction: column;
@@ -438,8 +469,7 @@ body {
 }
 
 .shift-list__item {
-    background: var(--card);
-    backdrop-filter: blur(24px);
+    background: var(--card-solid);
     border: 1px solid var(--border);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
     border-radius: var(--radius);
@@ -501,29 +531,42 @@ body {
     border-radius: var(--radius);
 }
 
-/* Modal Overlay & Modal (Block) */
+/* Modal Overlay & Modal (Block) — анимация через visibility/opacity */
 .modal-overlay {
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.7);
-    display: none;
+    display: flex;
     align-items: center;
     justify-content: center;
     padding: 16px;
     z-index: 100;
     backdrop-filter: blur(12px);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.25s ease, visibility 0.25s;
 }
 
 .modal-overlay.active {
-    display: flex;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.modal-overlay__content {
+    transform: translateY(20px) scale(0.97);
+    transition: transform 0.25s ease;
+}
+
+.modal-overlay.active .modal-overlay__content {
+    transform: translateY(0) scale(1);
 }
 
 .modal {
     position: relative;
-    /* Reset absolute positioning of dialog */
     margin: 0;
-    /* Reset default auto margins of dialog */
-    background: var(--card);
+    background: var(--card-solid);
     border: 1px solid var(--border);
     border-radius: 28px;
     width: 100%;
@@ -554,16 +597,13 @@ body {
     width: 30px;
     height: 30px;
     font-size: 1.2rem;
-    /* Убираем 14px (круг) и ставим форму сквиркла в стиле Apple */
     border-radius: 50%;
 }
 
 .modal__close-btn::before {
     content: "\00D7";
-    /* Это Юникод символа &times; */
     font-size: 1rem;
     line-height: 1;
-    /* Символ умножения в шрифтах часто визуально смещен чуть вверх, этот отступ центрирует его идеально */
     margin-bottom: 2px;
 }
 
@@ -745,11 +785,15 @@ body {
         font-size: 1.05rem;
     }
 
+    .shifts__export-group {
+        width: 100%;
+    }
+
     .shifts__export-btn {
         white-space: nowrap;
         font-size: 0.8rem;
         padding: 8px 12px;
-        width: 100%;
+        flex: 1;
         justify-content: center;
     }
 

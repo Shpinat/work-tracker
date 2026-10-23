@@ -1,25 +1,55 @@
+// ============================================================
+// Константы
+// ============================================================
 const STORAGE_KEY = "my_work_shifts_v1";
 const SETTINGS_KEY = "my_work_settings_v1";
+const THEME_KEY = "my_work_theme_v1";
 
+const DEFAULT_SETTINGS = {
+  start: "09:00",
+  end: "21:00",
+  breakMins: 60,
+  payMode: "hourly",
+  rate: 300,
+  currency: "₽",
+};
+
+const MONTH_NAMES = [
+  "Январь",
+  "Февраль",
+  "Март",
+  "Апрель",
+  "Май",
+  "Июнь",
+  "Июль",
+  "Август",
+  "Сентябрь",
+  "Октябрь",
+  "Ноябрь",
+  "Декабрь",
+];
+
+// ============================================================
+// Состояние
+// ============================================================
 let currentDate = new Date();
 let shifts = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
 let settings = JSON.parse(
-  localStorage.getItem(SETTINGS_KEY) ||
-    JSON.stringify({
-      start: "09:00",
-      end: "21:00",
-      breakMins: 60,
-      payMode: "hourly",
-      rate: 300,
-      currency: "₽",
-    }),
+  localStorage.getItem(SETTINGS_KEY) || JSON.stringify(DEFAULT_SETTINGS),
 );
+let currentTheme = localStorage.getItem(THEME_KEY) || "dark";
 
+// ============================================================
 // Кэширование DOM-элементов
+// ============================================================
 const elements = {
   // Навигация и заголовок
   monthTitle: document.getElementById("monthTitle"),
+  prevMonthBtn: document.getElementById("prevMonthBtn"),
+  nextMonthBtn: document.getElementById("nextMonthBtn"),
+  themeToggleBtn: document.getElementById("themeToggleBtn"),
   themeIcon: document.getElementById("themeIcon"),
+  settingsBtn: document.getElementById("settingsBtn"),
   metaThemeColor: document.querySelector('meta[name="theme-color"]'),
 
   // Статистика
@@ -31,9 +61,15 @@ const elements = {
   calendarGrid: document.getElementById("calendarGrid"),
   shiftList: document.getElementById("shiftList"),
 
+  // Экспорт
+  exportMonthBtn: document.getElementById("exportMonthBtn"),
+  exportAllBtn: document.getElementById("exportAllBtn"),
+
   // Модальное окно смены
   shiftModal: document.getElementById("shiftModal"),
   shiftModalTitle: document.getElementById("shiftModalTitle"),
+  shiftModalCloseBtn: document.getElementById("shiftModalCloseBtn"),
+  shiftForm: document.getElementById("shiftForm"),
   shiftDate: document.getElementById("shiftDate"),
   shiftType: document.getElementById("shiftType"),
   startTime: document.getElementById("startTime"),
@@ -50,6 +86,8 @@ const elements = {
 
   // Модальное окно настроек
   settingsModal: document.getElementById("settingsModal"),
+  settingsModalCloseBtn: document.getElementById("settingsModalCloseBtn"),
+  settingsForm: document.getElementById("settingsForm"),
   defStart: document.getElementById("defStart"),
   defEnd: document.getElementById("defEnd"),
   defBreak: document.getElementById("defBreak"),
@@ -57,33 +95,30 @@ const elements = {
   defRate: document.getElementById("defRate"),
   defCurrency: document.getElementById("defCurrency"),
 
+  // Бэкап
+  backupDownloadBtn: document.getElementById("backupDownloadBtn"),
+  backupRestoreBtn: document.getElementById("backupRestoreBtn"),
+  importFile: document.getElementById("importFile"),
+
   // PWA тост
   updateToast: document.getElementById("updateToast"),
   updateReloadBtn: document.getElementById("updateReloadBtn"),
 };
 
-const monthNames = [
-  "Январь",
-  "Февраль",
-  "Март",
-  "Апрель",
-  "Май",
-  "Июнь",
-  "Июль",
-  "Август",
-  "Сентябрь",
-  "Октябрь",
-  "Ноябрь",
-  "Декабрь",
-];
+// ============================================================
+// Утилиты
+// ============================================================
+
+/** Экранирование HTML-спецсимволов для защиты от XSS */
+function escapeHtml(str) {
+  if (!str) return "";
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
 
 function formatDateKey(year, month, day) {
   return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-}
-
-function changeMonth(delta) {
-  currentDate.setMonth(currentDate.getMonth() + delta);
-  render();
 }
 
 function calcHoursDiff(start, end, breakMins) {
@@ -99,6 +134,32 @@ function calcHoursDiff(start, end, breakMins) {
   return Math.round((netMins / 60) * 100) / 100;
 }
 
+/** Скачать blob-файл и освободить ObjectURL */
+function triggerDownload(blob, filename) {
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+// ============================================================
+// Навигация по месяцам
+// ============================================================
+function changeMonth(delta) {
+  currentDate.setMonth(currentDate.getMonth() + delta);
+  render();
+}
+
+function goToToday() {
+  currentDate = new Date();
+  render();
+}
+
+// ============================================================
+// Пересчёт модалки смены
+// ============================================================
 function recalcModal() {
   const start = elements.startTime.value;
   const end = elements.endTime.value;
@@ -119,8 +180,20 @@ function recalcModal() {
   elements.totalPay.value = Math.round(basePay + bonus);
 }
 
+// ============================================================
+// Модальные окна
+// ============================================================
+function openModal(id) {
+  const modal = elements[id] || document.getElementById(id);
+  if (modal) modal.classList.add("active");
+}
+
+function closeModal(id) {
+  const modal = elements[id] || document.getElementById(id);
+  if (modal) modal.classList.remove("active");
+}
+
 function openShiftModal(dateKey) {
-  const modal = elements.shiftModal;
   const existing = shifts[dateKey];
   const [y, m, d] = dateKey.split("-");
   elements.shiftModalTitle.textContent = `Смена ${d}.${m}.${y}`;
@@ -151,12 +224,7 @@ function openShiftModal(dateKey) {
     recalcModal();
   }
 
-  modal.classList.add("active");
-}
-
-function closeModal(id) {
-  const modal = elements[id] || document.getElementById(id);
-  if (modal) modal.classList.remove("active");
+  openModal("shiftModal");
 }
 
 function saveShift(e) {
@@ -180,6 +248,7 @@ function saveShift(e) {
 }
 
 function deleteShift() {
+  if (!confirm("Удалить эту смену?")) return;
   const dateKey = elements.shiftDate.value;
   delete shifts[dateKey];
   localStorage.setItem(STORAGE_KEY, JSON.stringify(shifts));
@@ -187,6 +256,9 @@ function deleteShift() {
   render();
 }
 
+// ============================================================
+// Настройки
+// ============================================================
 function openSettings() {
   elements.defStart.value = settings.start;
   elements.defEnd.value = settings.end;
@@ -194,10 +266,11 @@ function openSettings() {
   elements.defPayMode.value = settings.payMode;
   elements.defRate.value = settings.rate;
   elements.defCurrency.value = settings.currency || "₽";
-  elements.settingsModal.classList.add("active");
+  openModal("settingsModal");
 }
 
-function saveSettings() {
+function saveSettings(e) {
+  e.preventDefault();
   settings = {
     start: elements.defStart.value || "09:00",
     end: elements.defEnd.value || "21:00",
@@ -211,23 +284,17 @@ function saveSettings() {
   render();
 }
 
+// ============================================================
+// Рендер
+// ============================================================
 function render() {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
-  elements.monthTitle.textContent = `${monthNames[month]} ${year}`;
+  elements.monthTitle.textContent = `${MONTH_NAMES[month]} ${year}`;
 
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const startOffset = (firstDay + 6) % 7; // Пн = 0
-
-  const grid = elements.calendarGrid;
-  grid.innerHTML = "";
-
-  for (let i = 0; i < startOffset; i++) {
-    const empty = document.createElement("div");
-    empty.className = "calendar__day-cell calendar__day-cell--empty";
-    grid.appendChild(empty);
-  }
 
   const today = new Date();
   const todayKey = formatDateKey(
@@ -241,6 +308,15 @@ function render() {
   let totalIncome = 0;
   const monthShifts = [];
 
+  // Собираем ячейки через DocumentFragment для одной вставки в DOM
+  const fragment = document.createDocumentFragment();
+
+  for (let i = 0; i < startOffset; i++) {
+    const empty = document.createElement("div");
+    empty.className = "calendar__day-cell calendar__day-cell--empty";
+    fragment.appendChild(empty);
+  }
+
   for (let day = 1; day <= daysInMonth; day++) {
     const dateKey = formatDateKey(year, month, day);
     const shift = shifts[dateKey];
@@ -248,59 +324,90 @@ function render() {
     cell.className = "calendar__day-cell";
     if (dateKey === todayKey) cell.classList.add("calendar__day-cell--today");
 
-    let html = `<div class="calendar__day-number">${day}</div>`;
+    const dayNum = document.createElement("div");
+    dayNum.className = "calendar__day-number";
+    dayNum.textContent = day;
+    cell.appendChild(dayNum);
+
     if (shift) {
       cell.classList.add("calendar__day-cell--has-shift");
       if (shift.type === "night")
         cell.classList.add("calendar__day-cell--night");
-      html += `<div class="calendar__shift-badge">${shift.hours}ч</div>`;
+      if (shift.type === "extra")
+        cell.classList.add("calendar__day-cell--extra");
+
+      const badge = document.createElement("div");
+      badge.className = "calendar__shift-badge";
+      badge.textContent = `${shift.hours}ч`;
+      cell.appendChild(badge);
 
       totalShifts++;
       totalHours += Number(shift.hours) || 0;
       totalIncome += Number(shift.totalPay) || 0;
       monthShifts.push({ dateKey, day, ...shift });
     }
-    cell.innerHTML = html;
-    cell.onclick = () => openShiftModal(dateKey);
-    grid.appendChild(cell);
+
+    cell.addEventListener("click", () => openShiftModal(dateKey));
+    fragment.appendChild(cell);
   }
+
+  const grid = elements.calendarGrid;
+  grid.innerHTML = "";
+  grid.appendChild(fragment);
 
   elements.statShifts.textContent = totalShifts;
   elements.statHours.textContent = Math.round(totalHours * 100) / 100;
   elements.statIncome.textContent = `${totalIncome.toLocaleString("ru-RU")} ${settings.currency}`;
 
-  const listEl = elements.shiftList;
-  if (monthShifts.length === 0) {
-    listEl.innerHTML = `<div class="shift-list__empty">Нажми на любой день в календаре, чтобы добавить смену</div>`;
-  } else {
-    listEl.innerHTML = monthShifts
-      .reverse()
-      .map((s) => {
-        const icon =
-          s.type === "night" ? "🌙" : s.type === "extra" ? "🔥" : "☀️";
-        const noteStr = s.note ? ` • ${s.note}` : "";
-        return `
-                <article class="shift-list__item" onclick="openShiftModal('${s.dateKey}')">
-                    <div class="shift-list__left">
-                        <div class="shift-list__date">${icon} ${s.day} ${monthNames[month].toLowerCase()}</div>
-                        <div class="shift-list__meta">${s.start} – ${s.end}${noteStr}</div>
-                    </div>
-                    <div class="shift-list__right">
-                        <div class="shift-list__pay">+${Number(s.totalPay).toLocaleString("ru-RU")} ${settings.currency}</div>
-                        <div class="shift-list__hours">${s.hours} ч.</div>
-                    </div>
-                </article>
-            `;
-      })
-      .join("");
-  }
+  renderShiftList(monthShifts, month);
 }
 
-function exportCSV() {
+function renderShiftList(monthShifts, month) {
+  const listEl = elements.shiftList;
+  if (monthShifts.length === 0) {
+    listEl.innerHTML =
+      '<div class="shift-list__empty">Нажми на любой день в календаре, чтобы добавить смену</div>';
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  const currency = escapeHtml(settings.currency);
+
+  // Безопасный reverse без мутации исходного массива
+  [...monthShifts].reverse().forEach((s) => {
+    const icon =
+      s.type === "night" ? "🌙" : s.type === "extra" ? "🔥" : "☀️";
+    const noteStr = s.note ? ` • ${escapeHtml(s.note)}` : "";
+
+    const article = document.createElement("article");
+    article.className = "shift-list__item";
+    article.innerHTML = `
+      <div class="shift-list__left">
+        <div class="shift-list__date">${icon} ${s.day} ${MONTH_NAMES[month].toLowerCase()}</div>
+        <div class="shift-list__meta">${escapeHtml(s.start)} – ${escapeHtml(s.end)}${noteStr}</div>
+      </div>
+      <div class="shift-list__right">
+        <div class="shift-list__pay">+${Number(s.totalPay).toLocaleString("ru-RU")} ${currency}</div>
+        <div class="shift-list__hours">${s.hours} ч.</div>
+      </div>
+    `;
+    article.addEventListener("click", () => openShiftModal(s.dateKey));
+    fragment.appendChild(article);
+  });
+
+  listEl.innerHTML = "";
+  listEl.appendChild(fragment);
+}
+
+// ============================================================
+// Экспорт CSV
+// ============================================================
+function exportCSV(allTime = false) {
   const year = currentDate.getFullYear();
   const month = String(currentDate.getMonth() + 1).padStart(2, "0");
   const monthPrefix = `${year}-${month}`;
   const datePrefix = `${monthPrefix}-`;
+
   const rows = [
     [
       "Дата",
@@ -318,7 +425,7 @@ function exportCSV() {
   Object.keys(shifts)
     .sort()
     .forEach((key) => {
-      if (key.startsWith(datePrefix)) {
+      if (allTime || key.startsWith(datePrefix)) {
         const s = shifts[key];
         rows.push([
           key,
@@ -329,26 +436,27 @@ function exportCSV() {
           s.hours,
           s.bonus,
           s.totalPay,
-          `"${s.note || ""}"`,
+          `"${(s.note || "").replace(/"/g, '""')}"`,
         ]);
       }
     });
 
-  const csvContent = "﻿" + rows.map((e) => e.join(";")).join("\n");
+  const csvContent = "\uFEFF" + rows.map((e) => e.join(";")).join("\n");
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = `shifts_${monthPrefix}.csv`;
-  link.click();
+  const filename = allTime ? "shifts_all.csv" : `shifts_${monthPrefix}.csv`;
+  triggerDownload(blob, filename);
 }
 
+// ============================================================
+// Бэкап
+// ============================================================
 function downloadBackup() {
   const data = JSON.stringify({ shifts, settings }, null, 2);
   const blob = new Blob([data], { type: "application/json" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = `shifts_backup_${new Date().toISOString().slice(0, 10)}.json`;
-  link.click();
+  triggerDownload(
+    blob,
+    `shifts_backup_${new Date().toISOString().slice(0, 10)}.json`,
+  );
 }
 
 function restoreBackup(event) {
@@ -358,8 +466,38 @@ function restoreBackup(event) {
   reader.onload = function (e) {
     try {
       const parsed = JSON.parse(e.target.result);
-      if (parsed.shifts) shifts = parsed.shifts;
-      if (parsed.settings) settings = parsed.settings;
+
+      // Валидация структуры бэкапа
+      if (!parsed || typeof parsed !== "object") {
+        throw new Error("Неверный формат");
+      }
+
+      if (parsed.shifts && typeof parsed.shifts === "object") {
+        shifts = parsed.shifts;
+      }
+
+      if (parsed.settings && typeof parsed.settings === "object") {
+        const s = parsed.settings;
+        settings = {
+          start:
+            typeof s.start === "string" ? s.start : DEFAULT_SETTINGS.start,
+          end: typeof s.end === "string" ? s.end : DEFAULT_SETTINGS.end,
+          breakMins:
+            typeof s.breakMins === "number"
+              ? s.breakMins
+              : DEFAULT_SETTINGS.breakMins,
+          payMode: ["hourly", "fixed"].includes(s.payMode)
+            ? s.payMode
+            : DEFAULT_SETTINGS.payMode,
+          rate:
+            typeof s.rate === "number" ? s.rate : DEFAULT_SETTINGS.rate,
+          currency:
+            typeof s.currency === "string"
+              ? s.currency
+              : DEFAULT_SETTINGS.currency,
+        };
+      }
+
       localStorage.setItem(STORAGE_KEY, JSON.stringify(shifts));
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
       closeModal("settingsModal");
@@ -368,14 +506,80 @@ function restoreBackup(event) {
     } catch (err) {
       alert("Ошибка чтения файла бэкапа");
     }
+    // Сбрасываем input, чтобы повторная загрузка того же файла сработала
+    event.target.value = "";
   };
   reader.readAsText(file);
 }
 
-// ----------------------------------------------------
-// PWA: Регистрация Service Worker и автообновление
-// ----------------------------------------------------
-if ("serviceWorker" in navigator) {
+// ============================================================
+// Тема (Светлая / Тёмная)
+// ============================================================
+function applyTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+
+  const metaThemeColor = elements.metaThemeColor;
+  if (metaThemeColor) {
+    metaThemeColor.setAttribute(
+      "content",
+      theme === "light" ? "#f3f4f6" : "#131535",
+    );
+  }
+
+  const icon = elements.themeIcon;
+  if (icon) {
+    icon.innerHTML =
+      theme === "light"
+        ? '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>'
+        : '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>';
+  }
+}
+
+function toggleTheme() {
+  currentTheme = currentTheme === "dark" ? "light" : "dark";
+  localStorage.setItem(THEME_KEY, currentTheme);
+  applyTheme(currentTheme);
+}
+
+// ============================================================
+// Свайп по календарю для смены месяца
+// ============================================================
+function initSwipe() {
+  const calendar = document.querySelector(".calendar");
+  if (!calendar) return;
+
+  let touchStartX = 0;
+  let touchStartY = 0;
+
+  calendar.addEventListener(
+    "touchstart",
+    (e) => {
+      touchStartX = e.changedTouches[0].screenX;
+      touchStartY = e.changedTouches[0].screenY;
+    },
+    { passive: true },
+  );
+
+  calendar.addEventListener(
+    "touchend",
+    (e) => {
+      const dx = e.changedTouches[0].screenX - touchStartX;
+      const dy = e.changedTouches[0].screenY - touchStartY;
+      // Свайп считается горизонтальным, если сдвиг по X больше чем по Y
+      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+        changeMonth(dx > 0 ? -1 : 1);
+      }
+    },
+    { passive: true },
+  );
+}
+
+// ============================================================
+// PWA: Service Worker и автообновление
+// ============================================================
+function registerSW() {
+  if (!("serviceWorker" in navigator)) return;
+
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./sw.js").then((reg) => {
       reg.update();
@@ -413,70 +617,95 @@ function showUpdatePrompt(worker) {
   const btn = elements.updateReloadBtn;
   if (!toast || !btn) return;
   toast.style.display = "flex";
-  btn.onclick = () => {
+  btn.addEventListener("click", () => {
     worker.postMessage({ action: "skipWaiting" });
-  };
+  });
 }
 
-// Управление анимацией стрелочек в выпадающих списках
-document.querySelectorAll(".form__select").forEach((select) => {
-  // 1. Клик по списку — переворачиваем стрелку (добавляем/убираем класс)
-  select.addEventListener("click", function () {
-    this.classList.toggle("is-open");
+// ============================================================
+// Анимация стрелочек в выпадающих списках
+// ============================================================
+function initSelectAnimations() {
+  document.querySelectorAll(".form__select").forEach((select) => {
+    select.addEventListener("click", function () {
+      this.classList.toggle("is-open");
+    });
+    select.addEventListener("blur", function () {
+      this.classList.remove("is-open");
+    });
+    select.addEventListener("change", function () {
+      this.classList.remove("is-open");
+      this.blur();
+    });
+  });
+}
+
+// ============================================================
+// Привязка обработчиков событий
+// ============================================================
+function bindEvents() {
+  // Навигация по месяцам
+  elements.prevMonthBtn.addEventListener("click", () => changeMonth(-1));
+  elements.nextMonthBtn.addEventListener("click", () => changeMonth(1));
+  elements.monthTitle.addEventListener("click", goToToday);
+
+  // Тема и настройки
+  elements.themeToggleBtn.addEventListener("click", toggleTheme);
+  elements.settingsBtn.addEventListener("click", openSettings);
+
+  // Экспорт
+  elements.exportMonthBtn.addEventListener("click", () => exportCSV(false));
+  elements.exportAllBtn.addEventListener("click", () => exportCSV(true));
+
+  // Форма смены
+  elements.shiftForm.addEventListener("submit", saveShift);
+  elements.shiftModalCloseBtn.addEventListener("click", () =>
+    closeModal("shiftModal"),
+  );
+  elements.deleteBtn.addEventListener("click", deleteShift);
+
+  // Пересчёт при изменении полей
+  elements.startTime.addEventListener("change", recalcModal);
+  elements.endTime.addEventListener("change", recalcModal);
+  elements.breakMins.addEventListener("change", recalcModal);
+  elements.payMode.addEventListener("change", recalcModal);
+  elements.rate.addEventListener("input", recalcModal);
+  elements.bonus.addEventListener("input", recalcModal);
+
+  // Форма настроек
+  elements.settingsForm.addEventListener("submit", saveSettings);
+  elements.settingsModalCloseBtn.addEventListener("click", () =>
+    closeModal("settingsModal"),
+  );
+
+  // Бэкап
+  elements.backupDownloadBtn.addEventListener("click", downloadBackup);
+  elements.backupRestoreBtn.addEventListener("click", () =>
+    elements.importFile.click(),
+  );
+  elements.importFile.addEventListener("change", restoreBackup);
+
+  // Закрытие модалки по клику на оверлей или по Escape
+  [elements.shiftModal, elements.settingsModal].forEach((overlay) => {
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) closeModal(overlay.id);
+    });
   });
 
-  // 2. Пользователь кликнул в пустое место (сброс фокуса) — возвращаем стрелку
-  select.addEventListener("blur", function () {
-    this.classList.remove("is-open");
-  });
-
-  // 3. Пользователь выбрал новый пункт — возвращаем стрелку и принудительно сбрасываем системный фокус
-  select.addEventListener("change", function () {
-    this.classList.remove("is-open");
-    this.blur();
-  });
-});
-
-// === ТЕМА (Светлая / Темная) ===
-const THEME_KEY = "my_work_theme_v1";
-let currentTheme = localStorage.getItem(THEME_KEY) || "dark";
-
-// Функция применения темы
-function applyTheme(theme) {
-  document.documentElement.setAttribute("data-theme", theme);
-
-  // Обновляем theme-color
-  const metaThemeColor = elements.metaThemeColor;
-  if (metaThemeColor) {
-    if (theme === "light") {
-      metaThemeColor.setAttribute("content", "#f3f4f6");
-    } else {
-      metaThemeColor.setAttribute("content", "#131535");
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closeModal("shiftModal");
+      closeModal("settingsModal");
     }
-  }
-
-  const icon = elements.themeIcon;
-  if (icon) {
-    if (theme === "light") {
-      // Иконка Луны (для переключения обратно на темную)
-      icon.innerHTML =
-        '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
-    } else {
-      // Иконка Солнца (для переключения на светлую)
-      icon.innerHTML =
-        '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>';
-    }
-  }
+  });
 }
 
-// Функция-переключатель для кнопки
-function toggleTheme() {
-  currentTheme = currentTheme === "dark" ? "light" : "dark";
-  localStorage.setItem(THEME_KEY, currentTheme);
-  applyTheme(currentTheme);
-}
-
-// Применяем сохраненную тему при загрузке страницы
+// ============================================================
+// Инициализация
+// ============================================================
 applyTheme(currentTheme);
-
+bindEvents();
+initSelectAnimations();
+initSwipe();
+registerSW();
 render();

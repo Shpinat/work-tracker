@@ -2,18 +2,34 @@
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Удобный учет рабочих смен и доходов — офлайн PWA-приложение" />
     <title>Учёт рабочих смен</title>
 
     <!-- PWA мета-теги -->
     <link rel="manifest" href="manifest.webmanifest" />
     <meta name="theme-color" content="#131535" />
+    <link rel="apple-touch-icon" href="icon-192x192.png" />
+
+    <!-- Шрифты (preconnect + stylesheet вместо @import для скорости) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
+    <!-- Скрытые SVG-символы для переиспользования иконок -->
+    <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
+      <defs>
+        <symbol id="icon-arrow-right" viewBox="0 0 1280 1280">
+          <g transform="translate(0,1280) scale(0.1,-0.1)" fill="currentColor" stroke="none">
+            <path d="M7556 10480 c-384 -61 -686 -316 -799 -676 -88 -278 -46 -583 115 -832 40 -62 200 -228 806 -834 l756 -758 -3289 -3 -3290 -2 -83 -23 c-412 -110 -696 -437 -742 -850 -50 -453 224 -878 662 -1028 166 -57 -15 -54 3503 -54 l3240 0 -756 -757 c-470 -471 -772 -781 -796 -818 -266 -399 -218 -911 117 -1245 186 -187 417 -282 685 -283 169 -1 295 28 445 103 168 85 66 -15 2024 1955 l1441 1450 52 95 c196 364 159 787 -98 1104 -32 39 -772 785 -1646 1657 -1369 1367 -1600 1594 -1674 1643 -157 102 -315 153 -504 160 -60 3 -137 1 -169 -4z" />
+          </g>
+        </symbol>
+      </defs>
+    </svg>
+
     <!-- Уведомление о наличии обновления PWA -->
     <div id="updateToast" class="update-toast">
       <span class="update-toast__message">Доступна новая версия!</span>
@@ -25,70 +41,42 @@
     <header class="header">
       <nav class="month-selector header__month-selector">
         <button
+          id="prevMonthBtn"
           class="btn btn--icon month-selector__btn"
-          onclick="changeMonth(-1)"
           aria-label="Предыдущий месяц"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="15"
-            height="15"
-            viewBox="0 0 1280 1280"
-            style="transform: scaleX(-1)"
-          >
-            <g
-              transform="translate(0,1280) scale(0.1,-0.1)"
-              fill="currentColor"
-              stroke="none"
-            >
-              <path
-                d="M7556 10480 c-384 -61 -686 -316 -799 -676 -88 -278 -46 -583 115 -832 40 -62 200 -228 806 -834 l756 -758 -3289 -3 -3290 -2 -83 -23 c-412 -110 -696 -437 -742 -850 -50 -453 224 -878 662 -1028 166 -57 -15 -54 3503 -54 l3240 0 -756 -757 c-470 -471 -772 -781 -796 -818 -266 -399 -218 -911 117 -1245 186 -187 417 -282 685 -283 169 -1 295 28 445 103 168 85 66 -15 2024 1955 l1441 1450 52 95 c196 364 159 787 -98 1104 -32 39 -772 785 -1646 1657 -1369 1367 -1600 1594 -1674 1643 -157 102 -315 153 -504 160 -60 3 -137 1 -169 -4z"
-              />
-            </g>
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" style="transform: scaleX(-1)">
+            <use href="#icon-arrow-right" />
           </svg>
         </button>
-        <h1 class="month-selector__title" id="monthTitle">Октябрь 2026</h1>
+        <h1 class="month-selector__title" id="monthTitle" title="Перейти к текущему месяцу">Октябрь 2026</h1>
         <button
+          id="nextMonthBtn"
           class="btn btn--icon month-selector__btn"
-          onclick="changeMonth(1)"
           aria-label="Следующий месяц"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="15"
-            height="15"
-            viewBox="0 0 1280 1280"
-            style="transform: scaleX(1)"
-          >
-            <g
-              transform="translate(0,1280) scale(0.1,-0.1)"
-              fill="currentColor"
-              stroke="none"
-            >
-              <path
-                d="M7556 10480 c-384 -61 -686 -316 -799 -676 -88 -278 -46 -583 115 -832 40 -62 200 -228 806 -834 l756 -758 -3289 -3 -3290 -2 -83 -23 c-412 -110 -696 -437 -742 -850 -50 -453 224 -878 662 -1028 166 -57 -15 -54 3503 -54 l3240 0 -756 -757 c-470 -471 -772 -781 -796 -818 -266 -399 -218 -911 117 -1245 186 -187 417 -282 685 -283 169 -1 295 28 445 103 168 85 66 -15 2024 1955 l1441 1450 52 95 c196 364 159 787 -98 1104 -32 39 -772 785 -1646 1657 -1369 1367 -1600 1594 -1674 1643 -157 102 -315 153 -504 160 -60 3 -137 1 -169 -4z"
-              />
-            </g>
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15">
+            <use href="#icon-arrow-right" />
           </svg>
         </button>
       </nav>
-     <div class="header__actions">
-            <!-- Кнопка смены темы -->
-            <button class="btn btn--icon" onclick="toggleTheme()" aria-label="Сменить тему">
-                <svg id="themeIcon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-                </svg>
-            </button>
-            
-            <!-- Старая кнопка настроек -->
-            <button class="btn btn--icon header__settings-btn" onclick="openSettings()" title="Настройки" aria-label="Настройки">
-                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 1280 1280">
-                    <g transform="translate(0, 1280) scale(0.1, -0.1)" fill="currentColor">
-                        <path d="m6010,12794c-25,-2 -103,-9 -175,-15c-143,-12 -390,-49 -503,-74l-72,-17l0,-529l0,-530l-139,-207c-158,-234 -272,-376 -371,-461c-174,-150 -329,-225 -570,-277c-67,-15 -129,-18 -290,-18c-216,0 -338,13 -540,59l-103,23l-366,366l-367,367l-139,-112c-409,-327 -760,-689 -1070,-1102l-58,-78l355,-357l356,-357l40,-105c99,-258 137,-439 137,-655c0,-152 -9,-214 -47,-339c-97,-315 -393,-608 -871,-861l-104,-55l-510,0c-437,0 -512,-2 -516,-14c-10,-26 -55,-336 -69,-471c-8,-82 -13,-266 -12,-495c0,-373 10,-553 54,-954c11,-99 20,-183 20,-188c0,-4 227,-8 504,-8l503,0l84,-34c417,-169 661,-374 800,-672c141,-299 140,-732 -2,-1218l-21,-71l-356,-357l-356,-357l27,-40c45,-68 219,-281 350,-427c251,-282 517,-537 771,-740l130,-105l371,371l371,370l79,10c142,17 511,23 645,11c434,-40 741,-184 989,-464c75,-86 193,-261 250,-373l41,-81l0,-525l0,-525l103,-16c144,-23 406,-54 577,-69c189,-17 765,-16 935,0c137,14 468,59 498,68c16,5 17,39 17,538l0,532l46,95c141,290 366,525 634,659c117,59 291,114 445,141c113,20 164,23 385,24c154,0 302,-5 375,-14l120,-13l397,-400l398,-401l37,29c85,63 356,286 468,384c302,265 573,556 755,813l34,48l-397,397l-397,397l-34,170c-59,293 -70,384 -70,585c-1,143 4,204 18,270c48,220 136,387 291,549c142,149 293,255 533,375l132,66l575,0l575,0l5,23c7,35 34,248 50,407c52,515 43,1075 -26,1529c-11,75 -22,144 -25,154c-5,16 -42,17 -589,17l-584,0l-128,64c-540,271 -784,609 -818,1136c-10,155 22,485 75,760l10,55l405,405l405,405l-64,93c-205,303 -507,614 -872,897c-182,143 -372,278 -382,273c-5,-1 -184,-174 -396,-383c-279,-274 -397,-384 -424,-393c-20,-8 -100,-27 -177,-43c-747,-155 -1306,99 -1725,786l-60,99l0,553c0,455 -2,553 -13,553c-8,0 -94,9 -193,20c-364,40 -536,51 -829,54c-165,2 -320,2 -345,0zm725,-4200c242,-29 482,-102 720,-219c252,-124 440,-260 636,-461c291,-300 495,-679 589,-1095c65,-289 67,-678 4,-964c-181,-817 -764,-1463 -1548,-1714c-241,-77 -425,-105 -691,-105c-372,0 -669,68 -1000,229c-332,161 -616,393 -826,675c-113,152 -159,227 -239,392c-117,239 -193,507 -221,777c-16,153 -6,431 20,586c123,727 562,1329 1214,1665c420,217 856,293 1342,234z"></path>
-                    </g>
-                </svg>
-            </button>
-        </div>
+      <div class="header__actions">
+        <!-- Кнопка смены темы -->
+        <button id="themeToggleBtn" class="btn btn--icon" aria-label="Сменить тему">
+          <svg id="themeIcon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+        </button>
+
+        <!-- Кнопка настроек -->
+        <button id="settingsBtn" class="btn btn--icon header__settings-btn" title="Настройки" aria-label="Настройки">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 1280 1280">
+            <g transform="translate(0, 1280) scale(0.1, -0.1)" fill="currentColor">
+              <path d="m6010,12794c-25,-2 -103,-9 -175,-15c-143,-12 -390,-49 -503,-74l-72,-17l0,-529l0,-530l-139,-207c-158,-234 -272,-376 -371,-461c-174,-150 -329,-225 -570,-277c-67,-15 -129,-18 -290,-18c-216,0 -338,13 -540,59l-103,23l-366,366l-367,367l-139,-112c-409,-327 -760,-689 -1070,-1102l-58,-78l355,-357l356,-357l40,-105c99,-258 137,-439 137,-655c0,-152 -9,-214 -47,-339c-97,-315 -393,-608 -871,-861l-104,-55l-510,0c-437,0 -512,-2 -516,-14c-10,-26 -55,-336 -69,-471c-8,-82 -13,-266 -12,-495c0,-373 10,-553 54,-954c11,-99 20,-183 20,-188c0,-4 227,-8 504,-8l503,0l84,-34c417,-169 661,-374 800,-672c141,-299 140,-732 -2,-1218l-21,-71l-356,-357l-356,-357l27,-40c45,-68 219,-281 350,-427c251,-282 517,-537 771,-740l130,-105l371,371l371,370l79,10c142,17 511,23 645,11c434,-40 741,-184 989,-464c75,-86 193,-261 250,-373l41,-81l0,-525l0,-525l103,-16c144,-23 406,-54 577,-69c189,-17 765,-16 935,0c137,14 468,59 498,68c16,5 17,39 17,538l0,532l46,95c141,290 366,525 634,659c117,59 291,114 445,141c113,20 164,23 385,24c154,0 302,-5 375,-14l120,-13l397,-400l398,-401l37,29c85,63 356,286 468,384c302,265 573,556 755,813l34,48l-397,397l-397,397l-34,170c-59,293 -70,384 -70,585c-1,143 4,204 18,270c48,220 136,387 291,549c142,149 293,255 533,375l132,66l575,0l575,0l5,23c7,35 34,248 50,407c52,515 43,1075 -26,1529c-11,75 -22,144 -25,154c-5,16 -42,17 -589,17l-584,0l-128,64c-540,271 -784,609 -818,1136c-10,155 22,485 75,760l10,55l405,405l405,405l-64,93c-205,303 -507,614 -872,897c-182,143 -372,278 -382,273c-5,-1 -184,-174 -396,-383c-279,-274 -397,-384 -424,-393c-20,-8 -100,-27 -177,-43c-747,-155 -1306,99 -1725,786l-60,99l0,553c0,455 -2,553 -13,553c-8,0 -94,9 -193,20c-364,40 -536,51 -829,54c-165,2 -320,2 -345,0zm725,-4200c242,-29 482,-102 720,-219c252,-124 440,-260 636,-461c291,-300 495,-679 589,-1095c65,-289 67,-678 4,-964c-181,-817 -764,-1463 -1548,-1714c-241,-77 -425,-105 -691,-105c-372,0 -669,68 -1000,229c-332,161 -616,393 -826,675c-113,152 -159,227 -239,392c-117,239 -193,507 -221,777c-16,153 -6,431 20,586c123,727 562,1329 1214,1665c420,217 856,293 1342,234z"></path>
+            </g>
+          </svg>
+        </button>
+      </div>
     </header>
 
     <main class="main">
@@ -126,14 +114,19 @@
       <section class="shifts main__shifts" aria-label="Детализация смен">
         <header class="shifts__header">
           <h2 class="shifts__title">Детализация за месяц</h2>
-          <button class="btn btn--secondary shifts__export-btn" onclick="exportCSV()">
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-        <polyline points="7 10 12 15 17 10"></polyline>
-        <line x1="12" y1="15" x2="12" y2="3"></line>
-    </svg>
-    Выгрузить таблицу
-</button>
+          <div class="shifts__export-group">
+            <button class="btn btn--secondary shifts__export-btn" id="exportMonthBtn">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              За месяц
+            </button>
+            <button class="btn btn--secondary shifts__export-btn shifts__export-btn--subtle" id="exportAllBtn">
+              За всё время
+            </button>
+          </div>
         </header>
         <div class="shift-list" id="shiftList"></div>
       </section>
@@ -141,21 +134,17 @@
 
     <!-- Модальное окно смены -->
     <div class="modal-overlay" id="shiftModal">
-      <dialog class="modal modal-overlay__content" open>
+      <div class="modal modal-overlay__content" role="dialog" aria-modal="true" aria-labelledby="shiftModalTitle">
         <header class="modal__header">
           <h3 class="modal__title" id="shiftModalTitle">Смена</h3>
           <button
             class="btn btn--icon modal__close-btn"
-            onclick="closeModal('shiftModal')"
+            id="shiftModalCloseBtn"
             aria-label="Закрыть"
           >
           </button>
         </header>
-        <form
-          class="form modal__form"
-          id="shiftForm"
-          onsubmit="saveShift(event)"
-        >
+        <form class="form modal__form" id="shiftForm">
           <input type="hidden" id="shiftDate" />
 
           <div class="form__group">
@@ -175,7 +164,6 @@
                 type="time"
                 id="startTime"
                 required
-                onchange="recalcModal()"
               />
             </div>
             <div class="form__group">
@@ -185,7 +173,6 @@
                 type="time"
                 id="endTime"
                 required
-                onchange="recalcModal()"
               />
             </div>
           </div>
@@ -200,7 +187,6 @@
                 value="0"
                 min="0"
                 step="5"
-                onchange="recalcModal()"
               />
             </div>
             <div class="form__group">
@@ -218,11 +204,7 @@
           <div class="form__row">
             <div class="form__group">
               <label class="form__label" for="payMode">Вид оплаты</label>
-              <select
-                class="form__control form__select"
-                id="payMode"
-                onchange="recalcModal()"
-              >
+              <select class="form__control form__select" id="payMode">
                 <option value="hourly">Почасовая</option>
                 <option value="fixed">Фикс за смену</option>
               </select>
@@ -237,7 +219,6 @@
                 id="rate"
                 step="any"
                 required
-                oninput="recalcModal()"
               />
             </div>
           </div>
@@ -251,7 +232,6 @@
                 id="bonus"
                 value="0"
                 step="any"
-                oninput="recalcModal()"
               />
             </div>
             <div class="form__group">
@@ -285,7 +265,6 @@
               type="button"
               class="btn btn--danger form__btn"
               id="deleteBtn"
-              onclick="deleteShift()"
               style="display: none"
             >
               Удалить
@@ -295,28 +274,22 @@
             </button>
           </div>
         </form>
-      </dialog>
+      </div>
     </div>
 
     <!-- Модальное окно настроек -->
     <div class="modal-overlay" id="settingsModal">
-      <dialog class="modal modal-overlay__content" open>
+      <div class="modal modal-overlay__content" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
         <header class="modal__header">
-          <h3 class="modal__title">Настройки по умолчанию</h3>
+          <h3 class="modal__title" id="settingsModalTitle">Настройки по умолчанию</h3>
           <button
             class="btn btn--icon modal__close-btn"
-            onclick="closeModal('settingsModal')"
+            id="settingsModalCloseBtn"
             aria-label="Закрыть"
           >
           </button>
         </header>
-        <form
-          class="form modal__form"
-          onsubmit="
-            event.preventDefault();
-            saveSettings();
-          "
-        >
+        <form class="form modal__form" id="settingsForm">
           <div class="form__row">
             <div class="form__group">
               <label class="form__label" for="defStart"
@@ -386,33 +359,32 @@
         <hr class="modal__divider" />
         <h4 class="modal__subtitle">Резервная копия данных</h4>
         <div class="modal__actions">
-          <button class="btn btn--secondary modal__action-btn" onclick="downloadBackup()">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-            <polyline points="17 21 17 13 7 13 7 21"></polyline>
-            <polyline points="7 3 7 8 15 8"></polyline>
-        </svg>
-        Скачать бэкап
-    </button>
-          <button class="btn btn--secondary modal__action-btn" onclick="document.getElementById('importFile').click()">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="17 8 12 3 7 8"></polyline>
-            <line x1="12" y1="3" x2="12" y2="15"></line>
-        </svg>
-        Загрузить
-    </button>
+          <button id="backupDownloadBtn" class="btn btn--secondary modal__action-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+              <polyline points="17 21 17 13 7 13 7 21"></polyline>
+              <polyline points="7 3 7 8 15 8"></polyline>
+            </svg>
+            Скачать бэкап
+          </button>
+          <button id="backupRestoreBtn" class="btn btn--secondary modal__action-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            Загрузить
+          </button>
           <input
             type="file"
             id="importFile"
             style="display: none"
             accept=".json"
-            onchange="restoreBackup(event)"
           />
         </div>
-      </dialog>
+      </div>
     </div>
 
-    <script src="app.js"></script>
+    <script type="module" src="app.js"></script>
   </body>
 </html>

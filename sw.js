@@ -1,4 +1,4 @@
-const CACHE_NAME = 'shifts-v1.6';
+const CACHE_NAME = 'shifts-v2.0';
 
 // Относительные пути (корректно работают в GitHub Pages подкаталогах)
 const ASSETS_TO_CACHE = [
@@ -32,7 +32,7 @@ self.addEventListener('activate', (event) => {
     );
 });
 
-// Стратегия Network First с откатом в кэш
+// Стратегия Network First с откатом в кэш и офлайн-фоллбэком
 self.addEventListener('fetch', (event) => {
     if (event.request.method !== 'GET') return;
 
@@ -46,7 +46,12 @@ self.addEventListener('fetch', (event) => {
                 }
                 return networkResponse;
             })
-            .catch(() => caches.match(event.request)) // В офлайне отдаем кэш
+            .catch(() => {
+                // В офлайне отдаем кэш, если есть — иначе фоллбэк на index.html
+                return caches.match(event.request).then((cached) => {
+                    return cached || caches.match('./index.html');
+                });
+            })
     );
 });
 

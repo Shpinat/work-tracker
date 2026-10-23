@@ -1,4 +1,4 @@
-const CACHE_NAME = 'shifts-v2.0';
+const CACHE_NAME = 'shifts-v2.2';
 
 // Относительные пути (корректно работают в GitHub Pages подкаталогах)
 const ASSETS_TO_CACHE = [
@@ -8,7 +8,9 @@ const ASSETS_TO_CACHE = [
     './app.js',
     './manifest.webmanifest',
     './icon-192x192.png',
-    './icon-512x512.png'
+    './icon-512x512.png',
+    './icon-192x192.png?v=2',
+    './icon-512x512.png?v=2'
 ];
 
 self.addEventListener('install', (event) => {
@@ -48,7 +50,7 @@ self.addEventListener('fetch', (event) => {
             })
             .catch(() => {
                 // В офлайне отдаем кэш, если есть — иначе фоллбэк на index.html
-                return caches.match(event.request).then((cached) => {
+                return caches.match(event.request, { ignoreSearch: true }).then((cached) => {
                     return cached || caches.match('./index.html');
                 });
             })

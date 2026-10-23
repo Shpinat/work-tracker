@@ -6,10 +6,11 @@
     <meta name="description" content="Удобный учет рабочих смен и доходов — офлайн PWA-приложение" />
     <title>Учёт рабочих смен</title>
 
-    <!-- PWA мета-теги -->
+    <!-- PWA мета-теги и иконки -->
     <link rel="manifest" href="manifest.webmanifest" />
     <meta name="theme-color" content="#131535" />
-    <link rel="apple-touch-icon" href="icon-192x192.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192x192.png?v=2" />
+    <link rel="apple-touch-icon" href="icon-192x192.png?v=2" />
 
     <!-- Шрифты (preconnect + stylesheet вместо @import для скорости) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -49,7 +50,7 @@
             <use href="#icon-arrow-right" />
           </svg>
         </button>
-        <h1 class="month-selector__title" id="monthTitle" role="button" tabindex="0" title="Перейти к текущему месяцу">Октябрь 2026</h1>
+        <h1 class="month-selector__title" id="monthTitle" title="Перейти к текущему месяцу" role="button" tabindex="0">Октябрь 2026</h1>
         <button
           id="nextMonthBtn"
           class="btn btn--icon month-selector__btn"

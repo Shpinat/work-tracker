@@ -30,6 +30,8 @@
 /* Точечные переопределения для светлой темы, чтобы не трогать основной код темной темы */
 
 [data-theme="light"] body {
+    overflow-x: hidden;
+    width: 100%;
     background-color: var(--bg);
     background-image:
         radial-gradient(circle at 10% 90%, rgba(168, 85, 247, 0.05), transparent 50%),
@@ -103,6 +105,11 @@
 
 [data-theme="light"] .month-selector__title:hover {
     color: #2563eb;
+}
+
+html {
+    overflow-x: hidden;
+    width: 100%;
 }
 
 * {
@@ -318,6 +325,8 @@ body {
 
 /* Calendar (Block) */
 .calendar {
+    overflow: hidden;
+    position: relative;
     background: var(--card);
     backdrop-filter: blur(24px);
     border: 1px solid var(--border);
@@ -340,6 +349,7 @@ body {
 
 .calendar__grid {
     display: grid;
+    will-change: transform, opacity;
     grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 8px;
 }

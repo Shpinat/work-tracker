@@ -148,13 +148,24 @@ function triggerDownload(blob, filename) {
 // Навигация по месяцам
 // ============================================================
 function changeMonth(delta) {
-  currentDate.setMonth(currentDate.getMonth() + delta);
-  render();
+  animateMonthSwipe(delta);
 }
 
 function goToToday() {
-  currentDate = new Date();
-  render();
+  const today = new Date();
+  if (
+    currentDate.getFullYear() === today.getFullYear() &&
+    currentDate.getMonth() === today.getMonth()
+  ) {
+    return;
+  }
+  const delta =
+    today.getFullYear() > currentDate.getFullYear() ||
+    (today.getFullYear() === currentDate.getFullYear() &&
+      today.getMonth() > currentDate.getMonth())
+      ? 1
+      : -1;
+  animateMonthSwipe(delta, today);
 }
 
 // ============================================================
@@ -288,6 +299,9 @@ function saveSettings(e) {
 // Рендер
 // ============================================================
 function render() {
+  if (window.scrollX !== 0) {
+    window.scrollTo(0, window.scrollY);
+  }
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
   elements.monthTitle.textContent = `${MONTH_NAMES[month]} ${year}`;
@@ -560,22 +574,83 @@ function toggleTheme() {
 // ============================================================
 // Свайп по календарю для смены месяца
 // ============================================================
+let isSwipingMonth = false;
+
+function animateMonthSwipe(delta, targetDate = null) {
+  if (isSwipingMonth) return;
+  isSwipingMonth = true;
+
+  const grid = elements.calendarGrid;
+  if (!grid) {
+    if (targetDate) {
+      currentDate = targetDate;
+    } else {
+      currentDate.setMonth(currentDate.getMonth() + delta);
+    }
+    render();
+    isSwipingMonth = false;
+    return;
+  }
+
+  // При переходе вперед (delta === 1), текущая сетка уходит влево (-100%)
+  // При переходе назад (delta === -1), текущая сетка уходит вправо (+100%)
+  const outX = delta === 1 ? -100 : 100;
+  const inX = delta === 1 ? 100 : -100;
+
+  grid.style.transition = "transform 0.16s ease-out, opacity 0.16s ease-out";
+  grid.style.transform = `translateX(${outX}%)`;
+  grid.style.opacity = "0";
+
+  setTimeout(() => {
+    if (targetDate) {
+      currentDate = targetDate;
+    } else {
+      currentDate.setMonth(currentDate.getMonth() + delta);
+    }
+    render();
+
+    grid.style.transition = "none";
+    grid.style.transform = `translateX(${inX}%)`;
+    grid.style.opacity = "0";
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        grid.style.transition = "transform 0.2s ease-out, opacity 0.2s ease-out";
+        grid.style.transform = "translateX(0)";
+        grid.style.opacity = "1";
+
+        setTimeout(() => {
+          grid.style.transition = "";
+          grid.style.transform = "";
+          grid.style.opacity = "";
+          if (window.scrollX !== 0) {
+            window.scrollTo(0, window.scrollY);
+          }
+          isSwipingMonth = false;
+        }, 210);
+      });
+    });
+  }, 160);
+}
+
 function initSwipe() {
   const calendar = document.querySelector(".calendar");
-  if (!calendar) return;
+  const grid = elements.calendarGrid;
+  if (!calendar || !grid) return;
 
   let touchStartX = 0;
   let touchStartY = 0;
-  let currentX = 0;
-  let isSwiping = false;
+  let isTracking = false;
+  let isHorizontal = false;
 
   calendar.addEventListener(
     "touchstart",
     (e) => {
+      if (isSwipingMonth) return;
       touchStartX = e.touches[0].clientX;
       touchStartY = e.touches[0].clientY;
-      isSwiping = true;
-      calendar.style.transition = "none"; // Disable transition for immediate tracking
+      isTracking = true;
+      isHorizontal = false;
     },
     { passive: true },
   );
@@ -583,20 +658,27 @@ function initSwipe() {
   calendar.addEventListener(
     "touchmove",
     (e) => {
-      if (!isSwiping) return;
+      if (!isTracking || isSwipingMonth) return;
 
       const touchX = e.touches[0].clientX;
       const touchY = e.touches[0].clientY;
       const dx = touchX - touchStartX;
       const dy = touchY - touchStartY;
 
-      // Only track horizontal swipes
-      if (Math.abs(dx) > Math.abs(dy)) {
-        // e.preventDefault(); // Could be added, but not strictly needed with passive: false if we change it. Since passive: true, we can't preventDefault. Let's just animate.
-        calendar.style.transform = `translateX(${dx}px)`;
-      } else {
-        isSwiping = false; // Stop tracking if it's more vertical
-        calendar.style.transform = '';
+      if (!isHorizontal) {
+        if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) {
+          isHorizontal = true;
+          grid.style.transition = "none";
+        } else if (Math.abs(dy) > 10) {
+          isTracking = false;
+          return;
+        }
+      }
+
+      if (isHorizontal) {
+        const damping = 0.45;
+        grid.style.transform = `translateX(${dx * damping}px)`;
+        grid.style.opacity = `${Math.max(0.4, 1 - Math.abs(dx) / 300)}`;
       }
     },
     { passive: true },
@@ -605,41 +687,28 @@ function initSwipe() {
   calendar.addEventListener(
     "touchend",
     (e) => {
-      if (!isSwiping) return;
-      isSwiping = false;
+      if (!isTracking || isSwipingMonth) return;
+      isTracking = false;
+
+      if (!isHorizontal) return;
+      isHorizontal = false;
 
       const touchEndX = e.changedTouches[0].clientX;
       const touchEndY = e.changedTouches[0].clientY;
       const dx = touchEndX - touchStartX;
       const dy = touchEndY - touchStartY;
 
-      calendar.style.transition = "transform 0.3s ease-out";
-
-      // Свайп считается горизонтальным, если сдвиг по X больше чем по Y
-      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-        const direction = dx > 0 ? 1 : -1;
-
-        // Animate off screen
-        calendar.style.transform = `translateX(${direction * 100}vw)`;
-
-        setTimeout(() => {
-          // Immediately hide, move to opposite side, then slide in
-          calendar.style.transition = "none";
-          calendar.style.transform = `translateX(${-direction * 100}vw)`;
-
-          changeMonth(direction === 1 ? -1 : 1);
-
-          // Small delay to let browser apply the 'none' transition
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-              calendar.style.transition = "transform 0.3s ease-out";
-              calendar.style.transform = "translateX(0)";
-            });
-          });
-        }, 300); // Wait for off-screen animation
+      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+        animateMonthSwipe(dx > 0 ? -1 : 1);
       } else {
-        // Snap back if threshold not met
-        calendar.style.transform = "translateX(0)";
+        grid.style.transition = "transform 0.18s ease-out, opacity 0.18s ease-out";
+        grid.style.transform = "translateX(0)";
+        grid.style.opacity = "1";
+        setTimeout(() => {
+          grid.style.transition = "";
+          grid.style.transform = "";
+          grid.style.opacity = "";
+        }, 190);
       }
     },
     { passive: true },

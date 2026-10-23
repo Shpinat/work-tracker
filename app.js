@@ -1,21 +1,19 @@
 const STORAGE_KEY = "my_work_shifts_v1";
 const SETTINGS_KEY = "my_work_settings_v1";
 
-const DEFAULT_SETTINGS = {
-  start: "09:00",
-  end: "21:00",
-  breakMins: 60,
-  payMode: "hourly",
-  rate: 300,
-  currency: "₽",
-};
-
 let currentDate = new Date();
 let shifts = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-let settings = {
-  ...DEFAULT_SETTINGS,
-  ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}"),
-};
+let settings = JSON.parse(
+  localStorage.getItem(SETTINGS_KEY) ||
+    JSON.stringify({
+      start: "09:00",
+      end: "21:00",
+      breakMins: 60,
+      payMode: "hourly",
+      rate: 300,
+      currency: "₽",
+    }),
+);
 
 const monthNames = [
   "Январь",
@@ -148,21 +146,18 @@ function openSettings() {
   document.getElementById("defBreak").value = settings.breakMins;
   document.getElementById("defPayMode").value = settings.payMode;
   document.getElementById("defRate").value = settings.rate;
-  document.getElementById("defCurrency").value =
-    settings.currency || DEFAULT_SETTINGS.currency;
+  document.getElementById("defCurrency").value = settings.currency || "₽";
   document.getElementById("settingsModal").classList.add("active");
 }
 
 function saveSettings() {
   settings = {
-    start: document.getElementById("defStart").value || DEFAULT_SETTINGS.start,
-    end: document.getElementById("defEnd").value || DEFAULT_SETTINGS.end,
+    start: document.getElementById("defStart").value || "09:00",
+    end: document.getElementById("defEnd").value || "21:00",
     breakMins: Number(document.getElementById("defBreak").value) || 0,
     payMode: document.getElementById("defPayMode").value,
     rate: parseFloat(document.getElementById("defRate").value) || 0,
-    currency:
-      document.getElementById("defCurrency").value.trim() ||
-      DEFAULT_SETTINGS.currency,
+    currency: document.getElementById("defCurrency").value.trim() || "₽",
   };
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   closeModal("settingsModal");
@@ -276,22 +271,21 @@ function exportCSV() {
   ];
 
   Object.keys(shifts)
+    .filter((key) => key.startsWith(prefix))
     .sort()
     .forEach((key) => {
-      if (key.startsWith(prefix)) {
-        const s = shifts[key];
-        rows.push([
-          key,
-          s.type,
-          s.start,
-          s.end,
-          s.breakMins,
-          s.hours,
-          s.bonus,
-          s.totalPay,
-          `"${s.note || ""}"`,
-        ]);
-      }
+      const s = shifts[key];
+      rows.push([
+        key,
+        s.type,
+        s.start,
+        s.end,
+        s.breakMins,
+        s.hours,
+        s.bonus,
+        s.totalPay,
+        `"${s.note || ""}"`,
+      ]);
     });
 
   const csvContent = "﻿" + rows.map((e) => e.join(";")).join("\n");

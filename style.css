@@ -147,7 +147,8 @@ body {
 
 /* Update Toast (Block) */
 .update-toast {
-    min-width: 90vw;
+    width: max-content;
+    max-width: 90vw;
     font-size: 0.85rem;
     position: fixed;
     bottom: 15px;
@@ -303,9 +304,7 @@ body {
 }
 
 .stats__card--income .stats__value {
-    background: var(--gemini-grad);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: var(--text-primary);
 }
 
 /* Calendar (Block) */
@@ -588,9 +587,7 @@ body {
 .modal__title {
     font-size: 1.3rem;
     font-weight: 600;
-    background: var(--gemini-grad);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: var(--text-primary);
 }
 
 .modal__close-btn {

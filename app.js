@@ -550,12 +550,38 @@ function initSwipe() {
 
   let touchStartX = 0;
   let touchStartY = 0;
+  let currentX = 0;
+  let isSwiping = false;
 
   calendar.addEventListener(
     "touchstart",
     (e) => {
-      touchStartX = e.changedTouches[0].screenX;
-      touchStartY = e.changedTouches[0].screenY;
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+      isSwiping = true;
+      calendar.style.transition = "none"; // Disable transition for immediate tracking
+    },
+    { passive: true },
+  );
+
+  calendar.addEventListener(
+    "touchmove",
+    (e) => {
+      if (!isSwiping) return;
+
+      const touchX = e.touches[0].clientX;
+      const touchY = e.touches[0].clientY;
+      const dx = touchX - touchStartX;
+      const dy = touchY - touchStartY;
+
+      // Only track horizontal swipes
+      if (Math.abs(dx) > Math.abs(dy)) {
+        // e.preventDefault(); // Could be added, but not strictly needed with passive: false if we change it. Since passive: true, we can't preventDefault. Let's just animate.
+        calendar.style.transform = `translateX(${dx}px)`;
+      } else {
+        isSwiping = false; // Stop tracking if it's more vertical
+        calendar.style.transform = '';
+      }
     },
     { passive: true },
   );
@@ -563,11 +589,41 @@ function initSwipe() {
   calendar.addEventListener(
     "touchend",
     (e) => {
-      const dx = e.changedTouches[0].screenX - touchStartX;
-      const dy = e.changedTouches[0].screenY - touchStartY;
+      if (!isSwiping) return;
+      isSwiping = false;
+
+      const touchEndX = e.changedTouches[0].clientX;
+      const touchEndY = e.changedTouches[0].clientY;
+      const dx = touchEndX - touchStartX;
+      const dy = touchEndY - touchStartY;
+
+      calendar.style.transition = "transform 0.3s ease-out";
+
       // Свайп считается горизонтальным, если сдвиг по X больше чем по Y
       if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-        changeMonth(dx > 0 ? -1 : 1);
+        const direction = dx > 0 ? 1 : -1;
+
+        // Animate off screen
+        calendar.style.transform = `translateX(${direction * 100}vw)`;
+
+        setTimeout(() => {
+          // Immediately hide, move to opposite side, then slide in
+          calendar.style.transition = "none";
+          calendar.style.transform = `translateX(${-direction * 100}vw)`;
+
+          changeMonth(direction === 1 ? -1 : 1);
+
+          // Small delay to let browser apply the 'none' transition
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              calendar.style.transition = "transform 0.3s ease-out";
+              calendar.style.transform = "translateX(0)";
+            });
+          });
+        }, 300); // Wait for off-screen animation
+      } else {
+        // Snap back if threshold not met
+        calendar.style.transform = "translateX(0)";
       }
     },
     { passive: true },

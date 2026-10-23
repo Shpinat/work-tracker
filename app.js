@@ -164,7 +164,7 @@ function saveSettings() {
   render();
 }
 
-function render() {
+function renderCalendar() {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
   document.getElementById("monthTitle").textContent =
@@ -219,17 +219,23 @@ function render() {
     grid.appendChild(cell);
   }
 
-  document.getElementById("statShifts").textContent = totalShifts;
-  document.getElementById("statHours").textContent =
-    Math.round(totalHours * 100) / 100;
-  document.getElementById("statIncome").textContent =
-    `${totalIncome.toLocaleString("ru-RU")} ${settings.currency}`;
+  return { totalShifts, totalHours, totalIncome, monthShifts };
+}
 
+function renderStats(stats) {
+  document.getElementById("statShifts").textContent = stats.totalShifts;
+  document.getElementById("statHours").textContent =
+    Math.round(stats.totalHours * 100) / 100;
+  document.getElementById("statIncome").textContent =
+    `${stats.totalIncome.toLocaleString("ru-RU")} ${settings.currency}`;
+}
+
+function renderShiftList(monthShifts, month) {
   const listEl = document.getElementById("shiftList");
   if (monthShifts.length === 0) {
     listEl.innerHTML = `<div class="shift-list__empty">Нажми на любой день в календаре, чтобы добавить смену</div>`;
   } else {
-    listEl.innerHTML = monthShifts
+    listEl.innerHTML = [...monthShifts]
       .reverse()
       .map((s) => {
         const icon =
@@ -250,6 +256,13 @@ function render() {
       })
       .join("");
   }
+}
+
+function render() {
+  const { totalShifts, totalHours, totalIncome, monthShifts } =
+    renderCalendar();
+  renderStats({ totalShifts, totalHours, totalIncome });
+  renderShiftList(monthShifts, currentDate.getMonth());
 }
 
 function exportCSV() {

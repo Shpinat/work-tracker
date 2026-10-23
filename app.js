@@ -271,22 +271,21 @@ function exportCSV() {
   ];
 
   Object.keys(shifts)
+    .filter((key) => key.startsWith(prefix))
     .sort()
     .forEach((key) => {
-      if (key.startsWith(prefix)) {
-        const s = shifts[key];
-        rows.push([
-          key,
-          s.type,
-          s.start,
-          s.end,
-          s.breakMins,
-          s.hours,
-          s.bonus,
-          s.totalPay,
-          `"${s.note || ""}"`,
-        ]);
-      }
+      const s = shifts[key];
+      rows.push([
+        key,
+        s.type,
+        s.start,
+        s.end,
+        s.breakMins,
+        s.hours,
+        s.bonus,
+        s.totalPay,
+        `"${s.note || ""}"`,
+      ]);
     });
 
   const csvContent = "﻿" + rows.map((e) => e.join(";")).join("\n");

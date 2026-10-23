@@ -299,7 +299,8 @@ function render() {
 function exportCSV() {
   const year = currentDate.getFullYear();
   const month = String(currentDate.getMonth() + 1).padStart(2, "0");
-  const prefix = `${year}-${month}`;
+  const monthPrefix = `${year}-${month}`;
+  const datePrefix = `${monthPrefix}-`;
   const rows = [
     [
       "Дата",
@@ -317,7 +318,7 @@ function exportCSV() {
   Object.keys(shifts)
     .sort()
     .forEach((key) => {
-      if (key.startsWith(prefix)) {
+      if (key.startsWith(datePrefix)) {
         const s = shifts[key];
         rows.push([
           key,
@@ -337,7 +338,7 @@ function exportCSV() {
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
-  link.download = `shifts_${prefix}.csv`;
+  link.download = `shifts_${monthPrefix}.csv`;
   link.click();
 }
 

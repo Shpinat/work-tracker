@@ -15,6 +15,53 @@ let settings = JSON.parse(
     }),
 );
 
+// Кэширование DOM-элементов
+const elements = {
+  // Навигация и заголовок
+  monthTitle: document.getElementById("monthTitle"),
+  themeIcon: document.getElementById("themeIcon"),
+  metaThemeColor: document.querySelector('meta[name="theme-color"]'),
+
+  // Статистика
+  statShifts: document.getElementById("statShifts"),
+  statHours: document.getElementById("statHours"),
+  statIncome: document.getElementById("statIncome"),
+
+  // Календарь и список смен
+  calendarGrid: document.getElementById("calendarGrid"),
+  shiftList: document.getElementById("shiftList"),
+
+  // Модальное окно смены
+  shiftModal: document.getElementById("shiftModal"),
+  shiftModalTitle: document.getElementById("shiftModalTitle"),
+  shiftDate: document.getElementById("shiftDate"),
+  shiftType: document.getElementById("shiftType"),
+  startTime: document.getElementById("startTime"),
+  endTime: document.getElementById("endTime"),
+  breakMins: document.getElementById("breakMins"),
+  totalHours: document.getElementById("totalHours"),
+  payMode: document.getElementById("payMode"),
+  rateLabel: document.getElementById("rateLabel"),
+  rate: document.getElementById("rate"),
+  bonus: document.getElementById("bonus"),
+  totalPay: document.getElementById("totalPay"),
+  note: document.getElementById("note"),
+  deleteBtn: document.getElementById("deleteBtn"),
+
+  // Модальное окно настроек
+  settingsModal: document.getElementById("settingsModal"),
+  defStart: document.getElementById("defStart"),
+  defEnd: document.getElementById("defEnd"),
+  defBreak: document.getElementById("defBreak"),
+  defPayMode: document.getElementById("defPayMode"),
+  defRate: document.getElementById("defRate"),
+  defCurrency: document.getElementById("defCurrency"),
+
+  // PWA тост
+  updateToast: document.getElementById("updateToast"),
+  updateReloadBtn: document.getElementById("updateReloadBtn"),
+};
+
 const monthNames = [
   "Январь",
   "Февраль",
@@ -53,55 +100,54 @@ function calcHoursDiff(start, end, breakMins) {
 }
 
 function recalcModal() {
-  const start = document.getElementById("startTime").value;
-  const end = document.getElementById("endTime").value;
-  const breakMins = document.getElementById("breakMins").value;
-  const payMode = document.getElementById("payMode").value;
-  const rate = parseFloat(document.getElementById("rate").value) || 0;
-  const bonus = parseFloat(document.getElementById("bonus").value) || 0;
+  const start = elements.startTime.value;
+  const end = elements.endTime.value;
+  const breakMins = elements.breakMins.value;
+  const payMode = elements.payMode.value;
+  const rate = parseFloat(elements.rate.value) || 0;
+  const bonus = parseFloat(elements.bonus.value) || 0;
 
-  document.getElementById("rateLabel").textContent =
+  elements.rateLabel.textContent =
     payMode === "hourly"
       ? `Ставка в час (${settings.currency})`
       : `За смену (${settings.currency})`;
 
   const hours = calcHoursDiff(start, end, breakMins);
-  document.getElementById("totalHours").value = hours;
+  elements.totalHours.value = hours;
 
   const basePay = payMode === "hourly" ? hours * rate : rate;
-  document.getElementById("totalPay").value = Math.round(basePay + bonus);
+  elements.totalPay.value = Math.round(basePay + bonus);
 }
 
 function openShiftModal(dateKey) {
-  const modal = document.getElementById("shiftModal");
+  const modal = elements.shiftModal;
   const existing = shifts[dateKey];
   const [y, m, d] = dateKey.split("-");
-  document.getElementById("shiftModalTitle").textContent =
-    `Смена ${d}.${m}.${y}`;
-  document.getElementById("shiftDate").value = dateKey;
+  elements.shiftModalTitle.textContent = `Смена ${d}.${m}.${y}`;
+  elements.shiftDate.value = dateKey;
 
   if (existing) {
-    document.getElementById("shiftType").value = existing.type || "day";
-    document.getElementById("startTime").value = existing.start;
-    document.getElementById("endTime").value = existing.end;
-    document.getElementById("breakMins").value = existing.breakMins ?? 0;
-    document.getElementById("totalHours").value = existing.hours;
-    document.getElementById("payMode").value = existing.payMode || "hourly";
-    document.getElementById("rate").value = existing.rate;
-    document.getElementById("bonus").value = existing.bonus || 0;
-    document.getElementById("totalPay").value = existing.totalPay;
-    document.getElementById("note").value = existing.note || "";
-    document.getElementById("deleteBtn").style.display = "block";
+    elements.shiftType.value = existing.type || "day";
+    elements.startTime.value = existing.start;
+    elements.endTime.value = existing.end;
+    elements.breakMins.value = existing.breakMins ?? 0;
+    elements.totalHours.value = existing.hours;
+    elements.payMode.value = existing.payMode || "hourly";
+    elements.rate.value = existing.rate;
+    elements.bonus.value = existing.bonus || 0;
+    elements.totalPay.value = existing.totalPay;
+    elements.note.value = existing.note || "";
+    elements.deleteBtn.style.display = "block";
   } else {
-    document.getElementById("shiftType").value = "day";
-    document.getElementById("startTime").value = settings.start;
-    document.getElementById("endTime").value = settings.end;
-    document.getElementById("breakMins").value = settings.breakMins;
-    document.getElementById("payMode").value = settings.payMode;
-    document.getElementById("rate").value = settings.rate;
-    document.getElementById("bonus").value = 0;
-    document.getElementById("note").value = "";
-    document.getElementById("deleteBtn").style.display = "none";
+    elements.shiftType.value = "day";
+    elements.startTime.value = settings.start;
+    elements.endTime.value = settings.end;
+    elements.breakMins.value = settings.breakMins;
+    elements.payMode.value = settings.payMode;
+    elements.rate.value = settings.rate;
+    elements.bonus.value = 0;
+    elements.note.value = "";
+    elements.deleteBtn.style.display = "none";
     recalcModal();
   }
 
@@ -109,23 +155,24 @@ function openShiftModal(dateKey) {
 }
 
 function closeModal(id) {
-  document.getElementById(id).classList.remove("active");
+  const modal = elements[id] || document.getElementById(id);
+  if (modal) modal.classList.remove("active");
 }
 
 function saveShift(e) {
   e.preventDefault();
-  const dateKey = document.getElementById("shiftDate").value;
+  const dateKey = elements.shiftDate.value;
   shifts[dateKey] = {
-    type: document.getElementById("shiftType").value,
-    start: document.getElementById("startTime").value,
-    end: document.getElementById("endTime").value,
-    breakMins: Number(document.getElementById("breakMins").value) || 0,
-    hours: parseFloat(document.getElementById("totalHours").value) || 0,
-    payMode: document.getElementById("payMode").value,
-    rate: parseFloat(document.getElementById("rate").value) || 0,
-    bonus: parseFloat(document.getElementById("bonus").value) || 0,
-    totalPay: parseFloat(document.getElementById("totalPay").value) || 0,
-    note: document.getElementById("note").value.trim(),
+    type: elements.shiftType.value,
+    start: elements.startTime.value,
+    end: elements.endTime.value,
+    breakMins: Number(elements.breakMins.value) || 0,
+    hours: parseFloat(elements.totalHours.value) || 0,
+    payMode: elements.payMode.value,
+    rate: parseFloat(elements.rate.value) || 0,
+    bonus: parseFloat(elements.bonus.value) || 0,
+    totalPay: parseFloat(elements.totalPay.value) || 0,
+    note: elements.note.value.trim(),
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(shifts));
   closeModal("shiftModal");
@@ -133,7 +180,7 @@ function saveShift(e) {
 }
 
 function deleteShift() {
-  const dateKey = document.getElementById("shiftDate").value;
+  const dateKey = elements.shiftDate.value;
   delete shifts[dateKey];
   localStorage.setItem(STORAGE_KEY, JSON.stringify(shifts));
   closeModal("shiftModal");
@@ -141,23 +188,23 @@ function deleteShift() {
 }
 
 function openSettings() {
-  document.getElementById("defStart").value = settings.start;
-  document.getElementById("defEnd").value = settings.end;
-  document.getElementById("defBreak").value = settings.breakMins;
-  document.getElementById("defPayMode").value = settings.payMode;
-  document.getElementById("defRate").value = settings.rate;
-  document.getElementById("defCurrency").value = settings.currency || "₽";
-  document.getElementById("settingsModal").classList.add("active");
+  elements.defStart.value = settings.start;
+  elements.defEnd.value = settings.end;
+  elements.defBreak.value = settings.breakMins;
+  elements.defPayMode.value = settings.payMode;
+  elements.defRate.value = settings.rate;
+  elements.defCurrency.value = settings.currency || "₽";
+  elements.settingsModal.classList.add("active");
 }
 
 function saveSettings() {
   settings = {
-    start: document.getElementById("defStart").value || "09:00",
-    end: document.getElementById("defEnd").value || "21:00",
-    breakMins: Number(document.getElementById("defBreak").value) || 0,
-    payMode: document.getElementById("defPayMode").value,
-    rate: parseFloat(document.getElementById("defRate").value) || 0,
-    currency: document.getElementById("defCurrency").value.trim() || "₽",
+    start: elements.defStart.value || "09:00",
+    end: elements.defEnd.value || "21:00",
+    breakMins: Number(elements.defBreak.value) || 0,
+    payMode: elements.defPayMode.value,
+    rate: parseFloat(elements.defRate.value) || 0,
+    currency: elements.defCurrency.value.trim() || "₽",
   };
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   closeModal("settingsModal");
@@ -167,14 +214,13 @@ function saveSettings() {
 function render() {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
-  document.getElementById("monthTitle").textContent =
-    `${monthNames[month]} ${year}`;
+  elements.monthTitle.textContent = `${monthNames[month]} ${year}`;
 
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const startOffset = (firstDay + 6) % 7; // Пн = 0
 
-  const grid = document.getElementById("calendarGrid");
+  const grid = elements.calendarGrid;
   grid.innerHTML = "";
 
   for (let i = 0; i < startOffset; i++) {
@@ -219,13 +265,11 @@ function render() {
     grid.appendChild(cell);
   }
 
-  document.getElementById("statShifts").textContent = totalShifts;
-  document.getElementById("statHours").textContent =
-    Math.round(totalHours * 100) / 100;
-  document.getElementById("statIncome").textContent =
-    `${totalIncome.toLocaleString("ru-RU")} ${settings.currency}`;
+  elements.statShifts.textContent = totalShifts;
+  elements.statHours.textContent = Math.round(totalHours * 100) / 100;
+  elements.statIncome.textContent = `${totalIncome.toLocaleString("ru-RU")} ${settings.currency}`;
 
-  const listEl = document.getElementById("shiftList");
+  const listEl = elements.shiftList;
   if (monthShifts.length === 0) {
     listEl.innerHTML = `<div class="shift-list__empty">Нажми на любой день в календаре, чтобы добавить смену</div>`;
   } else {
@@ -271,21 +315,22 @@ function exportCSV() {
   ];
 
   Object.keys(shifts)
-    .filter((key) => key.startsWith(prefix))
     .sort()
     .forEach((key) => {
-      const s = shifts[key];
-      rows.push([
-        key,
-        s.type,
-        s.start,
-        s.end,
-        s.breakMins,
-        s.hours,
-        s.bonus,
-        s.totalPay,
-        `"${s.note || ""}"`,
-      ]);
+      if (key.startsWith(prefix)) {
+        const s = shifts[key];
+        rows.push([
+          key,
+          s.type,
+          s.start,
+          s.end,
+          s.breakMins,
+          s.hours,
+          s.bonus,
+          s.totalPay,
+          `"${s.note || ""}"`,
+        ]);
+      }
     });
 
   const csvContent = "﻿" + rows.map((e) => e.join(";")).join("\n");
@@ -363,8 +408,8 @@ if ("serviceWorker" in navigator) {
 }
 
 function showUpdatePrompt(worker) {
-  const toast = document.getElementById("updateToast");
-  const btn = document.getElementById("updateReloadBtn");
+  const toast = elements.updateToast;
+  const btn = elements.updateReloadBtn;
   if (!toast || !btn) return;
   toast.style.display = "flex";
   btn.onclick = () => {
@@ -400,7 +445,7 @@ function applyTheme(theme) {
   document.documentElement.setAttribute("data-theme", theme);
 
   // Обновляем theme-color
-  const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+  const metaThemeColor = elements.metaThemeColor;
   if (metaThemeColor) {
     if (theme === "light") {
       metaThemeColor.setAttribute("content", "#f3f4f6");
@@ -409,7 +454,7 @@ function applyTheme(theme) {
     }
   }
 
-  const icon = document.getElementById("themeIcon");
+  const icon = elements.themeIcon;
   if (icon) {
     if (theme === "light") {
       // Иконка Луны (для переключения обратно на темную)

@@ -347,7 +347,15 @@ function render() {
       monthShifts.push({ dateKey, day, ...shift });
     }
 
+    cell.setAttribute("role", "button");
+    cell.setAttribute("tabindex", "0");
     cell.addEventListener("click", () => openShiftModal(dateKey));
+    cell.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        openShiftModal(dateKey);
+      }
+    });
     fragment.appendChild(cell);
   }
 
@@ -381,6 +389,8 @@ function renderShiftList(monthShifts, month) {
 
     const article = document.createElement("article");
     article.className = "shift-list__item";
+    article.setAttribute("role", "button");
+    article.setAttribute("tabindex", "0");
     article.innerHTML = `
       <div class="shift-list__left">
         <div class="shift-list__date">${icon} ${s.day} ${MONTH_NAMES[month].toLowerCase()}</div>
@@ -392,6 +402,12 @@ function renderShiftList(monthShifts, month) {
       </div>
     `;
     article.addEventListener("click", () => openShiftModal(s.dateKey));
+    article.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        openShiftModal(s.dateKey);
+      }
+    });
     fragment.appendChild(article);
   });
 
@@ -704,6 +720,12 @@ function bindEvents() {
   elements.prevMonthBtn.addEventListener("click", () => changeMonth(-1));
   elements.nextMonthBtn.addEventListener("click", () => changeMonth(1));
   elements.monthTitle.addEventListener("click", goToToday);
+  elements.monthTitle.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      goToToday();
+    }
+  });
 
   // Тема и настройки
   elements.themeToggleBtn.addEventListener("click", toggleTheme);

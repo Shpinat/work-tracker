@@ -442,10 +442,13 @@ function render() {
     const prevDay = prevMonthLastDate - i;
     const cell = document.createElement("div");
     cell.className = "calendar__day-cell calendar__day-cell--other-month";
+    const dayHeader = document.createElement("div");
+    dayHeader.className = "calendar__day-header";
     const dayNum = document.createElement("div");
     dayNum.className = "calendar__day-number";
     dayNum.textContent = prevDay;
-    cell.appendChild(dayNum);
+    dayHeader.appendChild(dayNum);
+    cell.appendChild(dayHeader);
     cell.setAttribute("role", "button");
     cell.setAttribute("tabindex", "0");
     cell.setAttribute("aria-label", `Предыдущий месяц, ${prevDay}`);
@@ -473,10 +476,13 @@ function render() {
       cell.classList.add("calendar__day-cell--weekend");
     }
 
+    const dayHeader = document.createElement("div");
+    dayHeader.className = "calendar__day-header";
+
     const dayNum = document.createElement("div");
     dayNum.className = "calendar__day-number";
     dayNum.textContent = day;
-    cell.appendChild(dayNum);
+    dayHeader.appendChild(dayNum);
 
     if (shift) {
       cell.classList.add("calendar__day-cell--has-shift");
@@ -485,17 +491,26 @@ function render() {
       if (shift.type === "extra")
         cell.classList.add("calendar__day-cell--extra");
 
-      const badge = document.createElement("div");
-      badge.className = "calendar__shift-badge";
       const icon =
         shift.type === "night" ? "🌙" : shift.type === "extra" ? "🔥" : "☀️";
-      badge.innerHTML = `<span class="calendar__shift-icon">${icon}</span> ${shift.hours}ч`;
+      const iconSpan = document.createElement("span");
+      iconSpan.className = "calendar__shift-icon";
+      iconSpan.setAttribute("aria-hidden", "true");
+      iconSpan.textContent = icon;
+      dayHeader.appendChild(iconSpan);
+
+      const badge = document.createElement("div");
+      badge.className = "calendar__shift-badge";
+      badge.textContent = `${shift.hours}ч`;
+      cell.appendChild(dayHeader);
       cell.appendChild(badge);
 
       totalShifts++;
       totalHours += Number(shift.hours) || 0;
       totalIncome += Number(shift.totalPay) || 0;
       monthShifts.push({ dateKey, day, ...shift });
+    } else {
+      cell.appendChild(dayHeader);
     }
 
     cell.setAttribute("role", "button");
@@ -516,10 +531,13 @@ function render() {
   for (let d = 1; d <= remainingCells; d++) {
     const cell = document.createElement("div");
     cell.className = "calendar__day-cell calendar__day-cell--other-month";
+    const dayHeader = document.createElement("div");
+    dayHeader.className = "calendar__day-header";
     const dayNum = document.createElement("div");
     dayNum.className = "calendar__day-number";
     dayNum.textContent = d;
-    cell.appendChild(dayNum);
+    dayHeader.appendChild(dayNum);
+    cell.appendChild(dayHeader);
     cell.setAttribute("role", "button");
     cell.setAttribute("tabindex", "0");
     cell.setAttribute("aria-label", `Следующий месяц, ${d}`);

@@ -481,8 +481,8 @@ body {
 }
 
 .calendar__day-cell--other-month {
-    opacity: 0.28;
-    background: transparent !important;
+    opacity: 0.18;
+    background: rgba(255, 255, 255, 0.04) !important;
 }
 
 .calendar__day-cell--other-month:hover {
@@ -495,16 +495,23 @@ body {
     box-shadow: 0 0 15px var(--primary-glow);
 }
 
+.calendar__day-header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    line-height: 1;
+}
+
 .calendar__day-number {
     font-size: 0.85rem;
     font-weight: 600;
-    align-self: flex-start;
     line-height: 1;
     margin-left: 2px;
 }
 
 .calendar__day-cell--weekend .calendar__day-number {
-    color: rgba(255, 69, 58, 0.9);
+    color: var(--danger);
 }
 
 .calendar__day-cell--has-shift {
@@ -549,12 +556,12 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 2px;
 }
 
 .calendar__shift-icon {
-    font-size: 0.72rem;
+    font-size: 0.78rem;
     line-height: 1;
+    margin-right: 2px;
 }
 
 .calendar__day-cell--night .calendar__shift-badge {

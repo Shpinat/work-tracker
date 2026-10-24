@@ -515,6 +515,20 @@ function render() {
 
     cell.setAttribute("role", "button");
     cell.setAttribute("tabindex", "0");
+
+    // Accessibility: Dynamic aria-label for calendar day cells
+    const dayLabel = `${day} ${MONTH_NAMES_GENITIVE[month]}`;
+    if (shift) {
+      const shiftTypeName = shift.type === "night" ? "Ночная смена" : shift.type === "extra" ? "Подработка" : "Дневная смена";
+      cell.setAttribute("aria-label", `${dateKey === todayKey ? "Сегодня, " : ""}${dayLabel}, ${shiftTypeName}, ${shift.hours} часов`);
+    } else {
+      cell.setAttribute("aria-label", `${dateKey === todayKey ? "Сегодня, " : ""}${dayLabel}, добавить смену`);
+    }
+
+    if (dateKey === todayKey) {
+      cell.setAttribute("aria-current", "date");
+    }
+
     cell.addEventListener("click", () => openShiftModal(dateKey));
     cell.addEventListener("keydown", (e) => {
       if (e.key === "Enter" || e.key === " ") {
@@ -598,17 +612,19 @@ function renderShiftList(monthShifts, month) {
     const icon =
       s.type === "night" ? "🌙" : s.type === "extra" ? "🔥" : "☀️";
     const noteStr = s.note ? ` • ${escapeHtml(s.note)}` : "";
+    const shiftTypeName = s.type === "night" ? "Ночная смена" : s.type === "extra" ? "Подработка" : "Дневная смена";
 
     const article = document.createElement("article");
     article.className = "shift-list__item";
     article.setAttribute("role", "button");
     article.setAttribute("tabindex", "0");
+    article.setAttribute("aria-label", `Смена ${s.day} ${MONTH_NAMES_GENITIVE[month]}, ${shiftTypeName}, с ${s.start} до ${s.end}, ${s.hours} часов, оплата ${Number(s.totalPay).toLocaleString("ru-RU")} ${currency}`);
     article.innerHTML = `
       <div class="shift-list__left">
-        <div class="shift-list__date">${icon} ${s.day} ${MONTH_NAMES_GENITIVE[month]}</div>
-        <div class="shift-list__meta">${escapeHtml(s.start)} – ${escapeHtml(s.end)}${noteStr}</div>
+        <div class="shift-list__date" aria-hidden="true">${icon} ${s.day} ${MONTH_NAMES_GENITIVE[month]}</div>
+        <div class="shift-list__meta" aria-hidden="true">${escapeHtml(s.start)} – ${escapeHtml(s.end)}${noteStr}</div>
       </div>
-      <div class="shift-list__right">
+      <div class="shift-list__right" aria-hidden="true">
         <div class="shift-list__pay">+${Number(s.totalPay).toLocaleString("ru-RU")} ${currency}</div>
         <div class="shift-list__hours">${s.hours} ч.</div>
       </div>

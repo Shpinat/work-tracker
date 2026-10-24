@@ -95,7 +95,13 @@
     color: #e11d48;
 }
 
+[data-theme="light"] .calendar__day-cell--other-month {
+    opacity: 0.50;
+    background: rgba(0, 0, 0, 0.04) !important;
+}
+
 [data-theme="light"] .calendar__day-cell--other-month:hover {
+    opacity: 1;
     background: rgba(0, 0, 0, 0.04) !important;
 }
 
@@ -269,7 +275,8 @@ body {
 }
 
 .btn--primary {
-    background: rgba(48, 209, 88, 0.15); /* System Green */
+    background: rgba(48, 209, 88, 0.15);
+    /* System Green */
     color: var(--success);
 }
 
@@ -279,7 +286,8 @@ body {
 }
 
 .btn--danger {
-    background: rgba(255, 69, 58, 0.15); /* System Red */
+    background: rgba(255, 69, 58, 0.15);
+    /* System Red */
     color: var(--danger);
 }
 
@@ -481,12 +489,12 @@ body {
 }
 
 .calendar__day-cell--other-month {
-    opacity: 0.18;
+    opacity: 0.28;
     background: rgba(255, 255, 255, 0.04) !important;
 }
 
 .calendar__day-cell--other-month:hover {
-    opacity: 0.6;
+    opacity: 0.50;
     background: rgba(255, 255, 255, 0.04) !important;
 }
 

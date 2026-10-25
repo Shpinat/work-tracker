@@ -735,7 +735,7 @@ body.modal-open {
     height: 12px;
 }
 
-/* При нехватке ширины ячейки уменьшаем векторную иконку, а если совсем мало места — скрываем */
+/* При нехватке ширины ячейки аккуратно масштабируем векторную иконку */
 @container (max-width: 44px) {
     .calendar__shift-icon .shift-svg-icon {
         width: 10px;
@@ -743,9 +743,10 @@ body.modal-open {
     }
 }
 
-@container (max-width: 34px) {
-    .calendar__shift-icon {
-        display: none !important;
+@container (max-width: 36px) {
+    .calendar__shift-icon .shift-svg-icon {
+        width: 9.5px;
+        height: 9.5px;
     }
 }
 
@@ -1584,8 +1585,9 @@ body.modal-open {
         border-radius: 10px;
     }
 
-    .calendar__shift-icon {
-        display: none !important;
+    .calendar__shift-icon .shift-svg-icon {
+        width: 9.5px;
+        height: 9.5px;
     }
 
     .calendar__day-number {

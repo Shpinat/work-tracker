@@ -586,7 +586,7 @@ function closeModal(id) {
 // ============================================================
 let toastTimer = null;
 
-function showToast(message, type = "info", action = null) {
+function showToast(message, type = "info", action = null, duration = null) {
   const toast = elements.appToast;
   if (!toast) return;
 
@@ -624,7 +624,7 @@ function showToast(message, type = "info", action = null) {
   if (toastTimer) clearTimeout(toastTimer);
   toastTimer = setTimeout(() => {
     toast.classList.remove("active");
-  }, action ? 5000 : 3000);
+  }, duration || (action ? 5000 : 3500));
 }
 
 function showConfirm({
@@ -1808,6 +1808,9 @@ function updateStatsTrends(year, month, currentShifts, currentHours, currentInco
     prevShiftsCount,
     currentShifts,
     diffShifts,
+    prevHours: Math.round(prevHours * 10) / 10,
+    currentHours: Math.round(currentHours * 10) / 10,
+    diffHours,
   };
 }
 
@@ -2538,17 +2541,54 @@ function bindEvents() {
       if (lastMonthComparisonSummary) {
         const s = lastMonthComparisonSummary;
         const sign = s.diffIncome >= 0 ? "+" : "";
+        const arrow = s.diffIncome >= 0 ? "↗" : "↘";
         const curr = settings.currency || "₽";
-        showToast(
-          `${s.prevMonthName}: ${s.prevIncome.toLocaleString("ru-RU")} ${curr} (${s.prevShiftsCount} см) → ${s.curMonthName}: ${s.currentIncome.toLocaleString("ru-RU")} ${curr} (${s.currentShifts} см) [${sign}${s.diffIncome.toLocaleString("ru-RU")} ${curr}]`,
-          "info"
-        );
+        const msg = `${s.prevMonthName}: ${s.prevIncome.toLocaleString("ru-RU")} ${curr} (${s.prevShiftsCount} см)\n${s.curMonthName}: ${s.currentIncome.toLocaleString("ru-RU")} ${curr} (${s.currentShifts} см)\n${arrow} Разница дохода: ${sign}${s.diffIncome.toLocaleString("ru-RU")} ${curr} (${sign}${s.pctIncome}%)`;
+        showToast(msg, s.diffIncome >= 0 ? "success" : "info", null, 5000);
       }
     });
     elements.statIncomeCard.addEventListener("keydown", (e) => {
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
         elements.statIncomeCard.click();
+      }
+    });
+  }
+
+  if (elements.statShiftsCard) {
+    elements.statShiftsCard.addEventListener("click", () => {
+      triggerHaptic(10);
+      if (lastMonthComparisonSummary) {
+        const s = lastMonthComparisonSummary;
+        const sign = s.diffShifts >= 0 ? "+" : "";
+        const arrow = s.diffShifts >= 0 ? "↗" : "↘";
+        const msg = `${s.prevMonthName}: ${s.prevShiftsCount} см\n${s.curMonthName}: ${s.currentShifts} см\n${arrow} Разница смен: ${sign}${s.diffShifts} см`;
+        showToast(msg, s.diffShifts >= 0 ? "success" : "info", null, 4000);
+      }
+    });
+    elements.statShiftsCard.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        elements.statShiftsCard.click();
+      }
+    });
+  }
+
+  if (elements.statHoursCard) {
+    elements.statHoursCard.addEventListener("click", () => {
+      triggerHaptic(10);
+      if (lastMonthComparisonSummary) {
+        const s = lastMonthComparisonSummary;
+        const sign = s.diffHours >= 0 ? "+" : "";
+        const arrow = s.diffHours >= 0 ? "↗" : "↘";
+        const msg = `${s.prevMonthName}: ${s.prevHours} ч\n${s.curMonthName}: ${s.currentHours} ч\n${arrow} Разница часов: ${sign}${s.diffHours} ч`;
+        showToast(msg, s.diffHours >= 0 ? "success" : "info", null, 4000);
+      }
+    });
+    elements.statHoursCard.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        elements.statHoursCard.click();
       }
     });
   }

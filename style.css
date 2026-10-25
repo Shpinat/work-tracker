@@ -1817,15 +1817,17 @@ body.modal-open {
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
-    border-radius: var(--radius-pill);
-    padding: 10px 18px;
+    border-radius: var(--radius-sm);
+    padding: 10px 16px;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 10px;
     color: var(--text);
     font-size: 0.88rem;
     font-weight: 500;
     z-index: 400;
+    max-width: 520px;
+    box-sizing: border-box;
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
@@ -1844,6 +1846,15 @@ body.modal-open {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.app-toast__message {
+    flex: 1;
+    min-width: 0;
+    line-height: 1.4;
+    white-space: pre-line;
+    word-break: break-word;
 }
 
 .app-toast--success .app-toast__icon {
@@ -3039,6 +3050,24 @@ body.modal-open {
     .modal__actions {
         flex-direction: column;
         gap: 8px;
+    }
+
+    /* Адаптивный тост на всю ширину экрана мобильного устройства */
+    .app-toast {
+        top: 12px;
+        left: 12px;
+        right: 12px;
+        width: auto;
+        max-width: none;
+        transform: translateY(-30px) scale(0.98);
+        border-radius: 16px;
+        padding: 11px 14px;
+        font-size: 0.82rem;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    }
+
+    .app-toast.active {
+        transform: translateY(0) scale(1);
     }
 }
 

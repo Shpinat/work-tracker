@@ -5,6 +5,24 @@ const STORAGE_KEY = "my_work_shifts_v1";
 const SETTINGS_KEY = "my_work_settings_v1";
 const THEME_KEY = "my_work_theme_v1";
 
+const DEFAULT_PRESETS = {
+  day: {
+    start: "09:00",
+    end: "21:00",
+    breakMins: 60,
+  },
+  night: {
+    start: "21:00",
+    end: "09:00",
+    breakMins: 60,
+  },
+  extra: {
+    start: "10:00",
+    end: "16:00",
+    breakMins: 0,
+  },
+};
+
 const DEFAULT_SETTINGS = {
   start: "09:00",
   end: "21:00",
@@ -12,6 +30,9 @@ const DEFAULT_SETTINGS = {
   payMode: "hourly",
   rate: 300,
   currency: "₽",
+  advanceCutoffDay: 15,
+  monthlyGoal: 0,
+  presets: DEFAULT_PRESETS,
 };
 
 const MONTH_NAMES = [
@@ -54,15 +75,62 @@ function getShiftIconSvg(type) {
   return SHIFT_ICONS[type] || SHIFT_ICONS.day;
 }
 
+const SHIFT_TAGS = {
+  bonus: { label: "Премия", emoji: "💰" },
+  overtime: { label: "Сверхурочно", emoji: "⏱️" },
+  taxi: { label: "Такси", emoji: "🚕" },
+  sub: { label: "Подмена", emoji: "🤝" },
+  penalty: { label: "Штраф", emoji: "⚠️" },
+  heavy: { label: "Тяжёлая", emoji: "⚡" },
+  easy: { label: "Спокойная", emoji: "☕" },
+};
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+    const parsed = JSON.parse(raw);
+    const presets = {
+      day: {
+        start: parsed.presets?.day?.start || parsed.start || DEFAULT_PRESETS.day.start,
+        end: parsed.presets?.day?.end || parsed.end || DEFAULT_PRESETS.day.end,
+        breakMins: parsed.presets?.day?.breakMins ?? parsed.breakMins ?? DEFAULT_PRESETS.day.breakMins,
+      },
+      night: {
+        start: parsed.presets?.night?.start || DEFAULT_PRESETS.night.start,
+        end: parsed.presets?.night?.end || DEFAULT_PRESETS.night.end,
+        breakMins: parsed.presets?.night?.breakMins ?? DEFAULT_PRESETS.night.breakMins,
+      },
+      extra: {
+        start: parsed.presets?.extra?.start || DEFAULT_PRESETS.extra.start,
+        end: parsed.presets?.extra?.end || DEFAULT_PRESETS.extra.end,
+        breakMins: parsed.presets?.extra?.breakMins ?? DEFAULT_PRESETS.extra.breakMins,
+      },
+    };
+    return {
+      start: presets.day.start,
+      end: presets.day.end,
+      breakMins: presets.day.breakMins,
+      payMode: ["hourly", "fixed"].includes(parsed.payMode) ? parsed.payMode : DEFAULT_SETTINGS.payMode,
+      rate: typeof parsed.rate === "number" ? parsed.rate : DEFAULT_SETTINGS.rate,
+      currency: typeof parsed.currency === "string" ? parsed.currency : DEFAULT_SETTINGS.currency,
+      advanceCutoffDay: typeof parsed.advanceCutoffDay === "number" ? parsed.advanceCutoffDay : DEFAULT_SETTINGS.advanceCutoffDay,
+      monthlyGoal: typeof parsed.monthlyGoal === "number" ? Math.max(0, parsed.monthlyGoal) : DEFAULT_SETTINGS.monthlyGoal,
+      presets,
+    };
+  } catch (_) {
+    return JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+  }
+}
+
 // ============================================================
 // Состояние
 // ============================================================
 let currentDate = new Date();
 let shifts = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-let settings = JSON.parse(
-  localStorage.getItem(SETTINGS_KEY) || JSON.stringify(DEFAULT_SETTINGS),
-);
+let settings = loadSettings();
 let currentTheme = localStorage.getItem(THEME_KEY) || "dark";
+let currentShiftTags = [];
 
 // ============================================================
 // Кэширование DOM-элементов
@@ -73,6 +141,8 @@ const elements = {
   prevMonthBtn: document.getElementById("prevMonthBtn"),
   nextMonthBtn: document.getElementById("nextMonthBtn"),
   todayBtn: document.getElementById("todayBtn"),
+  autoScheduleBtn: document.getElementById("autoScheduleBtn"),
+  statsOverviewBtn: document.getElementById("statsOverviewBtn"),
   themeToggleBtn: document.getElementById("themeToggleBtn"),
   themeIcon: document.getElementById("themeIcon"),
   settingsBtn: document.getElementById("settingsBtn"),
@@ -82,6 +152,31 @@ const elements = {
   statShifts: document.getElementById("statShifts"),
   statHours: document.getElementById("statHours"),
   statIncome: document.getElementById("statIncome"),
+  statShiftsCard: document.getElementById("statShiftsCard"),
+  statHoursCard: document.getElementById("statHoursCard"),
+  statIncomeCard: document.getElementById("statIncomeCard"),
+  statShiftsTrend: document.getElementById("statShiftsTrend"),
+  statHoursTrend: document.getElementById("statHoursTrend"),
+  statIncomeTrend: document.getElementById("statIncomeTrend"),
+
+  // Финансовая цель на месяц ("Копилка")
+  goalTracker: document.getElementById("goalTracker"),
+  goalProgressText: document.getElementById("goalProgressText"),
+  goalPercentage: document.getElementById("goalPercentage"),
+  goalProgressBar: document.getElementById("goalProgressBar"),
+  goalStatusText: document.getElementById("goalStatusText"),
+  goalActionHint: document.getElementById("goalActionHint"),
+
+  // Выплаты: Аванс и Расчёт
+  payoutSplit: document.getElementById("payoutSplit"),
+  payoutAdvanceCard: document.getElementById("payoutAdvanceCard"),
+  payoutSalaryCard: document.getElementById("payoutSalaryCard"),
+  advanceLabel: document.getElementById("advanceLabel"),
+  salaryLabel: document.getElementById("salaryLabel"),
+  statAdvanceIncome: document.getElementById("statAdvanceIncome"),
+  statAdvanceMeta: document.getElementById("statAdvanceMeta"),
+  statSalaryIncome: document.getElementById("statSalaryIncome"),
+  statSalaryMeta: document.getElementById("statSalaryMeta"),
 
   // Календарь и триггер смен
   calendarGrid: document.getElementById("calendarGrid"),
@@ -93,6 +188,10 @@ const elements = {
   shiftsModalTitle: document.getElementById("shiftsModalTitle"),
   shiftsModalMonth: document.getElementById("shiftsModalMonth"),
   shiftsModalCloseBtn: document.getElementById("shiftsModalCloseBtn"),
+  shiftsFilterSegmented: document.getElementById("shiftsFilterSegmented"),
+  shiftsFilterInput: document.getElementById("shiftsFilterInput"),
+  filterAdvanceBtn: document.getElementById("filterAdvanceBtn"),
+  filterSalaryBtn: document.getElementById("filterSalaryBtn"),
   shiftList: document.getElementById("shiftList"),
 
   // Экспорт
@@ -107,6 +206,9 @@ const elements = {
   shiftDate: document.getElementById("shiftDate"),
   shiftType: document.getElementById("shiftType"),
   shiftTypeSegmented: document.getElementById("shiftTypeSegmented"),
+  presetTimeDay: document.getElementById("presetTimeDay"),
+  presetTimeNight: document.getElementById("presetTimeNight"),
+  presetTimeExtra: document.getElementById("presetTimeExtra"),
   startTime: document.getElementById("startTime"),
   endTime: document.getElementById("endTime"),
   breakMins: document.getElementById("breakMins"),
@@ -118,12 +220,15 @@ const elements = {
   bonus: document.getElementById("bonus"),
   totalPay: document.getElementById("totalPay"),
   note: document.getElementById("note"),
+  shiftTagsPicker: document.getElementById("shiftTagsPicker"),
   deleteBtn: document.getElementById("deleteBtn"),
 
   // Модальное окно настроек
   settingsModal: document.getElementById("settingsModal"),
   settingsModalCloseBtn: document.getElementById("settingsModalCloseBtn"),
   settingsForm: document.getElementById("settingsForm"),
+  settingsPresetSegmented: document.getElementById("settingsPresetSegmented"),
+  settingsActivePreset: document.getElementById("settingsActivePreset"),
   defStart: document.getElementById("defStart"),
   defEnd: document.getElementById("defEnd"),
   defBreak: document.getElementById("defBreak"),
@@ -131,6 +236,26 @@ const elements = {
   defPayModeSegmented: document.getElementById("defPayModeSegmented"),
   defRate: document.getElementById("defRate"),
   defCurrency: document.getElementById("defCurrency"),
+  defCutoffDay: document.getElementById("defCutoffDay"),
+  defMonthlyGoal: document.getElementById("defMonthlyGoal"),
+
+  // Модальное окно автозаполнения графика
+  scheduleModal: document.getElementById("scheduleModal"),
+  scheduleModalTitle: document.getElementById("scheduleModalTitle"),
+  scheduleModalCloseBtn: document.getElementById("scheduleModalCloseBtn"),
+  scheduleForm: document.getElementById("scheduleForm"),
+  scheduleStartDate: document.getElementById("scheduleStartDate"),
+  schedulePatternGrid: document.getElementById("schedulePatternGrid"),
+  selectedPattern: document.getElementById("selectedPattern"),
+  customPatternGroup: document.getElementById("customPatternGroup"),
+  customPatternBuilder: document.getElementById("customPatternBuilder"),
+  customPatternLabel: document.getElementById("customPatternLabel"),
+  customResetBtn: document.getElementById("customResetBtn"),
+  scheduleDurationSegmented: document.getElementById("scheduleDurationSegmented"),
+  scheduleDuration: document.getElementById("scheduleDuration"),
+  scheduleSkipExisting: document.getElementById("scheduleSkipExisting"),
+  schedulePreviewText: document.getElementById("schedulePreviewText"),
+  applyScheduleBtn: document.getElementById("applyScheduleBtn"),
 
   // Бэкап
   backupDownloadBtn: document.getElementById("backupDownloadBtn"),
@@ -145,6 +270,34 @@ const elements = {
   confirmOkBtn: document.getElementById("confirmOkBtn"),
   confirmCancelBtn: document.getElementById("confirmCancelBtn"),
   appToast: document.getElementById("appToast"),
+
+  // Модальное окно аналитики и рекордов
+  analyticsModal: document.getElementById("analyticsModal"),
+  analyticsModalCloseBtn: document.getElementById("analyticsModalCloseBtn"),
+  allTimeIncome: document.getElementById("allTimeIncome"),
+  allTimeAvgMonth: document.getElementById("allTimeAvgMonth"),
+  allTimeShifts: document.getElementById("allTimeShifts"),
+  allTimeHours: document.getElementById("allTimeHours"),
+  analyticsStreakCard: document.getElementById("analyticsStreakCard"),
+  analyticsStreakIcon: document.getElementById("analyticsStreakIcon"),
+  analyticsStreakTitle: document.getElementById("analyticsStreakTitle"),
+  analyticsStreakDesc: document.getElementById("analyticsStreakDesc"),
+  bestMonthCard: document.getElementById("bestMonthCard"),
+  bestMonthValue: document.getElementById("bestMonthValue"),
+  bestMonthDate: document.getElementById("bestMonthDate"),
+  bestShiftCard: document.getElementById("bestShiftCard"),
+  bestShiftValue: document.getElementById("bestShiftValue"),
+  bestShiftDate: document.getElementById("bestShiftDate"),
+  longestShiftValue: document.getElementById("longestShiftValue"),
+  longestShiftDate: document.getElementById("longestShiftDate"),
+  maxStreakValue: document.getElementById("maxStreakValue"),
+  maxStreakSub: document.getElementById("maxStreakSub"),
+  breakdownDayText: document.getElementById("breakdownDayText"),
+  breakdownDayFill: document.getElementById("breakdownDayFill"),
+  breakdownNightText: document.getElementById("breakdownNightText"),
+  breakdownNightFill: document.getElementById("breakdownNightFill"),
+  breakdownExtraText: document.getElementById("breakdownExtraText"),
+  breakdownExtraFill: document.getElementById("breakdownExtraFill"),
 };
 
 // ============================================================
@@ -176,6 +329,16 @@ function calcHoursDiff(start, end, breakMins) {
   return Math.round((netMins / 60) * 100) / 100;
 }
 
+/** Склонение русских числительных (1 смена, 2 смены, 5 смен) */
+function getRussianDeclension(number, forms) {
+  const n = Math.abs(number) % 100;
+  const n1 = n % 10;
+  if (n > 10 && n < 20) return forms[2];
+  if (n1 > 1 && n1 < 5) return forms[1];
+  if (n1 === 1) return forms[0];
+  return forms[2];
+}
+
 /** Скачать blob-файл и освободить ObjectURL */
 function triggerDownload(blob, filename) {
   const link = document.createElement("a");
@@ -186,12 +349,21 @@ function triggerDownload(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
+/** Тактильный виброотклик (Haptic Feedback) для PWA */
+function triggerHaptic(pattern = 10) {
+  if ("vibrate" in navigator) {
+    try {
+      navigator.vibrate(pattern);
+    } catch (_) {}
+  }
+}
+
 // ============================================================
 // Сегментированные переключатели (Pill Switchers)
 // ============================================================
 function updateSegmentedUI(container, value) {
   if (!container) return;
-  container.querySelectorAll(".segmented-control__btn").forEach((btn) => {
+  container.querySelectorAll(".segmented-control__btn, .shift-preset-btn").forEach((btn) => {
     const isActive = btn.dataset.value === value;
     btn.classList.toggle("is-active", isActive);
     btn.setAttribute("aria-checked", isActive ? "true" : "false");
@@ -208,6 +380,27 @@ function setSegmentedValue(containerId, inputId, value, triggerChange = false) {
   }
 }
 
+function updatePresetTimesUI() {
+  const p = settings.presets || DEFAULT_PRESETS;
+  if (elements.presetTimeDay) {
+    elements.presetTimeDay.textContent = `${p.day.start}–${p.day.end}`;
+  }
+  if (elements.presetTimeNight) {
+    elements.presetTimeNight.textContent = `${p.night.start}–${p.night.end}`;
+  }
+  if (elements.presetTimeExtra) {
+    elements.presetTimeExtra.textContent = `${p.extra.start}–${p.extra.end}`;
+  }
+}
+
+function applyPresetToModal(type) {
+  const p = settings.presets?.[type] || DEFAULT_PRESETS[type] || DEFAULT_PRESETS.day;
+  elements.startTime.value = p.start;
+  elements.endTime.value = p.end;
+  elements.breakMins.value = p.breakMins;
+  recalcModal();
+}
+
 function updatePayModeLabels() {
   const curr = settings.currency || "₽";
   const hourlyBtn = document.getElementById("payModeHourlyBtn");
@@ -221,12 +414,18 @@ function updatePayModeLabels() {
   if (defFixedBtn) defFixedBtn.textContent = `${curr}/смена`;
 }
 
+let currentShiftsFilter = "all"; // "all" | "advance" | "salary"
+let currentMonthShiftsCache = [];
+
 function initSegmentedControls() {
   const configs = [
     {
       containerId: "shiftTypeSegmented",
       inputId: "shiftType",
-      onChange: null,
+      onChange: (val) => {
+        applyPresetToModal(val);
+        triggerHaptic(12);
+      },
     },
     {
       containerId: "payModeSegmented",
@@ -234,9 +433,36 @@ function initSegmentedControls() {
       onChange: () => recalcModal(),
     },
     {
+      containerId: "shiftsFilterSegmented",
+      inputId: "shiftsFilterInput",
+      onChange: (val) => {
+        currentShiftsFilter = val;
+        renderShiftList(currentMonthShiftsCache, currentDate.getMonth());
+        triggerHaptic(10);
+      },
+    },
+    {
+      containerId: "settingsPresetSegmented",
+      inputId: "settingsActivePreset",
+      onChange: (newPreset) => {
+        saveCurrentSettingsInputsToTemp();
+        currentSettingsPreset = newPreset;
+        loadPresetIntoSettingsInputs(newPreset);
+        triggerHaptic(12);
+      },
+    },
+    {
       containerId: "defPayModeSegmented",
       inputId: "defPayMode",
       onChange: null,
+    },
+    {
+      containerId: "scheduleDurationSegmented",
+      inputId: "scheduleDuration",
+      onChange: () => {
+        updateSchedulePreview();
+        triggerHaptic(10);
+      },
     },
   ];
 
@@ -245,7 +471,7 @@ function initSegmentedControls() {
     const input = document.getElementById(inputId);
     if (!container || !input) return;
 
-    container.querySelectorAll(".segmented-control__btn").forEach((btn) => {
+    container.querySelectorAll(".segmented-control__btn, .shift-preset-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
         const val = btn.dataset.value;
         input.value = val;
@@ -256,6 +482,7 @@ function initSegmentedControls() {
   });
 
   updatePayModeLabels();
+  updatePresetTimesUI();
 }
 
 // ============================================================
@@ -359,7 +586,7 @@ function closeModal(id) {
 // ============================================================
 let toastTimer = null;
 
-function showToast(message, type = "info") {
+function showToast(message, type = "info", action = null, duration = null) {
   const toast = elements.appToast;
   if (!toast) return;
 
@@ -367,6 +594,23 @@ function showToast(message, type = "info") {
   const msgEl = toast.querySelector(".app-toast__message");
 
   msgEl.textContent = message;
+
+  // Очищаем старую кнопку действия
+  const oldAction = toast.querySelector(".app-toast__action");
+  if (oldAction) oldAction.remove();
+
+  if (action && typeof action.onClick === "function") {
+    const actionBtn = document.createElement("button");
+    actionBtn.type = "button";
+    actionBtn.className = "app-toast__action";
+    actionBtn.textContent = action.label || "Отменить";
+    actionBtn.addEventListener("click", () => {
+      toast.classList.remove("active");
+      action.onClick();
+    });
+    toast.appendChild(actionBtn);
+  }
+
   toast.className = `app-toast app-toast--${type} active`;
 
   if (type === "success") {
@@ -380,7 +624,7 @@ function showToast(message, type = "info") {
   if (toastTimer) clearTimeout(toastTimer);
   toastTimer = setTimeout(() => {
     toast.classList.remove("active");
-  }, 3000);
+  }, duration || (action ? 5000 : 3500));
 }
 
 function showConfirm({
@@ -464,9 +708,18 @@ function showConfirm({
   });
 }
 
+function updateShiftTagsUI() {
+  if (!elements.shiftTagsPicker) return;
+  elements.shiftTagsPicker.querySelectorAll(".shift-tag-chip").forEach((chip) => {
+    const tag = chip.dataset.tag;
+    chip.classList.toggle("is-active", currentShiftTags.includes(tag));
+  });
+}
+
 function openShiftModal(dateKey) {
   closeModal("shiftsModal");
   updatePayModeLabels();
+  updatePresetTimesUI();
   const existing = shifts[dateKey];
   const [y, m, d] = dateKey.split("-");
   elements.shiftModalTitle.textContent = `Смена ${d}.${m}.${y}`;
@@ -484,17 +737,22 @@ function openShiftModal(dateKey) {
     elements.totalPay.value = existing.totalPay;
     elements.note.value = existing.note || "";
     elements.deleteBtn.style.display = "block";
+    currentShiftTags = existing.tags && Array.isArray(existing.tags) ? [...existing.tags] : [];
+    updateShiftTagsUI();
     recalcModal();
   } else {
     setSegmentedValue("shiftTypeSegmented", "shiftType", "day");
-    elements.startTime.value = settings.start;
-    elements.endTime.value = settings.end;
-    elements.breakMins.value = settings.breakMins;
+    const p = settings.presets?.day || DEFAULT_PRESETS.day;
+    elements.startTime.value = p.start;
+    elements.endTime.value = p.end;
+    elements.breakMins.value = p.breakMins;
     setSegmentedValue("payModeSegmented", "payMode", settings.payMode);
     elements.rate.value = settings.rate;
     elements.bonus.value = 0;
     elements.note.value = "";
     elements.deleteBtn.style.display = "none";
+    currentShiftTags = [];
+    updateShiftTagsUI();
     recalcModal();
   }
 
@@ -515,10 +773,13 @@ function saveShift(e) {
     bonus: parseFloat(elements.bonus.value) || 0,
     totalPay: parseFloat(elements.totalPay.value) || 0,
     note: elements.note.value.trim(),
+    tags: [...currentShiftTags],
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(shifts));
   closeModal("shiftModal");
   render();
+  triggerHaptic(15);
+  showToast("Смена сохранена", "success");
 }
 
 async function deleteShift() {
@@ -535,37 +796,579 @@ async function deleteShift() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(shifts));
   closeModal("shiftModal");
   render();
+  triggerHaptic(20);
   showToast("Смена удалена", "info");
 }
 
 // ============================================================
 // Настройки
 // ============================================================
+let currentSettingsPreset = "day";
+let tempPresets = {};
+
 function openSettings() {
   updatePayModeLabels();
-  elements.defStart.value = settings.start;
-  elements.defEnd.value = settings.end;
-  elements.defBreak.value = settings.breakMins;
+  tempPresets = JSON.parse(JSON.stringify(settings.presets || DEFAULT_PRESETS));
+  currentSettingsPreset = "day";
+  setSegmentedValue("settingsPresetSegmented", "settingsActivePreset", "day");
+  loadPresetIntoSettingsInputs("day");
+
   setSegmentedValue("defPayModeSegmented", "defPayMode", settings.payMode || "hourly");
   elements.defRate.value = settings.rate;
   elements.defCurrency.value = settings.currency || "₽";
+  elements.defCutoffDay.value = settings.advanceCutoffDay || 15;
+  if (elements.defMonthlyGoal) {
+    elements.defMonthlyGoal.value = settings.monthlyGoal ? settings.monthlyGoal : "";
+  }
   openModal("settingsModal");
+}
+
+function loadPresetIntoSettingsInputs(type) {
+  const p = tempPresets[type] || DEFAULT_PRESETS[type];
+  elements.defStart.value = p.start;
+  elements.defEnd.value = p.end;
+  elements.defBreak.value = p.breakMins;
+}
+
+function saveCurrentSettingsInputsToTemp() {
+  if (!tempPresets[currentSettingsPreset]) {
+    tempPresets[currentSettingsPreset] = { ...DEFAULT_PRESETS[currentSettingsPreset] };
+  }
+  tempPresets[currentSettingsPreset].start = elements.defStart.value || DEFAULT_PRESETS[currentSettingsPreset].start;
+  tempPresets[currentSettingsPreset].end = elements.defEnd.value || DEFAULT_PRESETS[currentSettingsPreset].end;
+  tempPresets[currentSettingsPreset].breakMins = Number(elements.defBreak.value) || 0;
 }
 
 function saveSettings(e) {
   e.preventDefault();
-  settings = {
-    start: elements.defStart.value || "09:00",
-    end: elements.defEnd.value || "21:00",
-    breakMins: Number(elements.defBreak.value) || 0,
-    payMode: elements.defPayMode.value,
-    rate: parseFloat(elements.defRate.value) || 0,
-    currency: elements.defCurrency.value.trim() || "₽",
-  };
+  saveCurrentSettingsInputsToTemp();
+
+  settings.presets = tempPresets;
+  settings.start = tempPresets.day.start;
+  settings.end = tempPresets.day.end;
+  settings.breakMins = tempPresets.day.breakMins;
+  settings.payMode = elements.defPayMode.value;
+  settings.rate = parseFloat(elements.defRate.value) || 0;
+  settings.currency = elements.defCurrency.value.trim() || "₽";
+  settings.advanceCutoffDay = Math.min(28, Math.max(1, parseInt(elements.defCutoffDay.value, 10) || 15));
+  settings.monthlyGoal = elements.defMonthlyGoal ? Math.max(0, parseFloat(elements.defMonthlyGoal.value) || 0) : (settings.monthlyGoal || 0);
+
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   updatePayModeLabels();
+  updatePresetTimesUI();
   closeModal("settingsModal");
   render();
+  triggerHaptic(15);
+  showToast("Настройки и шаблоны сохранены", "success");
+}
+
+// ============================================================
+// Рекорды и общая аналитика
+// ============================================================
+let bestMonthNavTarget = null;
+let bestShiftNavTarget = null;
+
+function dateKeyToEpochDays(key) {
+  const [y, m, d] = key.split("-").map(Number);
+  return Math.round(Date.UTC(y, m - 1, d) / 86400000);
+}
+
+function openAnalyticsModal() {
+  updateAnalyticsData();
+  openModal("analyticsModal");
+  triggerHaptic(12);
+}
+
+function updateAnalyticsData() {
+  const curr = settings.currency || "₽";
+  const keys = Object.keys(shifts).sort();
+
+  if (keys.length === 0) {
+    if (elements.allTimeIncome) elements.allTimeIncome.textContent = `0 ${curr}`;
+    if (elements.allTimeAvgMonth) elements.allTimeAvgMonth.textContent = `~0 ${curr} / месяц`;
+    if (elements.allTimeShifts) elements.allTimeShifts.textContent = "0 см";
+    if (elements.allTimeHours) elements.allTimeHours.textContent = "0 ч всего";
+
+    if (elements.analyticsStreakTitle) elements.analyticsStreakTitle.textContent = "Текущий статус";
+    if (elements.analyticsStreakDesc) elements.analyticsStreakDesc.textContent = "Смен пока нет";
+    if (elements.analyticsStreakIcon) elements.analyticsStreakIcon.textContent = "🌱";
+
+    if (elements.bestMonthValue) elements.bestMonthValue.textContent = "—";
+    if (elements.bestMonthDate) elements.bestMonthDate.textContent = "Нет смен";
+    if (elements.bestShiftValue) elements.bestShiftValue.textContent = "—";
+    if (elements.bestShiftDate) elements.bestShiftDate.textContent = "Нет смен";
+    if (elements.longestShiftValue) elements.longestShiftValue.textContent = "—";
+    if (elements.longestShiftDate) elements.longestShiftDate.textContent = "Нет смен";
+    if (elements.maxStreakValue) elements.maxStreakValue.textContent = "0";
+
+    if (elements.breakdownDayText) elements.breakdownDayText.textContent = "0 см (0%)";
+    if (elements.breakdownDayFill) elements.breakdownDayFill.style.width = "0%";
+    if (elements.breakdownNightText) elements.breakdownNightText.textContent = "0 см (0%)";
+    if (elements.breakdownNightFill) elements.breakdownNightFill.style.width = "0%";
+    if (elements.breakdownExtraText) elements.breakdownExtraText.textContent = "0 см (0%)";
+    if (elements.breakdownExtraFill) elements.breakdownExtraFill.style.width = "0%";
+
+    bestMonthNavTarget = null;
+    bestShiftNavTarget = null;
+    return;
+  }
+
+  let totalIncome = 0;
+  let totalHours = 0;
+  const totalShifts = keys.length;
+
+  let dayShiftsCount = 0;
+  let nightShiftsCount = 0;
+  let extraShiftsCount = 0;
+
+  const monthTotals = {};
+
+  let bestShiftKey = null;
+  let bestShiftPay = -1;
+
+  let longestShiftKey = null;
+  let longestShiftHours = -1;
+
+  keys.forEach((key) => {
+    const s = shifts[key];
+    const pay = Number(s.totalPay) || 0;
+    const hours = Number(s.hours) || 0;
+
+    totalIncome += pay;
+    totalHours += hours;
+
+    if (s.type === "night") nightShiftsCount++;
+    else if (s.type === "extra") extraShiftsCount++;
+    else dayShiftsCount++;
+
+    const mKey = key.slice(0, 7);
+    if (!monthTotals[mKey]) {
+      monthTotals[mKey] = { income: 0, shifts: 0 };
+    }
+    monthTotals[mKey].income += pay;
+    monthTotals[mKey].shifts++;
+
+    if (pay > bestShiftPay) {
+      bestShiftPay = pay;
+      bestShiftKey = key;
+    }
+
+    if (hours > longestShiftHours) {
+      longestShiftHours = hours;
+      longestShiftKey = key;
+    }
+  });
+
+  const distinctMonths = Object.keys(monthTotals).length;
+  const avgMonthlyIncome = Math.round(totalIncome / Math.max(1, distinctMonths));
+
+  if (elements.allTimeIncome) {
+    elements.allTimeIncome.textContent = `${totalIncome.toLocaleString("ru-RU")} ${curr}`;
+  }
+  if (elements.allTimeAvgMonth) {
+    elements.allTimeAvgMonth.textContent = `~${avgMonthlyIncome.toLocaleString("ru-RU")} ${curr} / месяц`;
+  }
+  if (elements.allTimeShifts) {
+    elements.allTimeShifts.textContent = `${totalShifts} см`;
+  }
+  if (elements.allTimeHours) {
+    elements.allTimeHours.textContent = `${Math.round(totalHours * 10) / 10} ч всего`;
+  }
+
+  // Рекордный месяц
+  let bestMKey = null;
+  let maxMonthIncome = -1;
+  Object.entries(monthTotals).forEach(([mKey, data]) => {
+    if (data.income > maxMonthIncome) {
+      maxMonthIncome = data.income;
+      bestMKey = mKey;
+    }
+  });
+
+  if (bestMKey) {
+    const [by, bm] = bestMKey.split("-").map(Number);
+    bestMonthNavTarget = { year: by, month: bm - 1 };
+    if (elements.bestMonthValue) {
+      elements.bestMonthValue.textContent = `${maxMonthIncome.toLocaleString("ru-RU")} ${curr}`;
+    }
+    if (elements.bestMonthDate) {
+      elements.bestMonthDate.textContent = `${MONTH_NAMES[bm - 1]} ${by} ↗`;
+    }
+  }
+
+  // Лучшая смена
+  if (bestShiftKey) {
+    bestShiftNavTarget = bestShiftKey;
+    const [sy, sm, sd] = bestShiftKey.split("-").map(Number);
+    if (elements.bestShiftValue) {
+      elements.bestShiftValue.textContent = `${bestShiftPay.toLocaleString("ru-RU")} ${curr}`;
+    }
+    if (elements.bestShiftDate) {
+      elements.bestShiftDate.textContent = `${sd} ${MONTH_NAMES_GENITIVE[sm - 1]} ${sy} ↗`;
+    }
+  }
+
+  // Длинная смена
+  if (longestShiftKey) {
+    const [ly, lm, ld] = longestShiftKey.split("-").map(Number);
+    if (elements.longestShiftValue) {
+      elements.longestShiftValue.textContent = `${longestShiftHours} ч`;
+    }
+    if (elements.longestShiftDate) {
+      elements.longestShiftDate.textContent = `${ld} ${MONTH_NAMES_GENITIVE[lm - 1]} ${ly}`;
+    }
+  }
+
+  // Стрики (последовательные дни)
+  const epochDays = keys.map(dateKeyToEpochDays).filter((val, idx, arr) => arr.indexOf(val) === idx);
+  let maxStreak = 1;
+  let currRun = 1;
+
+  for (let i = 1; i < epochDays.length; i++) {
+    if (epochDays[i] === epochDays[i - 1] + 1) {
+      currRun++;
+      if (currRun > maxStreak) maxStreak = currRun;
+    } else {
+      currRun = 1;
+    }
+  }
+
+  if (elements.maxStreakValue) {
+    elements.maxStreakValue.textContent = maxStreak;
+  }
+  if (elements.maxStreakSub) {
+    elements.maxStreakSub.textContent = getRussianDeclension(maxStreak, ["смена подряд", "смены подряд", "смен подряд"]);
+  }
+
+  // Текущий стрик
+  const today = new Date();
+  const todayEpoch = Math.round(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()) / 86400000);
+  const epochSet = new Set(epochDays);
+
+  let activeStreak = 0;
+  let checkEpoch = todayEpoch;
+
+  if (epochSet.has(todayEpoch)) {
+    while (epochSet.has(checkEpoch)) {
+      activeStreak++;
+      checkEpoch--;
+    }
+    if (elements.analyticsStreakCard) elements.analyticsStreakCard.classList.remove("analytics-streak--rest");
+    if (elements.analyticsStreakIcon) elements.analyticsStreakIcon.textContent = "🔥";
+    if (elements.analyticsStreakTitle) elements.analyticsStreakTitle.textContent = "Текущий стрик смен";
+    if (elements.analyticsStreakDesc) {
+      elements.analyticsStreakDesc.textContent = `${activeStreak} ${getRussianDeclension(activeStreak, ["смена подряд", "смены подряд", "смен подряд"])} (включая сегодня)`;
+    }
+  } else if (epochSet.has(todayEpoch - 1)) {
+    checkEpoch = todayEpoch - 1;
+    while (epochSet.has(checkEpoch)) {
+      activeStreak++;
+      checkEpoch--;
+    }
+    if (elements.analyticsStreakCard) elements.analyticsStreakCard.classList.remove("analytics-streak--rest");
+    if (elements.analyticsStreakIcon) elements.analyticsStreakIcon.textContent = "⚡";
+    if (elements.analyticsStreakTitle) elements.analyticsStreakTitle.textContent = "Последний стрик";
+    if (elements.analyticsStreakDesc) {
+      elements.analyticsStreakDesc.textContent = `${activeStreak} ${getRussianDeclension(activeStreak, ["смена подряд", "смены подряд", "смен подряд"])} (вчера была смена)`;
+    }
+  } else {
+    const lastDay = epochDays[epochDays.length - 1];
+    const restDays = Math.max(1, todayEpoch - lastDay);
+    if (elements.analyticsStreakCard) elements.analyticsStreakCard.classList.add("analytics-streak--rest");
+    if (elements.analyticsStreakIcon) elements.analyticsStreakIcon.textContent = "🌴";
+    if (elements.analyticsStreakTitle) elements.analyticsStreakTitle.textContent = "Текущий статус";
+    if (elements.analyticsStreakDesc) {
+      elements.analyticsStreakDesc.textContent = `Отдых: ${restDays} ${getRussianDeclension(restDays, ["день", "дня", "дней"])} без смен`;
+    }
+  }
+
+  // Структура работы (Breakdown)
+  const dayPct = Math.round((dayShiftsCount / totalShifts) * 100);
+  const nightPct = Math.round((nightShiftsCount / totalShifts) * 100);
+  const extraPct = Math.round((extraShiftsCount / totalShifts) * 100);
+
+  if (elements.breakdownDayText) elements.breakdownDayText.textContent = `${dayShiftsCount} см (${dayPct}%)`;
+  if (elements.breakdownDayFill) elements.breakdownDayFill.style.width = `${dayPct}%`;
+
+  if (elements.breakdownNightText) elements.breakdownNightText.textContent = `${nightShiftsCount} см (${nightPct}%)`;
+  if (elements.breakdownNightFill) elements.breakdownNightFill.style.width = `${nightPct}%`;
+
+  if (elements.breakdownExtraText) elements.breakdownExtraText.textContent = `${extraShiftsCount} см (${extraPct}%)`;
+  if (elements.breakdownExtraFill) elements.breakdownExtraFill.style.width = `${extraPct}%`;
+}
+
+// ============================================================
+// Автозаполнение графиков (Генератор 2/2, 3/3, 5/2 и др.)
+// ============================================================
+const SCHEDULE_PATTERNS = {
+  "2-2-day": {
+    name: "2/2 День",
+    cycle: ["day", "day", "off", "off"],
+  },
+  "2-2-mixed": {
+    name: "2/2 Смешанный",
+    cycle: ["day", "night", "off", "off"],
+  },
+  "3-3-day": {
+    name: "3/3 День",
+    cycle: ["day", "day", "day", "off", "off", "off"],
+  },
+  "1-3-mixed": {
+    name: "День-Ночь-48",
+    cycle: ["day", "night", "off", "off"],
+  },
+  "5-2-weekdays": {
+    name: "5/2 Будни",
+    isWeekdays: true,
+  },
+  custom: {
+    name: "Свой цикл",
+    cycle: ["day", "off"],
+  },
+};
+
+let customCycle = ["day", "night", "off", "off"];
+let lastScheduleSnapshot = null;
+
+function openScheduleModal() {
+  const y = currentDate.getFullYear();
+  const m = String(currentDate.getMonth() + 1).padStart(2, "0");
+  elements.scheduleStartDate.value = `${y}-${m}-01`;
+
+  elements.selectedPattern.value = "2-2-day";
+  if (elements.schedulePatternGrid) {
+    elements.schedulePatternGrid.querySelectorAll(".schedule-pattern-btn").forEach((btn) => {
+      btn.classList.toggle("is-active", btn.dataset.pattern === "2-2-day");
+    });
+  }
+  if (elements.customPatternGroup) {
+    elements.customPatternGroup.style.display = "none";
+  }
+
+  setSegmentedValue("scheduleDurationSegmented", "scheduleDuration", "1");
+  elements.scheduleSkipExisting.checked = true;
+
+  updateCustomPatternBuilderUI();
+  updateSchedulePreview();
+  openModal("scheduleModal");
+}
+
+function updateCustomPatternBuilderUI() {
+  const container = elements.customPatternBuilder;
+  if (!container) return;
+
+  if (customCycle.length === 0) {
+    container.innerHTML = '<span style="color: var(--text-muted); font-size: 0.8rem;">Нажмите кнопки ниже, чтобы составить цикл</span>';
+    return;
+  }
+
+  container.innerHTML = "";
+  customCycle.forEach((type, idx) => {
+    const chip = document.createElement("span");
+    chip.className = `custom-pattern-chip custom-pattern-chip--${type}`;
+    let icon = "⚪";
+    let title = "Вых";
+    if (type === "day") {
+      icon = "☀️";
+      title = "День";
+    } else if (type === "night") {
+      icon = "🌙";
+      title = "Ночь";
+    }
+
+    chip.innerHTML = `${icon} ${title} <span style="font-size: 0.7rem; opacity: 0.6; margin-left: 2px;">✕</span>`;
+    chip.title = "Нажмите, чтобы удалить день из цикла";
+    chip.addEventListener("click", () => {
+      customCycle.splice(idx, 1);
+      updateCustomPatternBuilderUI();
+      updateSchedulePreview();
+      triggerHaptic(8);
+    });
+    container.appendChild(chip);
+  });
+}
+
+function calculateScheduleDates() {
+  const startStr = elements.scheduleStartDate.value;
+  if (!startStr) return [];
+
+  const [sy, sm, sd] = startStr.split("-").map(Number);
+  const startDate = new Date(sy, sm - 1, sd);
+  const durationMonths = parseInt(elements.scheduleDuration.value, 10) || 1;
+  const skipExisting = elements.scheduleSkipExisting.checked;
+  const patternKey = elements.selectedPattern.value;
+  const pattern = SCHEDULE_PATTERNS[patternKey] || SCHEDULE_PATTERNS["2-2-day"];
+
+  const endDate = new Date(startDate);
+  endDate.setMonth(endDate.getMonth() + durationMonths);
+  endDate.setDate(endDate.getDate() - 1);
+
+  const cycle = patternKey === "custom" ? customCycle : (pattern.cycle || []);
+  if (!pattern.isWeekdays && cycle.length === 0) return [];
+
+  const plannedShifts = [];
+  const cur = new Date(startDate);
+
+  let dayIndex = 0;
+  while (cur <= endDate) {
+    const y = cur.getFullYear();
+    const m = cur.getMonth();
+    const d = cur.getDate();
+    const dateKey = formatDateKey(y, m, d);
+
+    let type = "off";
+    if (pattern.isWeekdays) {
+      const dayOfWeek = cur.getDay(); // 0 = Вс, 6 = Сб
+      type = (dayOfWeek >= 1 && dayOfWeek <= 5) ? "day" : "off";
+    } else {
+      type = cycle[dayIndex % cycle.length];
+    }
+
+    if (type !== "off") {
+      const alreadyExists = !!shifts[dateKey];
+      if (!alreadyExists || !skipExisting) {
+        plannedShifts.push({
+          dateKey,
+          type,
+          day: d,
+          month: m,
+          year: y,
+          willOverwrite: alreadyExists,
+        });
+      }
+    }
+
+    cur.setDate(cur.getDate() + 1);
+    dayIndex++;
+  }
+
+  return plannedShifts;
+}
+
+function updateSchedulePreview() {
+  const previewEl = elements.schedulePreviewText;
+  if (!previewEl) return;
+
+  const planned = calculateScheduleDates();
+  if (planned.length === 0) {
+    previewEl.innerHTML = "Нет смен для добавления в выбранном периоде.";
+    return;
+  }
+
+  const durationMonths = parseInt(elements.scheduleDuration.value, 10) || 1;
+  const dayCount = planned.filter((s) => s.type === "day").length;
+  const nightCount = planned.filter((s) => s.type === "night").length;
+
+  const presets = settings.presets || DEFAULT_PRESETS;
+  const rate = parseFloat(settings.rate) || 0;
+  const payMode = settings.payMode || "hourly";
+
+  let estTotal = 0;
+  planned.forEach((s) => {
+    const p = presets[s.type] || presets.day;
+    const hours = calcHoursDiff(p.start, p.end, p.breakMins);
+    const pay = payMode === "hourly" ? hours * rate : rate;
+    estTotal += Math.round(pay);
+  });
+
+  const durationStr = durationMonths === 1 ? "1 месяц" : `${durationMonths} месяца`;
+  let breakdown = [];
+  if (dayCount > 0) breakdown.push(`${dayCount} дневных`);
+  if (nightCount > 0) breakdown.push(`${nightCount} ночных`);
+
+  previewEl.innerHTML = `Будет добавлено <strong>${planned.length} смен</strong> (${breakdown.join(", ")}) на <strong>${durationStr}</strong>.<br>Прогнозируемый доход: ~<strong>${estTotal.toLocaleString("ru-RU")} ${settings.currency}</strong>.`;
+}
+
+function applySchedule(e) {
+  e.preventDefault();
+  const planned = calculateScheduleDates();
+  if (planned.length === 0) {
+    showToast("Нет смен для добавления", "info");
+    return;
+  }
+
+  // Снимок для функции "Отменить"
+  lastScheduleSnapshot = JSON.parse(JSON.stringify(shifts));
+
+  const presets = settings.presets || DEFAULT_PRESETS;
+  const rate = parseFloat(settings.rate) || 0;
+  const payMode = settings.payMode || "hourly";
+
+  planned.forEach((s) => {
+    const p = presets[s.type] || presets.day;
+    const hours = calcHoursDiff(p.start, p.end, p.breakMins);
+    const basePay = payMode === "hourly" ? hours * rate : rate;
+
+    shifts[s.dateKey] = {
+      type: s.type,
+      start: p.start,
+      end: p.end,
+      breakMins: p.breakMins,
+      hours: hours,
+      payMode: payMode,
+      rate: rate,
+      bonus: 0,
+      totalPay: Math.round(basePay),
+      note: "",
+      tags: [],
+    };
+  });
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(shifts));
+  closeModal("scheduleModal");
+  render();
+  triggerHaptic([30, 40, 50]);
+
+  showToast(`График заполнен (+${planned.length} смен)!`, "success", {
+    label: "Отменить",
+    onClick: () => {
+      if (lastScheduleSnapshot) {
+        shifts = lastScheduleSnapshot;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(shifts));
+        render();
+        triggerHaptic(15);
+        showToast("Автозаполнение отменено", "info");
+      }
+    },
+  });
+}
+
+function quickAddDefaultShift(dateKey) {
+  if (shifts[dateKey]) return;
+
+  const preset = settings.presets?.day || DEFAULT_PRESETS.day;
+  const hours = calcHoursDiff(preset.start, preset.end, preset.breakMins);
+  const rate = parseFloat(settings.rate) || 0;
+  const basePay = settings.payMode === "hourly" ? hours * rate : rate;
+
+  shifts[dateKey] = {
+    type: "day",
+    start: preset.start,
+    end: preset.end,
+    breakMins: preset.breakMins,
+    hours: hours,
+    payMode: settings.payMode || "hourly",
+    rate: rate,
+    bonus: 0,
+    totalPay: Math.round(basePay),
+    note: "",
+    tags: [],
+  };
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(shifts));
+  triggerHaptic([30, 40, 30]);
+  render();
+
+  setTimeout(() => {
+    const updatedCell = document.querySelector(`.calendar__day-cell[data-date-key="${dateKey}"]`);
+    if (updatedCell) {
+      updatedCell.classList.add("calendar__day-cell--pulse");
+    }
+  }, 40);
+
+  const [y, m, d] = dateKey.split("-");
+  const monthName = MONTH_NAMES_GENITIVE[parseInt(m, 10) - 1];
+  showToast(`Смена добавлена: ${parseInt(d, 10)} ${monthName} (${preset.start}–${preset.end})`, "success");
 }
 
 // ============================================================
@@ -590,9 +1393,19 @@ function render() {
     today.getDate(),
   );
 
+  const cutoffDay = settings.advanceCutoffDay || 15;
   let totalShifts = 0;
   let totalHours = 0;
   let totalIncome = 0;
+
+  let advanceShiftsCount = 0;
+  let advanceHours = 0;
+  let advanceIncome = 0;
+
+  let salaryShiftsCount = 0;
+  let salaryHours = 0;
+  let salaryIncome = 0;
+
   const monthShifts = [];
 
   // Собираем ячейки через DocumentFragment для одной вставки в DOM
@@ -610,6 +1423,7 @@ function render() {
     const shift = shifts[dateKey];
     const cell = document.createElement("div");
     cell.className = "calendar__day-cell";
+    cell.dataset.dateKey = dateKey;
     if (isOtherMonth) cell.classList.add("calendar__day-cell--other-month");
     if (isToday) cell.classList.add("calendar__day-cell--today");
     if (isWeekend) cell.classList.add("calendar__day-cell--weekend");
@@ -629,11 +1443,28 @@ function render() {
       if (shift.type === "extra")
         cell.classList.add("calendar__day-cell--extra");
 
+      const iconWrapper = document.createElement("div");
+      iconWrapper.className = "calendar__day-icons";
+
       const iconSpan = document.createElement("span");
       iconSpan.className = "calendar__shift-icon";
       iconSpan.setAttribute("aria-hidden", "true");
       iconSpan.innerHTML = getShiftIconSvg(shift.type);
-      dayHeader.appendChild(iconSpan);
+      iconWrapper.appendChild(iconSpan);
+
+      const hasTags = shift.tags && shift.tags.length > 0;
+      const hasNote = Boolean(shift.note && shift.note.trim());
+      if (hasTags || hasNote) {
+        const dot = document.createElement("span");
+        dot.className = "calendar__tag-dot";
+        if (shift.tags?.includes("bonus")) dot.classList.add("calendar__tag-dot--bonus");
+        else if (shift.tags?.includes("penalty")) dot.classList.add("calendar__tag-dot--penalty");
+        else if (shift.tags?.includes("overtime")) dot.classList.add("calendar__tag-dot--overtime");
+        dot.title = hasNote ? shift.note : "Есть метки";
+        iconWrapper.appendChild(dot);
+      }
+
+      dayHeader.appendChild(iconWrapper);
 
       const badge = document.createElement("div");
       badge.className = "calendar__shift-badge";
@@ -652,7 +1483,61 @@ function render() {
     cell.setAttribute("tabindex", "0");
     if (ariaLabel) cell.setAttribute("aria-label", ariaLabel);
 
-    cell.addEventListener("click", () => openShiftModal(dateKey));
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let longPressTimeout = null;
+    let isLongPressTriggered = false;
+
+    const startLongPress = (e) => {
+      if (shifts[dateKey]) return;
+      isLongPressTriggered = false;
+      const touch = e.touches ? e.touches[0] : e;
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+
+      longPressTimeout = setTimeout(() => {
+        isLongPressTriggered = true;
+        quickAddDefaultShift(dateKey);
+      }, 420);
+    };
+
+    const cancelLongPress = () => {
+      if (longPressTimeout) {
+        clearTimeout(longPressTimeout);
+        longPressTimeout = null;
+      }
+    };
+
+    const moveLongPress = (e) => {
+      if (!longPressTimeout) return;
+      const touch = e.touches ? e.touches[0] : e;
+      const dx = Math.abs(touch.clientX - touchStartX);
+      const dy = Math.abs(touch.clientY - touchStartY);
+      if (dx > 10 || dy > 10) {
+        cancelLongPress();
+      }
+    };
+
+    cell.addEventListener("touchstart", startLongPress, { passive: true });
+    cell.addEventListener("touchmove", moveLongPress, { passive: true });
+    cell.addEventListener("touchend", cancelLongPress, { passive: true });
+    cell.addEventListener("touchcancel", cancelLongPress, { passive: true });
+
+    cell.addEventListener("contextmenu", (e) => {
+      if (!shifts[dateKey]) {
+        e.preventDefault();
+        quickAddDefaultShift(dateKey);
+      }
+    });
+
+    cell.addEventListener("click", () => {
+      if (isLongPressTriggered) {
+        isLongPressTriggered = false;
+        return;
+      }
+      openShiftModal(dateKey);
+    });
+
     cell.addEventListener("keydown", (e) => {
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
@@ -702,9 +1587,21 @@ function render() {
         isToday: dateKey === todayKey,
         onShift: (shift) => {
           totalShifts++;
-          totalHours += Number(shift.hours) || 0;
-          totalIncome += Number(shift.totalPay) || 0;
+          const h = Number(shift.hours) || 0;
+          const p = Number(shift.totalPay) || 0;
+          totalHours += h;
+          totalIncome += p;
           monthShifts.push({ dateKey, day, ...shift });
+
+          if (day <= cutoffDay) {
+            advanceShiftsCount++;
+            advanceHours += h;
+            advanceIncome += p;
+          } else {
+            salaryShiftsCount++;
+            salaryHours += h;
+            salaryIncome += p;
+          }
         },
       })
     );
@@ -743,6 +1640,38 @@ function render() {
   elements.statIncome.textContent = `${totalIncome.toLocaleString("ru-RU")} ${settings.currency}`;
   elements.statIncome.title = elements.statIncome.textContent;
 
+  // Вычисление динамики (трендов) относительно предыдущего месяца
+  updateStatsTrends(year, month, totalShifts, totalHours, totalIncome);
+
+  // Обновление карточек выплат (Аванс и Расчёт)
+  const curr = settings.currency || "₽";
+  if (elements.advanceLabel) {
+    elements.advanceLabel.textContent = `Аванс (1–${cutoffDay})`;
+  }
+  if (elements.salaryLabel) {
+    elements.salaryLabel.textContent = `Расчёт (${cutoffDay + 1}–${daysInMonth})`;
+  }
+  if (elements.statAdvanceIncome) {
+    elements.statAdvanceIncome.textContent = `${advanceIncome.toLocaleString("ru-RU")} ${curr}`;
+    elements.statAdvanceIncome.title = elements.statAdvanceIncome.textContent;
+  }
+  if (elements.statAdvanceMeta) {
+    elements.statAdvanceMeta.textContent = `${advanceShiftsCount} см • ${Math.round(advanceHours * 10) / 10} ч`;
+  }
+  if (elements.statSalaryIncome) {
+    elements.statSalaryIncome.textContent = `${salaryIncome.toLocaleString("ru-RU")} ${curr}`;
+    elements.statSalaryIncome.title = elements.statSalaryIncome.textContent;
+  }
+  if (elements.statSalaryMeta) {
+    elements.statSalaryMeta.textContent = `${salaryShiftsCount} см • ${Math.round(salaryHours * 10) / 10} ч`;
+  }
+  if (elements.filterAdvanceBtn) {
+    elements.filterAdvanceBtn.textContent = `Аванс (1–${cutoffDay})`;
+  }
+  if (elements.filterSalaryBtn) {
+    elements.filterSalaryBtn.textContent = `Расчёт (${cutoffDay + 1}–${daysInMonth})`;
+  }
+
   if (elements.statShiftsBadge) {
     if (totalShifts > 0) {
       const avgPay = Math.round(totalIncome / totalShifts);
@@ -767,16 +1696,229 @@ function render() {
       : `Вернуться к ${MONTH_NAMES[today.getMonth()]} ${today.getFullYear()}`;
   }
 
+  // Обновление финансовой цели ("Копилка")
+  updateGoalTrackerUI(totalIncome, totalShifts);
+
+  currentMonthShiftsCache = monthShifts;
   renderShiftList(monthShifts, month);
+}
+
+let lastMonthComparisonSummary = null;
+
+/** Вычисление и отображение трендов сравнения с прошлым месяцем */
+function updateStatsTrends(year, month, currentShifts, currentHours, currentIncome) {
+  const curr = settings.currency || "₽";
+
+  // Предыдущий календарный месяц
+  const prevDate = new Date(year, month - 1, 1);
+  const prevYear = prevDate.getFullYear();
+  const prevMonth = prevDate.getMonth();
+  const prevPrefix = `${prevYear}-${String(prevMonth + 1).padStart(2, "0")}-`;
+
+  let prevShiftsCount = 0;
+  let prevHours = 0;
+  let prevIncome = 0;
+
+  Object.keys(shifts).forEach((key) => {
+    if (key.startsWith(prevPrefix)) {
+      const s = shifts[key];
+      prevShiftsCount++;
+      prevHours += Number(s.hours) || 0;
+      prevIncome += Number(s.totalPay) || 0;
+    }
+  });
+
+  const hideTrends = () => {
+    if (elements.statShiftsTrend) elements.statShiftsTrend.style.display = "none";
+    if (elements.statHoursTrend) elements.statHoursTrend.style.display = "none";
+    if (elements.statIncomeTrend) elements.statIncomeTrend.style.display = "none";
+    lastMonthComparisonSummary = null;
+  };
+
+  // Если в прошлом месяце вообще не было смен — скрываем плашки трендов
+  if (prevShiftsCount === 0) {
+    hideTrends();
+    return;
+  }
+
+  const prevMonthName = MONTH_NAMES[prevMonth];
+  const curMonthName = MONTH_NAMES[month];
+
+  // 1. Динамика дохода
+  const diffIncome = currentIncome - prevIncome;
+  const pctIncome = prevIncome > 0 ? Math.round((diffIncome / prevIncome) * 100) : 0;
+
+  if (elements.statIncomeTrend) {
+    elements.statIncomeTrend.style.display = "inline-flex";
+    if (diffIncome > 0) {
+      elements.statIncomeTrend.className = "stats__trend stats__trend--up";
+      elements.statIncomeTrend.innerHTML = `<span class="stats__trend-arrow">↗</span>+${diffIncome.toLocaleString("ru-RU")} ${curr} (+${pctIncome}%)`;
+    } else if (diffIncome < 0) {
+      elements.statIncomeTrend.className = "stats__trend stats__trend--down";
+      elements.statIncomeTrend.innerHTML = `<span class="stats__trend-arrow">↘</span>${diffIncome.toLocaleString("ru-RU")} ${curr} (${pctIncome}%)`;
+    } else {
+      elements.statIncomeTrend.className = "stats__trend stats__trend--neutral";
+      elements.statIncomeTrend.textContent = "= к пред. мес.";
+    }
+    elements.statIncomeTrend.title = `Сравнение с ${prevMonthName} ${prevYear}: ${prevIncome.toLocaleString("ru-RU")} ${curr}`;
+  }
+
+  // 2. Динамика смен
+  const diffShifts = currentShifts - prevShiftsCount;
+  if (elements.statShiftsTrend) {
+    elements.statShiftsTrend.style.display = "inline-flex";
+    if (diffShifts > 0) {
+      elements.statShiftsTrend.className = "stats__trend stats__trend--up";
+      elements.statShiftsTrend.innerHTML = `<span class="stats__trend-arrow">↗</span>+${diffShifts} см`;
+    } else if (diffShifts < 0) {
+      elements.statShiftsTrend.className = "stats__trend stats__trend--down";
+      elements.statShiftsTrend.innerHTML = `<span class="stats__trend-arrow">↘</span>${diffShifts} см`;
+    } else {
+      elements.statShiftsTrend.className = "stats__trend stats__trend--neutral";
+      elements.statShiftsTrend.textContent = "= см";
+    }
+    elements.statShiftsTrend.title = `${prevMonthName}: ${prevShiftsCount} см`;
+  }
+
+  // 3. Динамика часов
+  const diffHours = Math.round((currentHours - prevHours) * 10) / 10;
+  if (elements.statHoursTrend) {
+    elements.statHoursTrend.style.display = "inline-flex";
+    if (diffHours > 0) {
+      elements.statHoursTrend.className = "stats__trend stats__trend--up";
+      elements.statHoursTrend.innerHTML = `<span class="stats__trend-arrow">↗</span>+${diffHours} ч`;
+    } else if (diffHours < 0) {
+      elements.statHoursTrend.className = "stats__trend stats__trend--down";
+      elements.statHoursTrend.innerHTML = `<span class="stats__trend-arrow">↘</span>${diffHours} ч`;
+    } else {
+      elements.statHoursTrend.className = "stats__trend stats__trend--neutral";
+      elements.statHoursTrend.textContent = "= ч";
+    }
+    elements.statHoursTrend.title = `${prevMonthName}: ${Math.round(prevHours * 10) / 10} ч`;
+  }
+
+  lastMonthComparisonSummary = {
+    prevMonthName,
+    prevYear,
+    curMonthName,
+    prevIncome,
+    currentIncome,
+    diffIncome,
+    pctIncome,
+    prevShiftsCount,
+    currentShifts,
+    diffShifts,
+    prevHours: Math.round(prevHours * 10) / 10,
+    currentHours: Math.round(currentHours * 10) / 10,
+    diffHours,
+  };
+}
+
+/** Обновление виджета финансовой цели на месяц ("Копилка") */
+function updateGoalTrackerUI(totalIncome, totalShifts) {
+  if (!elements.goalTracker) return;
+
+  const goal = settings.monthlyGoal || 0;
+  const curr = settings.currency || "₽";
+
+  if (goal <= 0) {
+    elements.goalTracker.classList.remove("goal-tracker--completed");
+    if (elements.goalProgressText) elements.goalProgressText.textContent = `0 ${curr}`;
+    if (elements.goalPercentage) elements.goalPercentage.textContent = "0%";
+    if (elements.goalProgressBar) {
+      elements.goalProgressBar.style.width = "0%";
+      elements.goalProgressBar.classList.remove("goal-tracker__bar--completed");
+    }
+    if (elements.goalStatusText) {
+      elements.goalStatusText.textContent = "🎯 Поставьте цель заработка на месяц";
+    }
+    if (elements.goalActionHint) elements.goalActionHint.textContent = "Включить ⚙️";
+    return;
+  }
+
+  const percent = Math.round((totalIncome / goal) * 100);
+  const clampedWidth = Math.min(100, Math.max(0, percent));
+
+  if (elements.goalProgressText) {
+    elements.goalProgressText.textContent = `${totalIncome.toLocaleString("ru-RU")} / ${goal.toLocaleString("ru-RU")} ${curr}`;
+  }
+  if (elements.goalPercentage) {
+    elements.goalPercentage.textContent = `${percent}%`;
+  }
+  if (elements.goalProgressBar) {
+    elements.goalProgressBar.style.width = `${clampedWidth}%`;
+  }
+
+  if (percent >= 100) {
+    elements.goalTracker.classList.add("goal-tracker--completed");
+    if (elements.goalProgressBar) {
+      elements.goalProgressBar.classList.add("goal-tracker__bar--completed");
+    }
+    const surplus = totalIncome - goal;
+    if (elements.goalStatusText) {
+      if (surplus > 0) {
+        elements.goalStatusText.textContent = `🎉 Цель выполнена! Перевыполнение: +${surplus.toLocaleString("ru-RU")} ${curr}`;
+      } else {
+        elements.goalStatusText.textContent = "🎉 Цель достигнута на 100%! Отличная работа!";
+      }
+    }
+    if (elements.goalActionHint) elements.goalActionHint.textContent = "Изменить ⚙️";
+  } else {
+    elements.goalTracker.classList.remove("goal-tracker--completed");
+    if (elements.goalProgressBar) {
+      elements.goalProgressBar.classList.remove("goal-tracker__bar--completed");
+    }
+    const remaining = goal - totalIncome;
+
+    // Оценка необходимого количества смен
+    let avgShiftPay = 0;
+    if (totalShifts > 0 && totalIncome > 0) {
+      avgShiftPay = totalIncome / totalShifts;
+    } else {
+      if (settings.payMode === "hourly") {
+        const dayPreset = settings.presets?.day || DEFAULT_PRESETS.day;
+        const h = calcHoursDiff(dayPreset.start, dayPreset.end, dayPreset.breakMins) || 11;
+        avgShiftPay = h * (settings.rate || 300);
+      } else {
+        avgShiftPay = settings.rate || 3000;
+      }
+    }
+
+    if (elements.goalStatusText) {
+      if (avgShiftPay > 0) {
+        const neededShifts = Math.max(1, Math.ceil(remaining / avgShiftPay));
+        const shiftWord = getRussianDeclension(neededShifts, ["смена", "смены", "смен"]);
+        elements.goalStatusText.textContent = `Осталось: ${remaining.toLocaleString("ru-RU")} ${curr} (~${neededShifts} ${shiftWord})`;
+      } else {
+        elements.goalStatusText.textContent = `Осталось заработать: ${remaining.toLocaleString("ru-RU")} ${curr}`;
+      }
+    }
+    if (elements.goalActionHint) elements.goalActionHint.textContent = "Изменить ⚙️";
+  }
 }
 
 function renderShiftList(monthShifts, month) {
   const listEl = elements.shiftList;
   if (!listEl) return;
 
-  if (monthShifts.length === 0) {
-    listEl.innerHTML =
-      '<div class="shift-list__empty">Нажми на любой день в календаре, чтобы добавить смену</div>';
+  const cutoffDay = settings.advanceCutoffDay || 15;
+  const daysInMonth = new Date(currentDate.getFullYear(), month + 1, 0).getDate();
+
+  let filteredShifts = monthShifts;
+  if (currentShiftsFilter === "advance") {
+    filteredShifts = monthShifts.filter((s) => s.day <= cutoffDay);
+  } else if (currentShiftsFilter === "salary") {
+    filteredShifts = monthShifts.filter((s) => s.day > cutoffDay);
+  }
+
+  if (filteredShifts.length === 0) {
+    let emptyMsg = "Нажми на любой день в календаре, чтобы добавить смену";
+    if (currentShiftsFilter === "advance") {
+      emptyMsg = `В периоде аванса (1–${cutoffDay} ${MONTH_NAMES_GENITIVE[month]}) пока нет смен`;
+    } else if (currentShiftsFilter === "salary") {
+      emptyMsg = `В периоде расчёта (${cutoffDay + 1}–${daysInMonth} ${MONTH_NAMES_GENITIVE[month]}) пока нет смен`;
+    }
+    listEl.innerHTML = `<div class="shift-list__empty">${emptyMsg}</div>`;
     return;
   }
 
@@ -784,8 +1926,23 @@ function renderShiftList(monthShifts, month) {
   const currency = escapeHtml(settings.currency);
 
   // Безопасный reverse без мутации исходного массива
-  [...monthShifts].reverse().forEach((s) => {
+  [...filteredShifts].reverse().forEach((s) => {
     const noteStr = s.note ? ` • ${escapeHtml(s.note)}` : "";
+
+    let tagsHtml = "";
+    if (s.tags && s.tags.length > 0) {
+      const badges = s.tags
+        .map((t) => {
+          const info = SHIFT_TAGS[t];
+          if (!info) return "";
+          return `<span class="shift-tag-badge shift-tag-badge--${escapeHtml(t)}">${info.emoji} ${escapeHtml(info.label)}</span>`;
+        })
+        .filter(Boolean)
+        .join("");
+      if (badges) {
+        tagsHtml = `<div class="shift-list__tags">${badges}</div>`;
+      }
+    }
 
     const article = document.createElement("article");
     article.className = "shift-list__item";
@@ -795,6 +1952,7 @@ function renderShiftList(monthShifts, month) {
       <div class="shift-list__left">
         <div class="shift-list__date">${getShiftIconSvg(s.type)}<span>${s.day} ${MONTH_NAMES_GENITIVE[month]}</span></div>
         <div class="shift-list__meta">${escapeHtml(s.start)} – ${escapeHtml(s.end)}${noteStr}</div>
+        ${tagsHtml}
       </div>
       <div class="shift-list__right">
         <div class="shift-list__pay">+${Number(s.totalPay).toLocaleString("ru-RU")} ${currency}</div>
@@ -816,9 +1974,9 @@ function renderShiftList(monthShifts, month) {
 }
 
 // ============================================================
-// Экспорт CSV
+// Экспорт CSV (с поддержкой Web Share API)
 // ============================================================
-function exportCSV(allTime = false) {
+async function exportCSV(allTime = false) {
   const year = currentDate.getFullYear();
   const month = String(currentDate.getMonth() + 1).padStart(2, "0");
   const monthPrefix = `${year}-${month}`;
@@ -834,15 +1992,22 @@ function exportCSV(allTime = false) {
       "Часы",
       "Бонус",
       "Итого",
+      "Метки",
       "Заметка",
     ],
   ];
 
+  let count = 0;
   Object.keys(shifts)
     .sort()
     .forEach((key) => {
       if (allTime || key.startsWith(datePrefix)) {
         const s = shifts[key];
+        count++;
+        const tagsStr =
+          s.tags && s.tags.length > 0
+            ? s.tags.map((t) => SHIFT_TAGS[t]?.label || t).join("; ")
+            : "";
         rows.push([
           key,
           s.type,
@@ -852,15 +2017,45 @@ function exportCSV(allTime = false) {
           s.hours,
           s.bonus,
           s.totalPay,
+          `"${tagsStr.replace(/"/g, '""')}"`,
           `"${(s.note || "").replace(/"/g, '""')}"`,
         ]);
       }
     });
 
+  if (count === 0) {
+    showToast("Нет смен для экспорта", "info");
+    return;
+  }
+
   const csvContent = "\uFEFF" + rows.map((e) => e.join(";")).join("\n");
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
   const filename = allTime ? "shifts_all.csv" : `shifts_${monthPrefix}.csv`;
+  const file = new File([csvContent], filename, { type: "text/csv;charset=utf-8" });
+
+  // Web Share API для удобной отправки напрямую в Telegram, WhatsApp и др.
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({
+        title: allTime ? "Все смены" : `Смены за ${MONTH_NAMES[currentDate.getMonth()]} ${year}`,
+        text: `Отчёт по сменам (${count} смен)`,
+        files: [file],
+      });
+      triggerHaptic(15);
+      showToast("Отчёт успешно отправлен!", "success");
+      return;
+    } catch (err) {
+      if (err.name === "AbortError") {
+        // Пользователь отменил шеринг сам
+        return;
+      }
+    }
+  }
+
+  // Фоллбэк: стандартное скачивание файла
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
   triggerDownload(blob, filename);
+  triggerHaptic(15);
+  showToast("Отчёт CSV скачан", "success");
 }
 
 // ============================================================
@@ -894,23 +2089,42 @@ function restoreBackup(event) {
 
       if (parsed.settings && typeof parsed.settings === "object") {
         const s = parsed.settings;
+        const presets = s.presets && typeof s.presets === "object" ? {
+          day: {
+            start: s.presets.day?.start || s.start || DEFAULT_PRESETS.day.start,
+            end: s.presets.day?.end || s.end || DEFAULT_PRESETS.day.end,
+            breakMins: s.presets.day?.breakMins ?? s.breakMins ?? DEFAULT_PRESETS.day.breakMins,
+          },
+          night: {
+            start: s.presets.night?.start || DEFAULT_PRESETS.night.start,
+            end: s.presets.night?.end || DEFAULT_PRESETS.night.end,
+            breakMins: s.presets.night?.breakMins ?? DEFAULT_PRESETS.night.breakMins,
+          },
+          extra: {
+            start: s.presets.extra?.start || DEFAULT_PRESETS.extra.start,
+            end: s.presets.extra?.end || DEFAULT_PRESETS.extra.end,
+            breakMins: s.presets.extra?.breakMins ?? DEFAULT_PRESETS.extra.breakMins,
+          },
+        } : {
+          day: {
+            start: s.start || DEFAULT_PRESETS.day.start,
+            end: s.end || DEFAULT_PRESETS.day.end,
+            breakMins: s.breakMins ?? DEFAULT_PRESETS.day.breakMins,
+          },
+          night: { ...DEFAULT_PRESETS.night },
+          extra: { ...DEFAULT_PRESETS.extra },
+        };
+
         settings = {
-          start:
-            typeof s.start === "string" ? s.start : DEFAULT_SETTINGS.start,
-          end: typeof s.end === "string" ? s.end : DEFAULT_SETTINGS.end,
-          breakMins:
-            typeof s.breakMins === "number"
-              ? s.breakMins
-              : DEFAULT_SETTINGS.breakMins,
-          payMode: ["hourly", "fixed"].includes(s.payMode)
-            ? s.payMode
-            : DEFAULT_SETTINGS.payMode,
-          rate:
-            typeof s.rate === "number" ? s.rate : DEFAULT_SETTINGS.rate,
-          currency:
-            typeof s.currency === "string"
-              ? s.currency
-              : DEFAULT_SETTINGS.currency,
+          start: presets.day.start,
+          end: presets.day.end,
+          breakMins: presets.day.breakMins,
+          payMode: ["hourly", "fixed"].includes(s.payMode) ? s.payMode : DEFAULT_SETTINGS.payMode,
+          rate: typeof s.rate === "number" ? s.rate : DEFAULT_SETTINGS.rate,
+          currency: typeof s.currency === "string" ? s.currency : DEFAULT_SETTINGS.currency,
+          advanceCutoffDay: typeof s.advanceCutoffDay === "number" ? s.advanceCutoffDay : DEFAULT_SETTINGS.advanceCutoffDay,
+          monthlyGoal: typeof s.monthlyGoal === "number" ? Math.max(0, s.monthlyGoal) : DEFAULT_SETTINGS.monthlyGoal,
+          presets,
         };
       }
 
@@ -1109,7 +2323,9 @@ function initBottomSheetSwipe() {
     elements.shiftModal,
     elements.settingsModal,
     elements.shiftsModal,
-  ];
+    elements.scheduleModal,
+    elements.analyticsModal,
+  ].filter(Boolean);
 
   modalOverlays.forEach((overlay) => {
     if (!overlay) return;
@@ -1273,13 +2489,174 @@ function bindEvents() {
   elements.themeToggleBtn.addEventListener("click", toggleTheme);
   elements.settingsBtn.addEventListener("click", openSettings);
 
+  // Рекорды и общая аналитика
+  if (elements.statsOverviewBtn) {
+    elements.statsOverviewBtn.addEventListener("click", openAnalyticsModal);
+  }
+  if (elements.analyticsModalCloseBtn) {
+    elements.analyticsModalCloseBtn.addEventListener("click", () => closeModal("analyticsModal"));
+  }
+  if (elements.bestMonthCard) {
+    elements.bestMonthCard.addEventListener("click", () => {
+      if (bestMonthNavTarget) {
+        currentDate = new Date(bestMonthNavTarget.year, bestMonthNavTarget.month, 1);
+        closeModal("analyticsModal");
+        render();
+        triggerHaptic(12);
+        showToast(`Перешли к месяцу: ${MONTH_NAMES[bestMonthNavTarget.month]} ${bestMonthNavTarget.year}`, "info");
+      }
+    });
+    elements.bestMonthCard.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        elements.bestMonthCard.click();
+      }
+    });
+  }
+  if (elements.bestShiftCard) {
+    elements.bestShiftCard.addEventListener("click", () => {
+      if (bestShiftNavTarget) {
+        const [y, m] = bestShiftNavTarget.split("-").map(Number);
+        currentDate = new Date(y, m - 1, 1);
+        closeModal("analyticsModal");
+        render();
+        setTimeout(() => {
+          openShiftModal(bestShiftNavTarget);
+        }, 120);
+        triggerHaptic(12);
+      }
+    });
+    elements.bestShiftCard.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        elements.bestShiftCard.click();
+      }
+    });
+  }
+
+  // Интерактивное сравнение с прошлым месяцем по клику на карточки статистики
+  if (elements.statIncomeCard) {
+    elements.statIncomeCard.addEventListener("click", () => {
+      triggerHaptic(10);
+      if (lastMonthComparisonSummary) {
+        const s = lastMonthComparisonSummary;
+        const sign = s.diffIncome >= 0 ? "+" : "";
+        const arrow = s.diffIncome >= 0 ? "↗" : "↘";
+        const curr = settings.currency || "₽";
+        const msg = `${s.prevMonthName}: ${s.prevIncome.toLocaleString("ru-RU")} ${curr} (${s.prevShiftsCount} см)\n${s.curMonthName}: ${s.currentIncome.toLocaleString("ru-RU")} ${curr} (${s.currentShifts} см)\n${arrow} Разница дохода: ${sign}${s.diffIncome.toLocaleString("ru-RU")} ${curr} (${sign}${s.pctIncome}%)`;
+        showToast(msg, s.diffIncome >= 0 ? "success" : "info", null, 5000);
+      }
+    });
+    elements.statIncomeCard.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        elements.statIncomeCard.click();
+      }
+    });
+  }
+
+  if (elements.statShiftsCard) {
+    elements.statShiftsCard.addEventListener("click", () => {
+      triggerHaptic(10);
+      if (lastMonthComparisonSummary) {
+        const s = lastMonthComparisonSummary;
+        const sign = s.diffShifts >= 0 ? "+" : "";
+        const arrow = s.diffShifts >= 0 ? "↗" : "↘";
+        const msg = `${s.prevMonthName}: ${s.prevShiftsCount} см\n${s.curMonthName}: ${s.currentShifts} см\n${arrow} Разница смен: ${sign}${s.diffShifts} см`;
+        showToast(msg, s.diffShifts >= 0 ? "success" : "info", null, 4000);
+      }
+    });
+    elements.statShiftsCard.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        elements.statShiftsCard.click();
+      }
+    });
+  }
+
+  if (elements.statHoursCard) {
+    elements.statHoursCard.addEventListener("click", () => {
+      triggerHaptic(10);
+      if (lastMonthComparisonSummary) {
+        const s = lastMonthComparisonSummary;
+        const sign = s.diffHours >= 0 ? "+" : "";
+        const arrow = s.diffHours >= 0 ? "↗" : "↘";
+        const msg = `${s.prevMonthName}: ${s.prevHours} ч\n${s.curMonthName}: ${s.currentHours} ч\n${arrow} Разница часов: ${sign}${s.diffHours} ч`;
+        showToast(msg, s.diffHours >= 0 ? "success" : "info", null, 4000);
+      }
+    });
+    elements.statHoursCard.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        elements.statHoursCard.click();
+      }
+    });
+  }
+
   // Экспорт
   elements.exportMonthBtn.addEventListener("click", () => exportCSV(false));
   elements.exportAllBtn.addEventListener("click", () => exportCSV(true));
 
-  // Модальное окно детализации смен
+  // Финансовая цель на месяц ("Копилка")
+  if (elements.goalTracker) {
+    elements.goalTracker.addEventListener("click", () => {
+      triggerHaptic(10);
+      openSettings();
+      setTimeout(() => {
+        if (elements.defMonthlyGoal) {
+          elements.defMonthlyGoal.focus();
+          elements.defMonthlyGoal.select();
+        }
+      }, 150);
+    });
+    elements.goalTracker.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        elements.goalTracker.click();
+      }
+    });
+  }
+
+  // Модальное окно детализации смен и карточки выплат
+  if (elements.payoutAdvanceCard) {
+    elements.payoutAdvanceCard.addEventListener("click", () => {
+      currentShiftsFilter = "advance";
+      setSegmentedValue("shiftsFilterSegmented", "shiftsFilterInput", "advance");
+      renderShiftList(currentMonthShiftsCache, currentDate.getMonth());
+      openModal("shiftsModal");
+      triggerHaptic(12);
+    });
+    elements.payoutAdvanceCard.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        elements.payoutAdvanceCard.click();
+      }
+    });
+  }
+
+  if (elements.payoutSalaryCard) {
+    elements.payoutSalaryCard.addEventListener("click", () => {
+      currentShiftsFilter = "salary";
+      setSegmentedValue("shiftsFilterSegmented", "shiftsFilterInput", "salary");
+      renderShiftList(currentMonthShiftsCache, currentDate.getMonth());
+      openModal("shiftsModal");
+      triggerHaptic(12);
+    });
+    elements.payoutSalaryCard.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        elements.payoutSalaryCard.click();
+      }
+    });
+  }
+
   if (elements.openShiftsBtn) {
-    elements.openShiftsBtn.addEventListener("click", () => openModal("shiftsModal"));
+    elements.openShiftsBtn.addEventListener("click", () => {
+      currentShiftsFilter = "all";
+      setSegmentedValue("shiftsFilterSegmented", "shiftsFilterInput", "all");
+      renderShiftList(currentMonthShiftsCache, currentDate.getMonth());
+      openModal("shiftsModal");
+    });
   }
   if (elements.shiftsModalCloseBtn) {
     elements.shiftsModalCloseBtn.addEventListener("click", () => closeModal("shiftsModal"));
@@ -1291,6 +2668,23 @@ function bindEvents() {
     closeModal("shiftModal"),
   );
   elements.deleteBtn.addEventListener("click", deleteShift);
+
+  // Быстрые метки смены
+  if (elements.shiftTagsPicker) {
+    elements.shiftTagsPicker.querySelectorAll(".shift-tag-chip").forEach((chip) => {
+      chip.addEventListener("click", () => {
+        const tag = chip.dataset.tag;
+        const idx = currentShiftTags.indexOf(tag);
+        if (idx >= 0) {
+          currentShiftTags.splice(idx, 1);
+        } else {
+          currentShiftTags.push(tag);
+        }
+        updateShiftTagsUI();
+        triggerHaptic(10);
+      });
+    });
+  }
 
   // Пересчёт при изменении полей
   elements.startTime.addEventListener("change", recalcModal);
@@ -1306,6 +2700,59 @@ function bindEvents() {
     closeModal("settingsModal"),
   );
 
+  // Автозаполнение графика
+  if (elements.autoScheduleBtn) {
+    elements.autoScheduleBtn.addEventListener("click", openScheduleModal);
+  }
+  if (elements.scheduleModalCloseBtn) {
+    elements.scheduleModalCloseBtn.addEventListener("click", () => closeModal("scheduleModal"));
+  }
+  if (elements.scheduleForm) {
+    elements.scheduleForm.addEventListener("submit", applySchedule);
+  }
+  if (elements.scheduleStartDate) {
+    elements.scheduleStartDate.addEventListener("change", updateSchedulePreview);
+  }
+  if (elements.scheduleSkipExisting) {
+    elements.scheduleSkipExisting.addEventListener("change", updateSchedulePreview);
+  }
+
+  if (elements.schedulePatternGrid) {
+    elements.schedulePatternGrid.querySelectorAll(".schedule-pattern-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const pattern = btn.dataset.pattern;
+        elements.selectedPattern.value = pattern;
+        elements.schedulePatternGrid.querySelectorAll(".schedule-pattern-btn").forEach((b) => {
+          b.classList.toggle("is-active", b === btn);
+        });
+        if (elements.customPatternGroup) {
+          elements.customPatternGroup.style.display = pattern === "custom" ? "block" : "none";
+        }
+        updateSchedulePreview();
+        triggerHaptic(10);
+      });
+    });
+  }
+
+  document.querySelectorAll(".custom-add-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const type = btn.dataset.type;
+      customCycle.push(type);
+      updateCustomPatternBuilderUI();
+      updateSchedulePreview();
+      triggerHaptic(8);
+    });
+  });
+
+  if (elements.customResetBtn) {
+    elements.customResetBtn.addEventListener("click", () => {
+      customCycle = [];
+      updateCustomPatternBuilderUI();
+      updateSchedulePreview();
+      triggerHaptic(12);
+    });
+  }
+
   // Бэкап
   elements.backupDownloadBtn.addEventListener("click", downloadBackup);
   elements.backupRestoreBtn.addEventListener("click", () =>
@@ -1314,8 +2761,13 @@ function bindEvents() {
   elements.importFile.addEventListener("change", restoreBackup);
 
   // Закрытие модалок по клику на оверлей или по Escape
-  [elements.shiftModal, elements.settingsModal, elements.shiftsModal].forEach((overlay) => {
-    if (!overlay) return;
+  [
+    elements.shiftModal,
+    elements.settingsModal,
+    elements.shiftsModal,
+    elements.scheduleModal,
+    elements.analyticsModal,
+  ].filter(Boolean).forEach((overlay) => {
     overlay.addEventListener("click", (e) => {
       if (e.target === overlay) closeModal(overlay.id);
     });
@@ -1326,6 +2778,8 @@ function bindEvents() {
       closeModal("shiftModal");
       closeModal("settingsModal");
       closeModal("shiftsModal");
+      closeModal("scheduleModal");
+      closeModal("analyticsModal");
     }
   });
 }

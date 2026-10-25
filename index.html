@@ -59,6 +59,38 @@
           </svg>
         </button>
 
+        <!-- Кнопка автозаполнения графика -->
+        <button
+          id="autoScheduleBtn"
+          class="btn btn--icon header__schedule-btn"
+          title="Автозаполнение графика (2/2, 3/3 и др.)"
+          aria-label="Автозаполнение графика"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="17 1 21 5 17 9"></polyline>
+            <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+            <polyline points="7 23 3 19 7 15"></polyline>
+            <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+          </svg>
+        </button>
+
+        <!-- Кнопка рекордов и аналитики -->
+        <button
+          id="statsOverviewBtn"
+          class="btn btn--icon header__stats-btn"
+          title="Рекорды и аналитика"
+          aria-label="Рекорды и аналитика"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+            <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
+            <path d="M4 22h16"></path>
+            <path d="M10 14.66V17c0 .55-.45 1-1 1H7c-.55 0-1-.45-1-1v-2.34"></path>
+            <path d="M14 14.66V17c0 .55.45 1 1 1h2c.55 0 1-.45 1-1v-2.34"></path>
+            <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
+          </svg>
+        </button>
+
         <!-- Кнопка смены темы -->
         <button id="themeToggleBtn" class="btn btn--icon" aria-label="Сменить тему">
           <svg id="themeIcon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -80,17 +112,62 @@
     <main class="main">
       <!-- Статистика за месяц -->
       <section class="stats main__stats" aria-label="Статистика за месяц">
-        <article class="stats__card">
+        <article class="stats__card" id="statShiftsCard" role="button" tabindex="0" title="Статистика смен за месяц">
           <div class="stats__value" id="statShifts">0</div>
           <div class="stats__label">Смен</div>
+          <div class="stats__trend" id="statShiftsTrend" style="display: none;"></div>
         </article>
-        <article class="stats__card">
+        <article class="stats__card" id="statHoursCard" role="button" tabindex="0" title="Статистика часов за месяц">
           <div class="stats__value" id="statHours">0</div>
           <div class="stats__label">Часов</div>
+          <div class="stats__trend" id="statHoursTrend" style="display: none;"></div>
         </article>
-        <article class="stats__card stats__card--income">
+        <article class="stats__card stats__card--income" id="statIncomeCard" role="button" tabindex="0" title="Нажмите для сравнения с прошлым месяцем">
           <div class="stats__value" id="statIncome">0 ₽</div>
           <div class="stats__label">Доход</div>
+          <div class="stats__trend" id="statIncomeTrend" style="display: none;"></div>
+        </article>
+      </section>
+
+      <!-- Финансовая цель на месяц ("Копилка") -->
+      <section class="goal-tracker main__goal-tracker" id="goalTracker" role="button" tabindex="0" title="Нажмите, чтобы изменить цель в настройках" aria-label="Финансовая цель на месяц">
+        <div class="goal-tracker__header">
+          <div class="goal-tracker__title-group">
+            <span class="goal-tracker__icon" aria-hidden="true">🎯</span>
+            <span class="goal-tracker__title">Цель на месяц</span>
+          </div>
+          <div class="goal-tracker__figures">
+            <span class="goal-tracker__progress-text" id="goalProgressText">0 / 0 ₽</span>
+            <span class="goal-tracker__percentage" id="goalPercentage">0%</span>
+          </div>
+        </div>
+        <div class="goal-tracker__bar-wrapper">
+          <div class="goal-tracker__bar" id="goalProgressBar" style="width: 0%;"></div>
+        </div>
+        <div class="goal-tracker__footer">
+          <span class="goal-tracker__status-text" id="goalStatusText">Поставьте цель в настройках</span>
+          <span class="goal-tracker__action-hint" id="goalActionHint">Настроить ⚙️</span>
+        </div>
+      </section>
+
+      <!-- Распределение выплат: Аванс и Зарплата -->
+      <section class="payout-split main__payout-split" id="payoutSplit" aria-label="Периоды выплат">
+        <article class="payout-split__card payout-split__card--advance" id="payoutAdvanceCard" role="button" tabindex="0" title="Нажмите, чтобы посмотреть смены аванса">
+          <div class="payout-split__header">
+            <span class="payout-split__dot payout-split__dot--advance"></span>
+            <span class="payout-split__label" id="advanceLabel">Аванс (1–15)</span>
+          </div>
+          <div class="payout-split__value" id="statAdvanceIncome">0 ₽</div>
+          <div class="payout-split__meta" id="statAdvanceMeta">0 см • 0 ч</div>
+        </article>
+
+        <article class="payout-split__card payout-split__card--salary" id="payoutSalaryCard" role="button" tabindex="0" title="Нажмите, чтобы посмотреть смены расчёта">
+          <div class="payout-split__header">
+            <span class="payout-split__dot payout-split__dot--salary"></span>
+            <span class="payout-split__label" id="salaryLabel">Расчёт (16–31)</span>
+          </div>
+          <div class="payout-split__value" id="statSalaryIncome">0 ₽</div>
+          <div class="payout-split__meta" id="statSalaryMeta">0 см • 0 ч</div>
         </article>
       </section>
 
@@ -164,6 +241,20 @@
           </button>
         </div>
 
+        <!-- Фильтр периодов выплат в детализации -->
+        <div class="segmented-control shifts-filter-segmented" role="radiogroup" aria-label="Фильтр периода выплат" id="shiftsFilterSegmented">
+          <button type="button" class="segmented-control__btn is-active" data-value="all">
+            Все смены
+          </button>
+          <button type="button" class="segmented-control__btn" data-value="advance" id="filterAdvanceBtn">
+            Аванс
+          </button>
+          <button type="button" class="segmented-control__btn" data-value="salary" id="filterSalaryBtn">
+            Расчёт
+          </button>
+        </div>
+        <input type="hidden" id="shiftsFilterInput" value="all" />
+
         <div class="shift-list" id="shiftList"></div>
       </div>
     </div>
@@ -188,33 +279,44 @@
           <input type="hidden" id="shiftDate" />
 
           <div class="form__group">
-            <label class="form__label">Тип смены</label>
-            <div class="segmented-control" role="radiogroup" aria-label="Тип смены" id="shiftTypeSegmented">
-              <button type="button" class="segmented-control__btn is-active" data-value="day">
-                <svg class="segmented-control__icon segmented-control__icon--sun" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="4"></circle>
-                  <path d="M12 2v2"></path>
-                  <path d="M12 20v2"></path>
-                  <path d="m4.93 4.93 1.41 1.41"></path>
-                  <path d="m17.66 17.66 1.41 1.41"></path>
-                  <path d="M2 12h2"></path>
-                  <path d="M20 12h2"></path>
-                  <path d="m6.34 17.66-1.41 1.41"></path>
-                  <path d="m19.07 4.93-1.41 1.41"></path>
-                </svg>
-                День
+            <label class="form__label">Тип смены и шаблон</label>
+            <div class="shift-presets" role="radiogroup" aria-label="Тип смены и шаблон" id="shiftTypeSegmented">
+              <button type="button" class="shift-preset-btn is-active" data-value="day">
+                <div class="shift-preset-btn__header">
+                  <svg class="segmented-control__icon segmented-control__icon--sun" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="4"></circle>
+                    <path d="M12 2v2"></path>
+                    <path d="M12 20v2"></path>
+                    <path d="m4.93 4.93 1.41 1.41"></path>
+                    <path d="m17.66 17.66 1.41 1.41"></path>
+                    <path d="M2 12h2"></path>
+                    <path d="M20 12h2"></path>
+                    <path d="m6.34 17.66-1.41 1.41"></path>
+                    <path d="m19.07 4.93-1.41 1.41"></path>
+                  </svg>
+                  <span class="shift-preset-btn__title">День</span>
+                </div>
+                <div class="shift-preset-btn__time" id="presetTimeDay">09:00–21:00</div>
               </button>
-              <button type="button" class="segmented-control__btn" data-value="night">
-                <svg class="segmented-control__icon segmented-control__icon--moon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
-                </svg>
-                Ночь
+
+              <button type="button" class="shift-preset-btn" data-value="night">
+                <div class="shift-preset-btn__header">
+                  <svg class="segmented-control__icon segmented-control__icon--moon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+                  </svg>
+                  <span class="shift-preset-btn__title">Ночь</span>
+                </div>
+                <div class="shift-preset-btn__time" id="presetTimeNight">21:00–09:00</div>
               </button>
-              <button type="button" class="segmented-control__btn" data-value="extra">
-                <svg class="segmented-control__icon segmented-control__icon--flame" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>
-                </svg>
-                Подработка
+
+              <button type="button" class="shift-preset-btn" data-value="extra">
+                <div class="shift-preset-btn__header">
+                  <svg class="segmented-control__icon segmented-control__icon--flame" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>
+                  </svg>
+                  <span class="shift-preset-btn__title">Подработка</span>
+                </div>
+                <div class="shift-preset-btn__time" id="presetTimeExtra">10:00–16:00</div>
               </button>
             </div>
             <input type="hidden" id="shiftType" value="day" />
@@ -325,6 +427,19 @@
             />
           </div>
 
+          <div class="form__group">
+            <label class="form__label">Быстрые метки смены</label>
+            <div class="shift-tags-picker" id="shiftTagsPicker" role="group" aria-label="Быстрые метки смены">
+              <button type="button" class="shift-tag-chip" data-tag="bonus">💰 Премия</button>
+              <button type="button" class="shift-tag-chip" data-tag="overtime">⏱️ Сверхурочно</button>
+              <button type="button" class="shift-tag-chip" data-tag="taxi">🚕 Такси</button>
+              <button type="button" class="shift-tag-chip" data-tag="sub">🤝 Подмена</button>
+              <button type="button" class="shift-tag-chip" data-tag="penalty">⚠️ Штраф</button>
+              <button type="button" class="shift-tag-chip" data-tag="heavy">⚡ Тяжёлая</button>
+              <button type="button" class="shift-tag-chip" data-tag="easy">☕ Спокойная</button>
+            </div>
+          </div>
+
           <div class="form__actions">
             <button
               type="button"
@@ -359,47 +474,74 @@
           </button>
         </header>
         <form class="form modal__form" id="settingsForm">
+          <div class="form__group">
+            <label class="form__label">Шаблоны времени по типу смены</label>
+            <div class="segmented-control" role="radiogroup" aria-label="Выбор шаблона для настройки" id="settingsPresetSegmented">
+              <button type="button" class="segmented-control__btn is-active" data-value="day">
+                <svg class="segmented-control__icon segmented-control__icon--sun" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="4"></circle>
+                  <path d="M12 2v2"></path>
+                  <path d="M12 20v2"></path>
+                  <path d="m4.93 4.93 1.41 1.41"></path>
+                  <path d="m17.66 17.66 1.41 1.41"></path>
+                  <path d="M2 12h2"></path>
+                  <path d="M20 12h2"></path>
+                  <path d="m6.34 17.66-1.41 1.41"></path>
+                  <path d="m19.07 4.93-1.41 1.41"></path>
+                </svg>
+                День
+              </button>
+              <button type="button" class="segmented-control__btn" data-value="night">
+                <svg class="segmented-control__icon segmented-control__icon--moon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+                </svg>
+                Ночь
+              </button>
+              <button type="button" class="segmented-control__btn" data-value="extra">
+                <svg class="segmented-control__icon segmented-control__icon--flame" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>
+                </svg>
+                Подработка
+              </button>
+            </div>
+            <input type="hidden" id="settingsActivePreset" value="day" />
+          </div>
+
           <div class="form__row">
             <div class="form__group">
-              <label class="form__label" for="defStart"
-                >Стандартное начало</label
-              >
+              <label class="form__label" for="defStart" id="defStartLabel">Начало</label>
               <input
                 class="form__control form__input"
                 type="time"
                 id="defStart"
+                required
               />
             </div>
             <div class="form__group">
-              <label class="form__label" for="defEnd">Стандартный конец</label>
+              <label class="form__label" for="defEnd" id="defEndLabel">Конец</label>
               <input
                 class="form__control form__input"
                 type="time"
                 id="defEnd"
+                required
               />
             </div>
           </div>
-          <div class="form__row">
-            <div class="form__group">
-              <label class="form__label" for="defBreak">Перерыв (минут)</label>
-              <input
-                class="form__control form__input"
-                type="number"
-                id="defBreak"
-                min="0"
-                step="5"
-              />
-            </div>
-            <div class="form__group">
-              <label class="form__label" for="defCurrency">Валюта</label>
-              <input
-                class="form__control form__input"
-                type="text"
-                id="defCurrency"
-                value="₽"
-              />
-            </div>
+
+          <div class="form__group">
+            <label class="form__label" for="defBreak">Перерыв (минут)</label>
+            <input
+              class="form__control form__input"
+              type="number"
+              id="defBreak"
+              min="0"
+              step="5"
+            />
           </div>
+
+          <hr class="modal__divider" />
+          <h4 class="modal__subtitle">Оплата и валюта</h4>
+
           <div class="form__group">
             <label class="form__label" for="defRate">Базовая ставка</label>
             <div class="input-with-segmented">
@@ -421,11 +563,50 @@
               <input type="hidden" id="defPayMode" value="hourly" />
             </div>
           </div>
+
+          <div class="form__row">
+            <div class="form__group">
+              <label class="form__label" for="defCurrency">Валюта</label>
+              <input
+                class="form__control form__input"
+                type="text"
+                id="defCurrency"
+                value="₽"
+                maxlength="5"
+              />
+            </div>
+            <div class="form__group">
+              <label class="form__label" for="defCutoffDay" title="Число месяца, до которого смены идут в аванс">Отсечка аванса (день)</label>
+              <input
+                class="form__control form__input"
+                type="number"
+                id="defCutoffDay"
+                value="15"
+                min="1"
+                max="28"
+                step="1"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="form__group">
+            <label class="form__label" for="defMonthlyGoal">Цель заработка на месяц (0 = отключено)</label>
+            <input
+              class="form__control form__input"
+              type="number"
+              id="defMonthlyGoal"
+              placeholder="Например: 80000"
+              min="0"
+              step="1000"
+            />
+          </div>
+
           <button
             type="submit"
             class="btn btn--primary form__btn form__btn--full"
           >
-            Сохранить шаблон
+            Сохранить настройки
           </button>
         </form>
 
@@ -454,6 +635,254 @@
             style="display: none"
             accept=".json"
           />
+        </div>
+      </div>
+    </div>
+
+    <!-- Модальное окно автозаполнения графика -->
+    <div class="modal-overlay" id="scheduleModal">
+      <div class="modal modal-overlay__content" role="dialog" aria-modal="true" aria-labelledby="scheduleModalTitle">
+        <header class="modal__header">
+          <div>
+            <h3 class="modal__title" id="scheduleModalTitle">Автозаполнение графика</h3>
+            <div class="modal__subtitle">Повторяющиеся смены по циклу</div>
+          </div>
+          <button
+            class="btn btn--icon modal__close-btn"
+            id="scheduleModalCloseBtn"
+            aria-label="Закрыть"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </header>
+
+        <form class="form modal__form" id="scheduleForm">
+          <div class="form__group">
+            <label class="form__label" for="scheduleStartDate">Дата первой смены цикла</label>
+            <input
+              class="form__control form__input"
+              type="date"
+              id="scheduleStartDate"
+              required
+            />
+          </div>
+
+          <div class="form__group">
+            <label class="form__label">Тип графика</label>
+            <div class="schedule-patterns" id="schedulePatternGrid">
+              <button type="button" class="schedule-pattern-btn is-active" data-pattern="2-2-day">
+                <span class="schedule-pattern-btn__title">2/2 День</span>
+                <span class="schedule-pattern-btn__badge">2 дня • 2 вых</span>
+              </button>
+              <button type="button" class="schedule-pattern-btn" data-pattern="2-2-mixed">
+                <span class="schedule-pattern-btn__title">2/2 Смешанный</span>
+                <span class="schedule-pattern-btn__badge">День • Ночь • 2 вых</span>
+              </button>
+              <button type="button" class="schedule-pattern-btn" data-pattern="3-3-day">
+                <span class="schedule-pattern-btn__title">3/3 День</span>
+                <span class="schedule-pattern-btn__badge">3 дня • 3 вых</span>
+              </button>
+              <button type="button" class="schedule-pattern-btn" data-pattern="1-3-mixed">
+                <span class="schedule-pattern-btn__title">День-Ночь-48</span>
+                <span class="schedule-pattern-btn__badge">День • Ночь • 2 вых</span>
+              </button>
+              <button type="button" class="schedule-pattern-btn" data-pattern="5-2-weekdays">
+                <span class="schedule-pattern-btn__title">5/2 Будни</span>
+                <span class="schedule-pattern-btn__badge">Пн–Пт • Сб–Вс вых</span>
+              </button>
+              <button type="button" class="schedule-pattern-btn" data-pattern="custom">
+                <span class="schedule-pattern-btn__title">Свой цикл</span>
+                <span class="schedule-pattern-btn__badge" id="customPatternLabel">Настроить</span>
+              </button>
+            </div>
+            <input type="hidden" id="selectedPattern" value="2-2-day" />
+          </div>
+
+          <!-- Конструктор своего цикла -->
+          <div class="form__group custom-pattern-group" id="customPatternGroup" style="display: none;">
+            <label class="form__label">Дни в цикле (нажимайте кнопки ниже):</label>
+            <div class="custom-pattern-builder" id="customPatternBuilder">
+              <!-- Сюда вставляются чипсы -->
+            </div>
+            <div class="custom-pattern-actions">
+              <button type="button" class="btn btn--secondary btn--sm custom-add-btn" data-type="day">
+                + День
+              </button>
+              <button type="button" class="btn btn--secondary btn--sm custom-add-btn" data-type="night">
+                + Ночь
+              </button>
+              <button type="button" class="btn btn--secondary btn--sm custom-add-btn" data-type="off">
+                + Выходной
+              </button>
+              <button type="button" class="btn btn--secondary btn--sm custom-reset-btn" id="customResetBtn">
+                Сброс
+              </button>
+            </div>
+          </div>
+
+          <div class="form__group">
+            <label class="form__label">Период заполнения</label>
+            <div class="segmented-control" role="radiogroup" aria-label="Период заполнения" id="scheduleDurationSegmented">
+              <button type="button" class="segmented-control__btn is-active" data-value="1">
+                1 месяц
+              </button>
+              <button type="button" class="segmented-control__btn" data-value="2">
+                2 месяца
+              </button>
+              <button type="button" class="segmented-control__btn" data-value="3">
+                3 месяца
+              </button>
+            </div>
+            <input type="hidden" id="scheduleDuration" value="1" />
+          </div>
+
+          <div class="form__group schedule-checkbox-group">
+            <label class="schedule-checkbox-label">
+              <input type="checkbox" id="scheduleSkipExisting" checked class="schedule-checkbox" />
+              <span>Не перезаписывать уже заполненные дни</span>
+            </label>
+          </div>
+
+          <!-- Превью расчета перед запуском -->
+          <div class="schedule-preview-card" id="schedulePreviewCard">
+            <div class="schedule-preview-card__icon">⚡</div>
+            <div class="schedule-preview-card__content">
+              <div class="schedule-preview-card__title" id="schedulePreviewTitle">Предпросмотр:</div>
+              <div class="schedule-preview-card__text" id="schedulePreviewText">Расчет графика...</div>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            class="btn btn--primary form__btn form__btn--full"
+            id="applyScheduleBtn"
+          >
+            Заполнить график
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Модальное окно аналитики и рекордов -->
+    <div class="modal-overlay" id="analyticsModal">
+      <div class="modal modal-overlay__content modal--analytics" role="dialog" aria-modal="true" aria-labelledby="analyticsModalTitle">
+        <header class="modal__header">
+          <div class="modal__title-group">
+            <span class="modal__title-icon" aria-hidden="true">🏆</span>
+            <h3 class="modal__title" id="analyticsModalTitle">Рекорды и аналитика</h3>
+          </div>
+          <button
+            class="btn btn--icon modal__close-btn"
+            id="analyticsModalCloseBtn"
+            aria-label="Закрыть"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </header>
+
+        <div class="analytics-content" id="analyticsContent">
+          <!-- За всё время (Hero Cards) -->
+          <div class="analytics-hero">
+            <div class="analytics-hero__card analytics-hero__card--income">
+              <span class="analytics-hero__label">За всё время</span>
+              <span class="analytics-hero__value" id="allTimeIncome">0 ₽</span>
+              <span class="analytics-hero__sub" id="allTimeAvgMonth">~0 ₽ / месяц</span>
+            </div>
+            <div class="analytics-hero__card">
+              <span class="analytics-hero__label">Отработано</span>
+              <span class="analytics-hero__value" id="allTimeShifts">0 см</span>
+              <span class="analytics-hero__sub" id="allTimeHours">0 ч всего</span>
+            </div>
+          </div>
+
+          <!-- Стрик (Серия) -->
+          <div class="analytics-streak" id="analyticsStreakCard">
+            <div class="analytics-streak__icon" id="analyticsStreakIcon">🔥</div>
+            <div class="analytics-streak__body">
+              <div class="analytics-streak__title" id="analyticsStreakTitle">Текущий стрик</div>
+              <div class="analytics-streak__desc" id="analyticsStreakDesc">0 смен подряд</div>
+            </div>
+          </div>
+
+          <!-- Личные рекорды (Personal Best) -->
+          <h4 class="modal__subtitle">Личные рекорды</h4>
+          <div class="analytics-records">
+            <div class="analytics-record-card analytics-record-card--interactive" id="bestMonthCard" role="button" tabindex="0" title="Нажмите, чтобы открыть этот месяц">
+              <div class="analytics-record-card__header">
+                <span class="analytics-record-card__icon">🥇</span>
+                <span class="analytics-record-card__title">Рекорд месяца</span>
+              </div>
+              <div class="analytics-record-card__value" id="bestMonthValue">—</div>
+              <div class="analytics-record-card__sub" id="bestMonthDate">Нет данных</div>
+            </div>
+
+            <div class="analytics-record-card analytics-record-card--interactive" id="bestShiftCard" role="button" tabindex="0" title="Нажмите, чтобы открыть эту смену">
+              <div class="analytics-record-card__header">
+                <span class="analytics-record-card__icon">💎</span>
+                <span class="analytics-record-card__title">Лучшая смена</span>
+              </div>
+              <div class="analytics-record-card__value" id="bestShiftValue">—</div>
+              <div class="analytics-record-card__sub" id="bestShiftDate">Нет данных</div>
+            </div>
+
+            <div class="analytics-record-card">
+              <div class="analytics-record-card__header">
+                <span class="analytics-record-card__icon">⏳</span>
+                <span class="analytics-record-card__title">Длинная смена</span>
+              </div>
+              <div class="analytics-record-card__value" id="longestShiftValue">—</div>
+              <div class="analytics-record-card__sub" id="longestShiftDate">Нет данных</div>
+            </div>
+
+            <div class="analytics-record-card">
+              <div class="analytics-record-card__header">
+                <span class="analytics-record-card__icon">⚡</span>
+                <span class="analytics-record-card__title">Макс. стрик</span>
+              </div>
+              <div class="analytics-record-card__value" id="maxStreakValue">—</div>
+              <div class="analytics-record-card__sub" id="maxStreakSub">смен подряд</div>
+            </div>
+          </div>
+
+          <!-- Структура смен (Breakdown) -->
+          <h4 class="modal__subtitle">Структура работы</h4>
+          <div class="analytics-breakdown">
+            <div class="analytics-breakdown__item">
+              <div class="analytics-breakdown__label">
+                <span>☀️ Дневные</span>
+                <span id="breakdownDayText">0 (0%)</span>
+              </div>
+              <div class="analytics-breakdown__track">
+                <div class="analytics-breakdown__fill analytics-breakdown__fill--day" id="breakdownDayFill" style="width: 0%;"></div>
+              </div>
+            </div>
+
+            <div class="analytics-breakdown__item">
+              <div class="analytics-breakdown__label">
+                <span>🌙 Ночные</span>
+                <span id="breakdownNightText">0 (0%)</span>
+              </div>
+              <div class="analytics-breakdown__track">
+                <div class="analytics-breakdown__fill analytics-breakdown__fill--night" id="breakdownNightFill" style="width: 0%;"></div>
+              </div>
+            </div>
+
+            <div class="analytics-breakdown__item">
+              <div class="analytics-breakdown__label">
+                <span>🔥 Подработки</span>
+                <span id="breakdownExtraText">0 (0%)</span>
+              </div>
+              <div class="analytics-breakdown__track">
+                <div class="analytics-breakdown__fill analytics-breakdown__fill--extra" id="breakdownExtraFill" style="width: 0%;"></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

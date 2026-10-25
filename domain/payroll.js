@@ -148,26 +148,39 @@ export function recalcMonthShifts(shifts, year, month, newRate, newPayMode) {
 }
 
 /**
- * Оценка необходимого числа смен для достижения финансовой цели
- * @param {number} goal
+ * Оценка прогресса и необходимого числа смен для достижения финансовой цели
  * @param {number} totalIncome
- * @param {number} totalShifts
- * @param {Object} settings
- * @returns {{ percent: number, remaining: number, surplus: number, neededShifts: number }}
+ * @param {number} goal
+ * @param {number} [totalShifts=0]
+ * @param {Object|null} [settings=null]
+ * @returns {{ isZeroGoal: boolean, isCompleted: boolean, percent: number, clampedWidth: number, remaining: number, surplus: number, neededShifts: number }}
  */
-export function calcGoalProgress(goal, totalIncome, totalShifts, settings) {
-  if (goal <= 0) {
-    return { percent: 0, remaining: 0, surplus: 0, neededShifts: 0 };
+export function calcGoalProgress(totalIncome, goal, totalShifts = 0, settings = null) {
+  const goalNum = Number(goal) || 0;
+  const incomeNum = Number(totalIncome) || 0;
+
+  if (goalNum <= 0) {
+    return {
+      isZeroGoal: true,
+      isCompleted: false,
+      percent: 0,
+      clampedWidth: 0,
+      remaining: 0,
+      surplus: 0,
+      neededShifts: 0,
+    };
   }
 
-  const percent = Math.round((totalIncome / goal) * 100);
-  const surplus = Math.max(0, totalIncome - goal);
-  const remaining = Math.max(0, goal - totalIncome);
+  const percent = Math.round((incomeNum / goalNum) * 100);
+  const clampedWidth = Math.min(100, Math.max(0, percent));
+  const isCompleted = percent >= 100;
+  const surplus = Math.max(0, incomeNum - goalNum);
+  const remaining = Math.max(0, goalNum - incomeNum);
 
   let avgShiftPay = 0;
-  if (totalShifts > 0 && totalIncome > 0) {
-    avgShiftPay = totalIncome / totalShifts;
-  } else {
+  if (totalShifts > 0 && incomeNum > 0) {
+    avgShiftPay = incomeNum / totalShifts;
+  } else if (settings && typeof settings === "object") {
     if (settings.payMode === "hourly") {
       const dayPreset = settings.presets?.day || { start: "09:00", end: "21:00", breakMins: 60 };
       const h = calcHoursDiff(dayPreset.start, dayPreset.end, dayPreset.breakMins) || 11;
@@ -177,7 +190,15 @@ export function calcGoalProgress(goal, totalIncome, totalShifts, settings) {
     }
   }
 
-  const neededShifts = avgShiftPay > 0 ? Math.max(1, Math.ceil(remaining / avgShiftPay)) : 0;
+  const neededShifts = (avgShiftPay > 0 && remaining > 0) ? Math.max(1, Math.ceil(remaining / avgShiftPay)) : 0;
 
-  return { percent, remaining, surplus, neededShifts };
+  return {
+    isZeroGoal: false,
+    isCompleted,
+    percent,
+    clampedWidth,
+    remaining,
+    surplus,
+    neededShifts,
+  };
 }

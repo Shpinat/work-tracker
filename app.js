@@ -1099,20 +1099,7 @@ function updateGoalTrackerUI(totalIncome, totalShifts) {
   const goal = settings.monthlyGoal || 0;
   const curr = settings.currency || "₽";
 
-  let avgShiftPay = 0;
-  if (totalShifts > 0 && totalIncome > 0) {
-    avgShiftPay = totalIncome / totalShifts;
-  } else {
-    if (settings.payMode === "hourly") {
-      const dayPreset = settings.presets?.day || DEFAULT_PRESETS.day;
-      const h = calcHoursDiff(dayPreset.start, dayPreset.end, dayPreset.breakMins) || 11;
-      avgShiftPay = h * (settings.rate || 300);
-    } else {
-      avgShiftPay = settings.rate || 3000;
-    }
-  }
-
-  const p = calcGoalProgress(totalIncome, goal, avgShiftPay);
+  const p = calcGoalProgress(totalIncome, goal, totalShifts, settings);
 
   if (p.isZeroGoal) {
     elements.goalTracker.classList.remove("goal-tracker--completed");

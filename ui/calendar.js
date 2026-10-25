@@ -266,29 +266,33 @@ export function animateMonthSwipe(grid, delta, onSwitchMonth) {
   grid.style.opacity = "0";
 
   setTimeout(() => {
-    if (onSwitchMonth) onSwitchMonth();
+    try {
+      if (onSwitchMonth) onSwitchMonth();
+    } catch (err) {
+      console.error("Month switch callback error:", err);
+    } finally {
+      grid.style.transition = "none";
+      grid.style.transform = `translateX(${inX}%)`;
+      grid.style.opacity = "0";
 
-    grid.style.transition = "none";
-    grid.style.transform = `translateX(${inX}%)`;
-    grid.style.opacity = "0";
-
-    requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        grid.style.transition = "transform 0.2s ease-out, opacity 0.2s ease-out";
-        grid.style.transform = "translateX(0)";
-        grid.style.opacity = "1";
+        requestAnimationFrame(() => {
+          grid.style.transition = "transform 0.2s ease-out, opacity 0.2s ease-out";
+          grid.style.transform = "translateX(0)";
+          grid.style.opacity = "1";
 
-        setTimeout(() => {
-          grid.style.transition = "";
-          grid.style.transform = "";
-          grid.style.opacity = "";
-          if (window.scrollX !== 0) {
-            window.scrollTo(0, window.scrollY);
-          }
-          isSwipingMonth = false;
-        }, 210);
+          setTimeout(() => {
+            grid.style.transition = "";
+            grid.style.transform = "";
+            grid.style.opacity = "";
+            if (window.scrollX !== 0) {
+              window.scrollTo(0, window.scrollY);
+            }
+            isSwipingMonth = false;
+          }, 210);
+        });
       });
-    });
+    }
   }, 160);
 }
 

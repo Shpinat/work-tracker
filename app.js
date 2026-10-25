@@ -220,6 +220,7 @@ const elements = {
   filterAdvanceBtn: document.getElementById("filterAdvanceBtn"),
   filterSalaryBtn: document.getElementById("filterSalaryBtn"),
   shiftList: document.getElementById("shiftList"),
+  shiftListWrapper: document.getElementById("shiftListWrapper"),
 
   // Экспорт
   exportMonthBtn: document.getElementById("exportMonthBtn"),
@@ -603,6 +604,9 @@ function openModal(id) {
     modal.style.backgroundColor = "";
     modal.classList.add("active");
     document.body.classList.add("modal-open");
+    if (id === "shiftsModal") {
+      requestAnimationFrame(() => updateShiftListScrollGradients());
+    }
   }
 }
 
@@ -2084,6 +2088,21 @@ function renderShiftList(monthShifts, month) {
 
   listEl.innerHTML = "";
   listEl.appendChild(fragment);
+  requestAnimationFrame(() => updateShiftListScrollGradients());
+}
+
+/** Динамическое управление плавным затуханием и размытием списка смен при прокрутке */
+function updateShiftListScrollGradients() {
+  const el = elements.shiftList;
+  const wrapper = elements.shiftListWrapper;
+  if (!el || !wrapper) return;
+
+  const isScrolled = el.scrollTop > 4;
+  const isAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight <= 4;
+  const hasScroll = el.scrollHeight > el.clientHeight + 4;
+
+  wrapper.classList.toggle("can-scroll-up", isScrolled);
+  wrapper.classList.toggle("can-scroll-down", hasScroll && !isAtBottom);
 }
 
 // ============================================================
@@ -2776,6 +2795,10 @@ function bindEvents() {
   if (elements.shiftsModalCloseBtn) {
     elements.shiftsModalCloseBtn.addEventListener("click", () => closeModal("shiftsModal"));
   }
+  if (elements.shiftList) {
+    elements.shiftList.addEventListener("scroll", updateShiftListScrollGradients, { passive: true });
+  }
+  window.addEventListener("resize", updateShiftListScrollGradients, { passive: true });
 
   // Форма смены
   elements.shiftForm.addEventListener("submit", saveShift);

@@ -65,10 +65,6 @@
     background-color: rgba(0, 0, 0, 0.08);
 }
 
-[data-theme="light"] .calendar__day-cell--empty {
-    background: transparent;
-}
-
 [data-theme="light"] .calendar__day-cell--today {
     border: 1px solid rgba(0, 122, 255, 0.4);
     box-shadow: 0 0 15px rgba(0, 122, 255, 0.2);
@@ -132,11 +128,6 @@
     background: transparent;
     color: #0056b3;
     border: none;
-}
-
-[data-theme="light"] .form__select option {
-    background-color: var(--card-solid);
-    color: var(--text);
 }
 
 [data-theme="light"] .stats__card,
@@ -578,7 +569,7 @@ body.modal-open {
     margin-bottom: 12px;
 }
 
-.calendar__weekday--weekend {
+.calendar__weekday:nth-child(n+6) {
     color: var(--danger);
     opacity: 0.85;
 }
@@ -609,15 +600,6 @@ body.modal-open {
 
 .calendar__day-cell:hover {
     background: rgba(255, 255, 255, 0.08);
-}
-
-.calendar__day-cell--empty {
-    background: transparent;
-    cursor: default;
-}
-
-.calendar__day-cell--empty:hover {
-    background: transparent;
 }
 
 .calendar__day-cell--other-month {
@@ -858,20 +840,6 @@ body.modal-open {
 .shifts-trigger__btn:hover .shifts-trigger__chevron {
     opacity: 1;
     transform: translateX(2px);
-}
-
-/* Shifts (Block) */
-.shifts__header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-    padding: 0 4px;
-}
-
-.shifts__title {
-    font-size: 1.1rem;
-    font-weight: 600;
 }
 
 .shifts__export-group {
@@ -1141,28 +1109,9 @@ body.modal-open {
     box-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
 }
 
-.form__select.is-open {
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239aa0a6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='18 15 12 9 6 15'%3e%3c/polyline%3e%3c/svg%3e");
-}
-
 .form__input--highlight {
     font-weight: 700;
     color: var(--success);
-}
-
-.form__select {
-    appearance: none;
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239aa0a6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-    background-repeat: no-repeat;
-    background-position: right 14px center;
-    background-size: 16px;
-    padding-right: 40px;
-}
-
-.form__select option {
-    background-color: var(--card-solid);
-    color: var(--text);
-    padding: 12px;
 }
 
 /* Segmented Control (Pill Switcher) */
@@ -1400,17 +1349,6 @@ body.modal-open {
 
     .stats__label {
         font-size: 0.7rem;
-    }
-
-    .shifts__header {
-        flex-wrap: wrap;
-        gap: 12px;
-        justify-content: flex-start;
-    }
-
-    .shifts__title {
-        white-space: nowrap;
-        font-size: 1.05rem;
     }
 
     .shifts__export-group {

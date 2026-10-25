@@ -108,12 +108,15 @@ export function loadShifts() {
 /**
  * Запись смен в localStorage
  * @param {Record<string, any>} shifts
+ * @returns {boolean} Успешно ли сохранено
  */
 export function saveShifts(shifts) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(shifts));
+    return true;
   } catch (err) {
     console.error("Ошибка сохранения смен в localStorage:", err);
+    return false;
   }
 }
 
@@ -135,12 +138,15 @@ export function loadSettings() {
 /**
  * Запись настроек в localStorage
  * @param {Object} settings
+ * @returns {boolean} Успешно ли сохранено
  */
 export function saveSettings(settings) {
   try {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    return true;
   } catch (err) {
     console.error("Ошибка сохранения настроек в localStorage:", err);
+    return false;
   }
 }
 

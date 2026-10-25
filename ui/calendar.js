@@ -55,15 +55,11 @@ export function createDayCell({
     iconSpan.innerHTML = getShiftIconSvg(shift.type);
     iconWrapper.appendChild(iconSpan);
 
-    const hasTags = shift.tags && shift.tags.length > 0;
     const hasNote = Boolean(shift.note && shift.note.trim());
-    if (hasTags || hasNote) {
+    if (hasNote) {
       const dot = document.createElement("span");
       dot.className = "calendar__tag-dot";
-      if (shift.tags?.includes("bonus")) dot.classList.add("calendar__tag-dot--bonus");
-      else if (shift.tags?.includes("penalty")) dot.classList.add("calendar__tag-dot--penalty");
-      else if (shift.tags?.includes("overtime")) dot.classList.add("calendar__tag-dot--overtime");
-      dot.title = hasNote ? shift.note : "Есть метки";
+      dot.title = shift.note;
       iconWrapper.appendChild(dot);
     }
 

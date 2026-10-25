@@ -4,7 +4,7 @@
  */
 
 import { escapeHtml } from "./toast.js";
-import { MONTH_NAMES_GENITIVE, getShiftIconSvg, SHIFT_TAGS } from "./icons.js";
+import { MONTH_NAMES_GENITIVE, getShiftIconSvg } from "./icons.js";
 
 /**
  * Динамическое управление классами плавного затухания и размытия по краям прокрутки
@@ -77,34 +77,18 @@ export function renderShiftList({
   [...filteredShifts].reverse().forEach((s) => {
     const noteStr = s.note ? ` • ${escapeHtml(s.note)}` : "";
 
-    let tagsHtml = "";
-    if (s.tags && Array.isArray(s.tags) && s.tags.length > 0) {
-      const badges = s.tags
-        .map((t) => {
-          const info = SHIFT_TAGS[t];
-          if (!info) return "";
-          return `<span class="shift-tag-badge shift-tag-badge--${escapeHtml(t)}">${info.svg}<span>${escapeHtml(info.label)}</span></span>`;
-        })
-        .filter(Boolean)
-        .join("");
-      if (badges) {
-        tagsHtml = `<div class="shift-list__tags">${badges}</div>`;
-      }
-    }
-
     const article = document.createElement("article");
     article.className = "shift-list__item";
     article.setAttribute("role", "button");
     article.setAttribute("tabindex", "0");
     article.innerHTML = `
       <div class="shift-list__left">
-        <div class="shift-list__date">${getShiftIconSvg(s.type)}<span>${s.day} ${MONTH_NAMES_GENITIVE[month]}</span></div>
+        <div class="shift-list__date">${getShiftIconSvg(s.type)}<span>${escapeHtml(String(s.day))} ${MONTH_NAMES_GENITIVE[month]}</span></div>
         <div class="shift-list__meta">${escapeHtml(s.start)} – ${escapeHtml(s.end)}${noteStr}</div>
-        ${tagsHtml}
       </div>
       <div class="shift-list__right">
         <div class="shift-list__pay">+${Number(s.totalPay).toLocaleString("ru-RU")} ${currency}</div>
-        <div class="shift-list__hours">${s.hours} ч.</div>
+        <div class="shift-list__hours">${escapeHtml(String(s.hours))} ч.</div>
       </div>
     `;
 

@@ -52,7 +52,6 @@ import {
   MONTH_NAMES_GENITIVE,
   SHIFT_ICONS,
   getShiftIconSvg,
-  SHIFT_TAGS,
   STREAK_ICONS,
 } from "./ui/icons.js";
 
@@ -88,7 +87,6 @@ let currentDate = new Date();
 let shifts = loadShifts();
 let settings = loadSettings();
 let currentTheme = loadTheme();
-let currentShiftTags = [];
 let currentShiftsFilter = "all"; // "all" | "advance" | "salary"
 let currentMonthShiftsCache = [];
 let currentSettingsPreset = "day";
@@ -122,9 +120,6 @@ const elements = {
   statShiftsCard: document.getElementById("statShiftsCard"),
   statHoursCard: document.getElementById("statHoursCard"),
   statIncomeCard: document.getElementById("statIncomeCard"),
-  statShiftsTrend: document.getElementById("statShiftsTrend"),
-  statHoursTrend: document.getElementById("statHoursTrend"),
-  statIncomeTrend: document.getElementById("statIncomeTrend"),
   statShiftsBadge: document.getElementById("statShiftsBadge"),
 
   // Финансовая цель на месяц ("Копилка")
@@ -188,7 +183,6 @@ const elements = {
   bonus: document.getElementById("bonus"),
   totalPay: document.getElementById("totalPay"),
   note: document.getElementById("note"),
-  shiftTagsPicker: document.getElementById("shiftTagsPicker"),
   deleteBtn: document.getElementById("deleteBtn"),
 
   // Модальное окно настроек
@@ -421,6 +415,7 @@ function initSegmentedControls() {
 // ============================================================
 function changeMonth(delta) {
   animateMonthSwipe(elements.calendarGrid, delta, () => {
+    currentDate.setDate(1);
     currentDate.setMonth(currentDate.getMonth() + delta);
     render();
   });
@@ -483,14 +478,6 @@ function recalcModal() {
   elements.totalPay.value = calcShiftPay(hours, rate, payMode, bonus);
 }
 
-function updateShiftTagsUI() {
-  if (!elements.shiftTagsPicker) return;
-  elements.shiftTagsPicker.querySelectorAll(".shift-tag-chip").forEach((chip) => {
-    const tag = chip.dataset.tag;
-    chip.classList.toggle("is-active", currentShiftTags.includes(tag));
-  });
-}
-
 function openShiftModal(dateKey) {
   closeModal("shiftsModal");
   updatePayModeLabels();
@@ -512,8 +499,6 @@ function openShiftModal(dateKey) {
     elements.totalPay.value = existing.totalPay;
     elements.note.value = existing.note || "";
     elements.deleteBtn.style.display = "block";
-    currentShiftTags = existing.tags && Array.isArray(existing.tags) ? [...existing.tags] : [];
-    updateShiftTagsUI();
     recalcModal();
   } else {
     setSegmentedValue("shiftTypeSegmented", "shiftType", "day");
@@ -526,8 +511,6 @@ function openShiftModal(dateKey) {
     elements.bonus.value = 0;
     elements.note.value = "";
     elements.deleteBtn.style.display = "none";
-    currentShiftTags = [];
-    updateShiftTagsUI();
     recalcModal();
   }
 
@@ -537,6 +520,10 @@ function openShiftModal(dateKey) {
 function saveShift(e) {
   e.preventDefault();
   const dateKey = elements.shiftDate.value;
+
+  // Перезагрузка перед слиянием, чтобы не стереть изменения из другой вкладки
+  shifts = loadShifts();
+
   shifts[dateKey] = {
     type: elements.shiftType.value,
     start: elements.startTime.value,
@@ -548,9 +535,12 @@ function saveShift(e) {
     bonus: parseFloat(elements.bonus.value) || 0,
     totalPay: parseFloat(elements.totalPay.value) || 0,
     note: elements.note.value.trim(),
-    tags: [...currentShiftTags],
+    tags: [],
   };
-  saveShifts(shifts);
+  if (!saveShifts(shifts)) {
+    showToast("Ошибка сохранения", "error");
+    return;
+  }
   closeModal("shiftModal");
   render();
   triggerHaptic(15);
@@ -567,8 +557,15 @@ async function deleteShift() {
   });
   if (!confirmed) return;
   const dateKey = elements.shiftDate.value;
+
+  // Перезагрузка перед удалением
+  shifts = loadShifts();
+
   delete shifts[dateKey];
-  saveShifts(shifts);
+  if (!saveShifts(shifts)) {
+    showToast("Ошибка сохранения", "error");
+    return;
+  }
   closeModal("shiftModal");
   render();
   triggerHaptic(20);
@@ -576,10 +573,14 @@ async function deleteShift() {
 }
 
 function quickAddDefaultShift(dateKey) {
+  shifts = loadShifts();
   if (shifts[dateKey]) return;
 
   shifts[dateKey] = buildShiftFromPreset("day", settings);
-  saveShifts(shifts);
+  if (!saveShifts(shifts)) {
+    showToast("Ошибка сохранения", "error");
+    return;
+  }
   triggerHaptic([30, 40, 30]);
   render();
 
@@ -650,7 +651,10 @@ function saveSettingsFromModal(e) {
   settings.monthlyGoal = elements.defMonthlyGoal ? Math.max(0, parseFloat(elements.defMonthlyGoal.value) || 0) : (settings.monthlyGoal || 0);
   settings.monthlyGoalEnabled = elements.defGoalMode ? elements.defGoalMode.value === "on" : false;
 
-  saveSettings(settings);
+  if (!saveSettings(settings)) {
+    showToast("Ошибка сохранения", "error");
+    return;
+  }
   updatePayModeLabels();
   updatePresetTimesUI();
   closeModal("settingsModal");
@@ -687,11 +691,19 @@ async function recalcCurrentMonthRates() {
 
   if (!confirmed) return;
 
-  const updatedCount = recalcMonthShifts(shifts, year, month, newRate, newPayMode);
+  shifts = loadShifts(); // Load latest state
+  const { count: updatedCount, updatedShifts } = recalcMonthShifts(shifts, year, month, newRate, newPayMode);
+  shifts = updatedShifts;
+
   settings.rate = newRate;
   settings.payMode = newPayMode;
-  saveSettings(settings);
-  saveShifts(shifts);
+  const settingsSaved = saveSettings(settings);
+  const shiftsSaved = saveShifts(shifts);
+
+  if (!settingsSaved || !shiftsSaved) {
+    showToast("Ошибка сохранения", "error");
+    return;
+  }
 
   render();
   triggerHaptic(20);
@@ -950,11 +962,15 @@ function applySchedule(e) {
   // Снимок для функции "Отменить"
   lastScheduleSnapshot = JSON.parse(JSON.stringify(shifts));
 
+  shifts = loadShifts();
   planned.forEach((s) => {
     shifts[s.dateKey] = buildShiftFromPreset(s.type, settings);
   });
 
-  saveShifts(shifts);
+  if (!saveShifts(shifts)) {
+    showToast("Ошибка сохранения", "error");
+    return;
+  }
   closeModal("scheduleModal");
   render();
   triggerHaptic([30, 40, 50]);
@@ -964,7 +980,10 @@ function applySchedule(e) {
     onClick: () => {
       if (lastScheduleSnapshot) {
         shifts = lastScheduleSnapshot;
-        saveShifts(shifts);
+        if (!saveShifts(shifts)) {
+          showToast("Ошибка сохранения", "error");
+          return;
+        }
         render();
         triggerHaptic(15);
         showToast("Автозаполнение отменено", "info");
@@ -988,8 +1007,12 @@ async function handleBackupRestore(event) {
     const restored = await parseBackupFile(file);
     shifts = restored.shifts;
     settings = restored.settings;
-    saveShifts(shifts);
-    saveSettings(settings);
+    const shiftsSaved = saveShifts(shifts);
+    const settingsSaved = saveSettings(settings);
+    if (!shiftsSaved || !settingsSaved) {
+      showToast("Ошибка сохранения при восстановлении", "error");
+      return;
+    }
     closeModal("settingsModal");
     render();
     showToast("Данные успешно восстановлены!", "success");
@@ -1007,7 +1030,6 @@ async function handleExportCSV(allTime = false) {
     allTime,
     currentDate,
     monthName: MONTH_NAMES[currentDate.getMonth()],
-    shiftTags: SHIFT_TAGS,
   });
 
   if (result.count === 0) {
@@ -1054,71 +1076,15 @@ function toggleTheme() {
 // Рендер и UI-виджеты
 // ============================================================
 function updateStatsTrends(year, month, currentShifts, currentHours, currentIncome) {
-  const curr = settings.currency || "₽";
   const trends = calcMomTrends(year, month, shifts, currentShifts, currentHours, currentIncome);
 
-  const hideTrends = () => {
-    if (elements.statShiftsTrend) elements.statShiftsTrend.style.display = "none";
-    if (elements.statHoursTrend) elements.statHoursTrend.style.display = "none";
-    if (elements.statIncomeTrend) elements.statIncomeTrend.style.display = "none";
-    lastMonthComparisonSummary = null;
-  };
-
   if (!trends) {
-    hideTrends();
+    lastMonthComparisonSummary = null;
     return;
   }
 
   const prevMonthName = MONTH_NAMES[trends.prevMonth];
   const curMonthName = MONTH_NAMES[month];
-
-  // Динамика дохода
-  if (elements.statIncomeTrend) {
-    elements.statIncomeTrend.style.display = "inline-flex";
-    if (trends.diffIncome > 0) {
-      elements.statIncomeTrend.className = "stats__trend stats__trend--up";
-      elements.statIncomeTrend.innerHTML = `<span class="stats__trend-arrow">↗</span>+${trends.diffIncome.toLocaleString("ru-RU")} ${curr} (+${trends.pctIncome}%)`;
-    } else if (trends.diffIncome < 0) {
-      elements.statIncomeTrend.className = "stats__trend stats__trend--down";
-      elements.statIncomeTrend.innerHTML = `<span class="stats__trend-arrow">↘</span>${trends.diffIncome.toLocaleString("ru-RU")} ${curr} (${trends.pctIncome}%)`;
-    } else {
-      elements.statIncomeTrend.className = "stats__trend stats__trend--neutral";
-      elements.statIncomeTrend.textContent = "= к пред. мес.";
-    }
-    elements.statIncomeTrend.title = `Сравнение с ${prevMonthName} ${trends.prevYear}: ${trends.prevIncome.toLocaleString("ru-RU")} ${curr}`;
-  }
-
-  // Динамика смен
-  if (elements.statShiftsTrend) {
-    elements.statShiftsTrend.style.display = "inline-flex";
-    if (trends.diffShifts > 0) {
-      elements.statShiftsTrend.className = "stats__trend stats__trend--up";
-      elements.statShiftsTrend.innerHTML = `<span class="stats__trend-arrow">↗</span>+${trends.diffShifts} см`;
-    } else if (trends.diffShifts < 0) {
-      elements.statShiftsTrend.className = "stats__trend stats__trend--down";
-      elements.statShiftsTrend.innerHTML = `<span class="stats__trend-arrow">↘</span>${trends.diffShifts} см`;
-    } else {
-      elements.statShiftsTrend.className = "stats__trend stats__trend--neutral";
-      elements.statShiftsTrend.textContent = "= см";
-    }
-    elements.statShiftsTrend.title = `${prevMonthName}: ${trends.prevShiftsCount} см`;
-  }
-
-  // Динамика часов
-  if (elements.statHoursTrend) {
-    elements.statHoursTrend.style.display = "inline-flex";
-    if (trends.diffHours > 0) {
-      elements.statHoursTrend.className = "stats__trend stats__trend--up";
-      elements.statHoursTrend.innerHTML = `<span class="stats__trend-arrow">↗</span>+${trends.diffHours} ч`;
-    } else if (trends.diffHours < 0) {
-      elements.statHoursTrend.className = "stats__trend stats__trend--down";
-      elements.statHoursTrend.innerHTML = `<span class="stats__trend-arrow">↘</span>${trends.diffHours} ч`;
-    } else {
-      elements.statHoursTrend.className = "stats__trend stats__trend--neutral";
-      elements.statHoursTrend.textContent = "= ч";
-    }
-    elements.statHoursTrend.title = `${prevMonthName}: ${trends.prevHours} ч`;
-  }
 
   lastMonthComparisonSummary = {
     ...trends,
@@ -1406,7 +1372,7 @@ function bindEvents() {
     });
   }
 
-  // Интерактивное сравнение с прошлым месяцем
+  // Интерактивное сравнение с прошлым месяцем по тапу на карточки
   if (elements.statIncomeCard) {
     elements.statIncomeCard.addEventListener("click", () => {
       triggerHaptic(10);
@@ -1417,6 +1383,8 @@ function bindEvents() {
         const curr = settings.currency || "₽";
         const msg = `${s.prevMonthName}: ${s.prevIncome.toLocaleString("ru-RU")} ${curr} (${s.prevShiftsCount} см)\n${s.curMonthName}: ${s.currentIncome.toLocaleString("ru-RU")} ${curr} (${s.currentShifts} см)\n${arrow} Разница дохода: ${sign}${s.diffIncome.toLocaleString("ru-RU")} ${curr} (${sign}${s.pctIncome}%)`;
         showToast(msg, s.diffIncome >= 0 ? "success" : "info", null, 5000);
+      } else {
+        showToast("Нет данных за предыдущий месяц для сравнения", "info");
       }
     });
     elements.statIncomeCard.addEventListener("keydown", (e) => {
@@ -1436,6 +1404,8 @@ function bindEvents() {
         const arrow = s.diffShifts >= 0 ? "↗" : "↘";
         const msg = `${s.prevMonthName}: ${s.prevShiftsCount} см\n${s.curMonthName}: ${s.currentShifts} см\n${arrow} Разница смен: ${sign}${s.diffShifts} см`;
         showToast(msg, s.diffShifts >= 0 ? "success" : "info", null, 4000);
+      } else {
+        showToast("Нет данных за предыдущий месяц для сравнения", "info");
       }
     });
     elements.statShiftsCard.addEventListener("keydown", (e) => {
@@ -1455,6 +1425,8 @@ function bindEvents() {
         const arrow = s.diffHours >= 0 ? "↗" : "↘";
         const msg = `${s.prevMonthName}: ${s.prevHours} ч\n${s.curMonthName}: ${s.currentHours} ч\n${arrow} Разница часов: ${sign}${s.diffHours} ч`;
         showToast(msg, s.diffHours >= 0 ? "success" : "info", null, 4000);
+      } else {
+        showToast("Нет данных за предыдущий месяц для сравнения", "info");
       }
     });
     elements.statHoursCard.addEventListener("keydown", (e) => {
@@ -1560,6 +1532,16 @@ function bindEvents() {
   if (elements.shiftsModalCloseBtn) {
     elements.shiftsModalCloseBtn.addEventListener("click", () => closeModal("shiftsModal"));
   }
+
+  window.addEventListener("storage", (e) => {
+    if (e.key === STORAGE_KEY) {
+      shifts = loadShifts();
+      render();
+    } else if (e.key === SETTINGS_KEY) {
+      settings = loadSettings();
+      render();
+    }
+  });
   if (elements.shiftList) {
     elements.shiftList.addEventListener("scroll", () => {
       updateShiftListScrollGradients(elements.shiftList, elements.shiftListWrapper);
@@ -1573,23 +1555,6 @@ function bindEvents() {
   elements.shiftForm.addEventListener("submit", saveShift);
   elements.shiftModalCloseBtn.addEventListener("click", () => closeModal("shiftModal"));
   elements.deleteBtn.addEventListener("click", deleteShift);
-
-  // Метки смены
-  if (elements.shiftTagsPicker) {
-    elements.shiftTagsPicker.querySelectorAll(".shift-tag-chip").forEach((chip) => {
-      chip.addEventListener("click", () => {
-        const tag = chip.dataset.tag;
-        const idx = currentShiftTags.indexOf(tag);
-        if (idx >= 0) {
-          currentShiftTags.splice(idx, 1);
-        } else {
-          currentShiftTags.push(tag);
-        }
-        updateShiftTagsUI();
-        triggerHaptic(10);
-      });
-    });
-  }
 
   // Пересчёт при изменении полей модалки
   elements.startTime.addEventListener("change", recalcModal);

@@ -112,17 +112,20 @@
     <main class="main">
       <!-- Статистика за месяц -->
       <section class="stats main__stats" aria-label="Статистика за месяц">
-        <article class="stats__card">
+        <article class="stats__card" id="statShiftsCard" role="button" tabindex="0" title="Статистика смен за месяц">
           <div class="stats__value" id="statShifts">0</div>
           <div class="stats__label">Смен</div>
+          <div class="stats__trend" id="statShiftsTrend" style="display: none;"></div>
         </article>
-        <article class="stats__card">
+        <article class="stats__card" id="statHoursCard" role="button" tabindex="0" title="Статистика часов за месяц">
           <div class="stats__value" id="statHours">0</div>
           <div class="stats__label">Часов</div>
+          <div class="stats__trend" id="statHoursTrend" style="display: none;"></div>
         </article>
-        <article class="stats__card stats__card--income">
+        <article class="stats__card stats__card--income" id="statIncomeCard" role="button" tabindex="0" title="Нажмите для сравнения с прошлым месяцем">
           <div class="stats__value" id="statIncome">0 ₽</div>
           <div class="stats__label">Доход</div>
+          <div class="stats__trend" id="statIncomeTrend" style="display: none;"></div>
         </article>
       </section>
 

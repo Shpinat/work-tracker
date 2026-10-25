@@ -139,6 +139,26 @@
     box-shadow: 0 8px 24px rgba(120, 105, 85, 0.09);
 }
 
+[data-theme="light"] .stats__card[role="button"]:hover {
+    background: #ffffff;
+    border-color: rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] .stats__trend--up {
+    color: #28a745;
+    background: rgba(40, 167, 69, 0.12);
+}
+
+[data-theme="light"] .stats__trend--down {
+    color: #dc3545;
+    background: rgba(220, 53, 69, 0.12);
+}
+
+[data-theme="light"] .stats__trend--neutral {
+    color: var(--text-muted);
+    background: rgba(0, 0, 0, 0.05);
+}
+
 [data-theme="light"] .goal-tracker {
     background: var(--card-solid);
 }
@@ -609,20 +629,43 @@ body.modal-open {
     background: var(--card-solid);
     border: 1px solid var(--border);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-    padding: 16px 10px;
+    padding: 14px 8px 12px;
     border-radius: var(--radius);
     text-align: center;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+}
+
+.stats__card[role="button"] {
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.stats__card[role="button"]:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+}
+
+.stats__card[role="button"]:active {
+    transform: scale(0.98);
 }
 
 .stats__value {
     font-size: 1.3rem;
     font-weight: 600;
     color: var(--text);
-    margin-bottom: 4px;
+    margin-bottom: 3px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    max-width: 100%;
 }
 
 .stats__label {
@@ -633,6 +676,45 @@ body.modal-open {
 
 .stats__card--income .stats__value {
     color: var(--success);
+}
+
+/* Trends (MoM Comparison) */
+.stats__trend {
+    font-size: 0.65rem;
+    font-weight: 600;
+    margin-top: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 2px 6px;
+    border-radius: 999px;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    transition: all 0.25s ease;
+}
+
+.stats__trend-arrow {
+    font-size: 0.72rem;
+    line-height: 1;
+}
+
+.stats__trend--up {
+    color: #30d158;
+    background: rgba(48, 209, 88, 0.12);
+}
+
+.stats__trend--down {
+    color: #ff453a;
+    background: rgba(255, 69, 58, 0.12);
+}
+
+.stats__trend--neutral {
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.05);
 }
 
 /* Monthly Goal Tracker (Block) - Финансовая цель ("Копилка") */
@@ -2684,15 +2766,21 @@ body.modal-open {
     }
 
     .stats__card {
-        padding: 12px 6px;
+        padding: 10px 4px 8px;
     }
 
     .stats__value {
-        font-size: 1.1rem;
+        font-size: 1.05rem;
     }
 
     .stats__label {
-        font-size: 0.7rem;
+        font-size: 0.68rem;
+    }
+
+    .stats__trend {
+        font-size: 0.58rem;
+        padding: 1px 4px;
+        margin-top: 2px;
     }
 
     .goal-tracker {

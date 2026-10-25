@@ -152,6 +152,12 @@ const elements = {
   statShifts: document.getElementById("statShifts"),
   statHours: document.getElementById("statHours"),
   statIncome: document.getElementById("statIncome"),
+  statShiftsCard: document.getElementById("statShiftsCard"),
+  statHoursCard: document.getElementById("statHoursCard"),
+  statIncomeCard: document.getElementById("statIncomeCard"),
+  statShiftsTrend: document.getElementById("statShiftsTrend"),
+  statHoursTrend: document.getElementById("statHoursTrend"),
+  statIncomeTrend: document.getElementById("statIncomeTrend"),
 
   // Финансовая цель на месяц ("Копилка")
   goalTracker: document.getElementById("goalTracker"),
@@ -1634,6 +1640,9 @@ function render() {
   elements.statIncome.textContent = `${totalIncome.toLocaleString("ru-RU")} ${settings.currency}`;
   elements.statIncome.title = elements.statIncome.textContent;
 
+  // Вычисление динамики (трендов) относительно предыдущего месяца
+  updateStatsTrends(year, month, totalShifts, totalHours, totalIncome);
+
   // Обновление карточек выплат (Аванс и Расчёт)
   const curr = settings.currency || "₽";
   if (elements.advanceLabel) {
@@ -1692,6 +1701,114 @@ function render() {
 
   currentMonthShiftsCache = monthShifts;
   renderShiftList(monthShifts, month);
+}
+
+let lastMonthComparisonSummary = null;
+
+/** Вычисление и отображение трендов сравнения с прошлым месяцем */
+function updateStatsTrends(year, month, currentShifts, currentHours, currentIncome) {
+  const curr = settings.currency || "₽";
+
+  // Предыдущий календарный месяц
+  const prevDate = new Date(year, month - 1, 1);
+  const prevYear = prevDate.getFullYear();
+  const prevMonth = prevDate.getMonth();
+  const prevPrefix = `${prevYear}-${String(prevMonth + 1).padStart(2, "0")}-`;
+
+  let prevShiftsCount = 0;
+  let prevHours = 0;
+  let prevIncome = 0;
+
+  Object.keys(shifts).forEach((key) => {
+    if (key.startsWith(prevPrefix)) {
+      const s = shifts[key];
+      prevShiftsCount++;
+      prevHours += Number(s.hours) || 0;
+      prevIncome += Number(s.totalPay) || 0;
+    }
+  });
+
+  const hideTrends = () => {
+    if (elements.statShiftsTrend) elements.statShiftsTrend.style.display = "none";
+    if (elements.statHoursTrend) elements.statHoursTrend.style.display = "none";
+    if (elements.statIncomeTrend) elements.statIncomeTrend.style.display = "none";
+    lastMonthComparisonSummary = null;
+  };
+
+  // Если в прошлом месяце вообще не было смен — скрываем плашки трендов
+  if (prevShiftsCount === 0) {
+    hideTrends();
+    return;
+  }
+
+  const prevMonthName = MONTH_NAMES[prevMonth];
+  const curMonthName = MONTH_NAMES[month];
+
+  // 1. Динамика дохода
+  const diffIncome = currentIncome - prevIncome;
+  const pctIncome = prevIncome > 0 ? Math.round((diffIncome / prevIncome) * 100) : 0;
+
+  if (elements.statIncomeTrend) {
+    elements.statIncomeTrend.style.display = "inline-flex";
+    if (diffIncome > 0) {
+      elements.statIncomeTrend.className = "stats__trend stats__trend--up";
+      elements.statIncomeTrend.innerHTML = `<span class="stats__trend-arrow">↗</span>+${diffIncome.toLocaleString("ru-RU")} ${curr} (+${pctIncome}%)`;
+    } else if (diffIncome < 0) {
+      elements.statIncomeTrend.className = "stats__trend stats__trend--down";
+      elements.statIncomeTrend.innerHTML = `<span class="stats__trend-arrow">↘</span>${diffIncome.toLocaleString("ru-RU")} ${curr} (${pctIncome}%)`;
+    } else {
+      elements.statIncomeTrend.className = "stats__trend stats__trend--neutral";
+      elements.statIncomeTrend.textContent = "= к пред. мес.";
+    }
+    elements.statIncomeTrend.title = `Сравнение с ${prevMonthName} ${prevYear}: ${prevIncome.toLocaleString("ru-RU")} ${curr}`;
+  }
+
+  // 2. Динамика смен
+  const diffShifts = currentShifts - prevShiftsCount;
+  if (elements.statShiftsTrend) {
+    elements.statShiftsTrend.style.display = "inline-flex";
+    if (diffShifts > 0) {
+      elements.statShiftsTrend.className = "stats__trend stats__trend--up";
+      elements.statShiftsTrend.innerHTML = `<span class="stats__trend-arrow">↗</span>+${diffShifts} см`;
+    } else if (diffShifts < 0) {
+      elements.statShiftsTrend.className = "stats__trend stats__trend--down";
+      elements.statShiftsTrend.innerHTML = `<span class="stats__trend-arrow">↘</span>${diffShifts} см`;
+    } else {
+      elements.statShiftsTrend.className = "stats__trend stats__trend--neutral";
+      elements.statShiftsTrend.textContent = "= см";
+    }
+    elements.statShiftsTrend.title = `${prevMonthName}: ${prevShiftsCount} см`;
+  }
+
+  // 3. Динамика часов
+  const diffHours = Math.round((currentHours - prevHours) * 10) / 10;
+  if (elements.statHoursTrend) {
+    elements.statHoursTrend.style.display = "inline-flex";
+    if (diffHours > 0) {
+      elements.statHoursTrend.className = "stats__trend stats__trend--up";
+      elements.statHoursTrend.innerHTML = `<span class="stats__trend-arrow">↗</span>+${diffHours} ч`;
+    } else if (diffHours < 0) {
+      elements.statHoursTrend.className = "stats__trend stats__trend--down";
+      elements.statHoursTrend.innerHTML = `<span class="stats__trend-arrow">↘</span>${diffHours} ч`;
+    } else {
+      elements.statHoursTrend.className = "stats__trend stats__trend--neutral";
+      elements.statHoursTrend.textContent = "= ч";
+    }
+    elements.statHoursTrend.title = `${prevMonthName}: ${Math.round(prevHours * 10) / 10} ч`;
+  }
+
+  lastMonthComparisonSummary = {
+    prevMonthName,
+    prevYear,
+    curMonthName,
+    prevIncome,
+    currentIncome,
+    diffIncome,
+    pctIncome,
+    prevShiftsCount,
+    currentShifts,
+    diffShifts,
+  };
 }
 
 /** Обновление виджета финансовой цели на месяц ("Копилка") */
@@ -2410,6 +2527,28 @@ function bindEvents() {
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
         elements.bestShiftCard.click();
+      }
+    });
+  }
+
+  // Интерактивное сравнение с прошлым месяцем по клику на карточки статистики
+  if (elements.statIncomeCard) {
+    elements.statIncomeCard.addEventListener("click", () => {
+      triggerHaptic(10);
+      if (lastMonthComparisonSummary) {
+        const s = lastMonthComparisonSummary;
+        const sign = s.diffIncome >= 0 ? "+" : "";
+        const curr = settings.currency || "₽";
+        showToast(
+          `${s.prevMonthName}: ${s.prevIncome.toLocaleString("ru-RU")} ${curr} (${s.prevShiftsCount} см) → ${s.curMonthName}: ${s.currentIncome.toLocaleString("ru-RU")} ${curr} (${s.currentShifts} см) [${sign}${s.diffIncome.toLocaleString("ru-RU")} ${curr}]`,
+          "info"
+        );
+      }
+    });
+    elements.statIncomeCard.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        elements.statIncomeCard.click();
       }
     });
   }

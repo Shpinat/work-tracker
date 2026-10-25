@@ -75,6 +75,16 @@ function getShiftIconSvg(type) {
   return SHIFT_ICONS[type] || SHIFT_ICONS.day;
 }
 
+const SHIFT_TAGS = {
+  bonus: { label: "Премия", emoji: "💰" },
+  overtime: { label: "Сверхурочно", emoji: "⏱️" },
+  taxi: { label: "Такси", emoji: "🚕" },
+  sub: { label: "Подмена", emoji: "🤝" },
+  penalty: { label: "Штраф", emoji: "⚠️" },
+  heavy: { label: "Тяжёлая", emoji: "⚡" },
+  easy: { label: "Спокойная", emoji: "☕" },
+};
+
 function loadSettings() {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
@@ -120,6 +130,7 @@ let currentDate = new Date();
 let shifts = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
 let settings = loadSettings();
 let currentTheme = localStorage.getItem(THEME_KEY) || "dark";
+let currentShiftTags = [];
 
 // ============================================================
 // Кэширование DOM-элементов
@@ -202,6 +213,7 @@ const elements = {
   bonus: document.getElementById("bonus"),
   totalPay: document.getElementById("totalPay"),
   note: document.getElementById("note"),
+  shiftTagsPicker: document.getElementById("shiftTagsPicker"),
   deleteBtn: document.getElementById("deleteBtn"),
 
   // Модальное окно настроек
@@ -661,6 +673,14 @@ function showConfirm({
   });
 }
 
+function updateShiftTagsUI() {
+  if (!elements.shiftTagsPicker) return;
+  elements.shiftTagsPicker.querySelectorAll(".shift-tag-chip").forEach((chip) => {
+    const tag = chip.dataset.tag;
+    chip.classList.toggle("is-active", currentShiftTags.includes(tag));
+  });
+}
+
 function openShiftModal(dateKey) {
   closeModal("shiftsModal");
   updatePayModeLabels();
@@ -682,6 +702,8 @@ function openShiftModal(dateKey) {
     elements.totalPay.value = existing.totalPay;
     elements.note.value = existing.note || "";
     elements.deleteBtn.style.display = "block";
+    currentShiftTags = existing.tags && Array.isArray(existing.tags) ? [...existing.tags] : [];
+    updateShiftTagsUI();
     recalcModal();
   } else {
     setSegmentedValue("shiftTypeSegmented", "shiftType", "day");
@@ -694,6 +716,8 @@ function openShiftModal(dateKey) {
     elements.bonus.value = 0;
     elements.note.value = "";
     elements.deleteBtn.style.display = "none";
+    currentShiftTags = [];
+    updateShiftTagsUI();
     recalcModal();
   }
 
@@ -714,6 +738,7 @@ function saveShift(e) {
     bonus: parseFloat(elements.bonus.value) || 0,
     totalPay: parseFloat(elements.totalPay.value) || 0,
     note: elements.note.value.trim(),
+    tags: [...currentShiftTags],
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(shifts));
   closeModal("shiftModal");
@@ -1015,6 +1040,7 @@ function applySchedule(e) {
       bonus: 0,
       totalPay: Math.round(basePay),
       note: "",
+      tags: [],
     };
   });
 
@@ -1056,6 +1082,7 @@ function quickAddDefaultShift(dateKey) {
     bonus: 0,
     totalPay: Math.round(basePay),
     note: "",
+    tags: [],
   };
 
   localStorage.setItem(STORAGE_KEY, JSON.stringify(shifts));
@@ -1146,11 +1173,28 @@ function render() {
       if (shift.type === "extra")
         cell.classList.add("calendar__day-cell--extra");
 
+      const iconWrapper = document.createElement("div");
+      iconWrapper.className = "calendar__day-icons";
+
       const iconSpan = document.createElement("span");
       iconSpan.className = "calendar__shift-icon";
       iconSpan.setAttribute("aria-hidden", "true");
       iconSpan.innerHTML = getShiftIconSvg(shift.type);
-      dayHeader.appendChild(iconSpan);
+      iconWrapper.appendChild(iconSpan);
+
+      const hasTags = shift.tags && shift.tags.length > 0;
+      const hasNote = Boolean(shift.note && shift.note.trim());
+      if (hasTags || hasNote) {
+        const dot = document.createElement("span");
+        dot.className = "calendar__tag-dot";
+        if (shift.tags?.includes("bonus")) dot.classList.add("calendar__tag-dot--bonus");
+        else if (shift.tags?.includes("penalty")) dot.classList.add("calendar__tag-dot--penalty");
+        else if (shift.tags?.includes("overtime")) dot.classList.add("calendar__tag-dot--overtime");
+        dot.title = hasNote ? shift.note : "Есть метки";
+        iconWrapper.appendChild(dot);
+      }
+
+      dayHeader.appendChild(iconWrapper);
 
       const badge = document.createElement("div");
       badge.className = "calendar__shift-badge";
@@ -1501,6 +1545,21 @@ function renderShiftList(monthShifts, month) {
   [...filteredShifts].reverse().forEach((s) => {
     const noteStr = s.note ? ` • ${escapeHtml(s.note)}` : "";
 
+    let tagsHtml = "";
+    if (s.tags && s.tags.length > 0) {
+      const badges = s.tags
+        .map((t) => {
+          const info = SHIFT_TAGS[t];
+          if (!info) return "";
+          return `<span class="shift-tag-badge shift-tag-badge--${escapeHtml(t)}">${info.emoji} ${escapeHtml(info.label)}</span>`;
+        })
+        .filter(Boolean)
+        .join("");
+      if (badges) {
+        tagsHtml = `<div class="shift-list__tags">${badges}</div>`;
+      }
+    }
+
     const article = document.createElement("article");
     article.className = "shift-list__item";
     article.setAttribute("role", "button");
@@ -1509,6 +1568,7 @@ function renderShiftList(monthShifts, month) {
       <div class="shift-list__left">
         <div class="shift-list__date">${getShiftIconSvg(s.type)}<span>${s.day} ${MONTH_NAMES_GENITIVE[month]}</span></div>
         <div class="shift-list__meta">${escapeHtml(s.start)} – ${escapeHtml(s.end)}${noteStr}</div>
+        ${tagsHtml}
       </div>
       <div class="shift-list__right">
         <div class="shift-list__pay">+${Number(s.totalPay).toLocaleString("ru-RU")} ${currency}</div>
@@ -1548,6 +1608,7 @@ async function exportCSV(allTime = false) {
       "Часы",
       "Бонус",
       "Итого",
+      "Метки",
       "Заметка",
     ],
   ];
@@ -1559,6 +1620,10 @@ async function exportCSV(allTime = false) {
       if (allTime || key.startsWith(datePrefix)) {
         const s = shifts[key];
         count++;
+        const tagsStr =
+          s.tags && s.tags.length > 0
+            ? s.tags.map((t) => SHIFT_TAGS[t]?.label || t).join("; ")
+            : "";
         rows.push([
           key,
           s.type,
@@ -1568,6 +1633,7 @@ async function exportCSV(allTime = false) {
           s.hours,
           s.bonus,
           s.totalPay,
+          `"${tagsStr.replace(/"/g, '""')}"`,
           `"${(s.note || "").replace(/"/g, '""')}"`,
         ]);
       }
@@ -2112,6 +2178,23 @@ function bindEvents() {
     closeModal("shiftModal"),
   );
   elements.deleteBtn.addEventListener("click", deleteShift);
+
+  // Быстрые метки смены
+  if (elements.shiftTagsPicker) {
+    elements.shiftTagsPicker.querySelectorAll(".shift-tag-chip").forEach((chip) => {
+      chip.addEventListener("click", () => {
+        const tag = chip.dataset.tag;
+        const idx = currentShiftTags.indexOf(tag);
+        if (idx >= 0) {
+          currentShiftTags.splice(idx, 1);
+        } else {
+          currentShiftTags.push(tag);
+        }
+        updateShiftTagsUI();
+        triggerHaptic(10);
+      });
+    });
+  }
 
   // Пересчёт при изменении полей
   elements.startTime.addEventListener("change", recalcModal);

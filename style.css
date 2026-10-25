@@ -404,34 +404,42 @@ body.modal-open {
     }
 }
 
-/* Month Selector (Unified Pill Bar) */
+/* Month Selector (Unified Bar matching .btn--icon style) */
 .month-selector {
     display: inline-flex;
     align-items: center;
-    background: var(--card);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
+    background: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--border);
-    border-radius: var(--radius-pill);
-    padding: 3px 6px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    border-radius: var(--radius-sm);
+    height: 42px;
+    padding: 2px 4px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     user-select: none;
-    transition: all 0.2s ease;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+    box-sizing: border-box;
 }
 
 [data-theme="light"] .month-selector {
-    background: var(--card);
+    background: rgba(0, 0, 0, 0.03);
     border: 1px solid var(--border);
-    box-shadow: 0 4px 16px rgba(120, 105, 85, 0.1);
+}
+
+.month-selector:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="light"] .month-selector:hover {
+    background: rgba(0, 0, 0, 0.05);
 }
 
 .month-selector__btn {
     background: transparent;
     border: none;
-    color: var(--text-muted);
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
+    color: var(--text);
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -442,17 +450,17 @@ body.modal-open {
 }
 
 .month-selector__btn:hover {
+    background: rgba(255, 255, 255, 0.1);
     color: var(--text);
-    background: rgba(255, 255, 255, 0.08);
 }
 
 [data-theme="light"] .month-selector__btn:hover {
+    background: rgba(0, 0, 0, 0.06);
     color: var(--text);
-    background: rgba(90, 75, 55, 0.08);
 }
 
 .month-selector__btn:active {
-    transform: scale(0.9);
+    transform: scale(0.92);
 }
 
 .month-selector__btn:focus-visible {
@@ -461,10 +469,10 @@ body.modal-open {
 }
 
 .month-selector__title {
-    font-size: 1.05rem;
+    font-size: 0.98rem;
     font-weight: 600;
-    padding: 0 10px;
-    min-width: 130px;
+    padding: 0 8px;
+    min-width: 125px;
     text-align: center;
     text-transform: capitalize;
     letter-spacing: 0.2px;
@@ -1242,16 +1250,25 @@ body.modal-open {
     }
 
     .month-selector {
-        padding: 2px 4px;
+        height: 40px;
+        padding: 2px 3px;
+        border-radius: 12px;
+    }
+
+    .btn--icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
     }
 
     .month-selector__btn {
-        width: 28px;
-        height: 28px;
+        width: 32px;
+        height: 32px;
+        border-radius: 9px;
     }
 
     .month-selector__title {
-        font-size: 0.95rem;
+        font-size: 0.9rem;
         min-width: 105px;
         padding: 0 4px;
     }

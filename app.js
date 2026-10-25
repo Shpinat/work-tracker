@@ -137,10 +137,6 @@ const elements = {
   backupRestoreBtn: document.getElementById("backupRestoreBtn"),
   importFile: document.getElementById("importFile"),
 
-  // PWA тост
-  updateToast: document.getElementById("updateToast"),
-  updateReloadBtn: document.getElementById("updateReloadBtn"),
-
   // Кастомный диалог подтверждения и тосты
   confirmModal: document.getElementById("confirmModal"),
   confirmTitle: document.getElementById("confirmTitle"),
@@ -1229,7 +1225,7 @@ function initBottomSheetSwipe() {
 }
 
 // ============================================================
-// PWA: Service Worker и автообновление
+// PWA: Service Worker и фоновое автообновление
 // ============================================================
 function registerSW() {
   if (!("serviceWorker" in navigator)) return;
@@ -1237,42 +1233,7 @@ function registerSW() {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./sw.js").then((reg) => {
       reg.update();
-
-      if (reg.waiting) {
-        showUpdatePrompt(reg.waiting);
-      }
-
-      reg.addEventListener("updatefound", () => {
-        const newWorker = reg.installing;
-        if (!newWorker) return;
-        newWorker.addEventListener("statechange", () => {
-          if (
-            newWorker.state === "installed" &&
-            navigator.serviceWorker.controller
-          ) {
-            showUpdatePrompt(newWorker);
-          }
-        });
-      });
     });
-
-    let refreshing = false;
-    navigator.serviceWorker.addEventListener("controllerchange", () => {
-      if (!refreshing) {
-        refreshing = true;
-        window.location.reload();
-      }
-    });
-  });
-}
-
-function showUpdatePrompt(worker) {
-  const toast = elements.updateToast;
-  const btn = elements.updateReloadBtn;
-  if (!toast || !btn) return;
-  toast.style.display = "flex";
-  btn.addEventListener("click", () => {
-    worker.postMessage({ action: "skipWaiting" });
   });
 }
 

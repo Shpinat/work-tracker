@@ -133,8 +133,7 @@
 [data-theme="light"] .stats__card,
 [data-theme="light"] .calendar,
 [data-theme="light"] .shift-list__item,
-[data-theme="light"] .modal,
-[data-theme="light"] .update-toast {
+[data-theme="light"] .modal {
     box-shadow: 0 8px 24px rgba(120, 105, 85, 0.09);
 }
 
@@ -239,27 +238,6 @@ body {
 body.modal-open {
     overflow: hidden;
     overscroll-behavior: none;
-}
-
-/* Update Toast (Block) */
-.update-toast {
-    width: max-content;
-    max-width: 90vw;
-    font-size: 0.85rem;
-    position: fixed;
-    bottom: 15px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: var(--card-solid);
-    border: 1px solid var(--border);
-    color: #fff;
-    padding: 10px 20px;
-    border-radius: var(--radius-pill);
-    display: none;
-    align-items: center;
-    gap: 12px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-    z-index: 1000;
 }
 
 /* Атрибуты фокуса для доступности */

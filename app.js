@@ -1,163 +1,103 @@
-// ============================================================
-// Константы
-// ============================================================
-const STORAGE_KEY = "my_work_shifts_v1";
-const SETTINGS_KEY = "my_work_settings_v1";
-const THEME_KEY = "my_work_theme_v1";
-
-const DEFAULT_PRESETS = {
-  day: {
-    start: "09:00",
-    end: "21:00",
-    breakMins: 60,
-  },
-  night: {
-    start: "21:00",
-    end: "09:00",
-    breakMins: 60,
-  },
-  extra: {
-    start: "10:00",
-    end: "16:00",
-    breakMins: 0,
-  },
-};
-
-const APP_VERSION = "2.0";
-
-const DEFAULT_SETTINGS = {
-  start: "09:00",
-  end: "21:00",
-  breakMins: 60,
-  payMode: "hourly",
-  rate: 300,
-  currency: "₽",
-  advanceCutoffDay: 15,
-  payoutSplitEnabled: false,
-  monthlyGoal: 0,
-  monthlyGoalEnabled: false,
-  presets: DEFAULT_PRESETS,
-};
-
-const MONTH_NAMES = [
-  "Январь",
-  "Февраль",
-  "Март",
-  "Апрель",
-  "Май",
-  "Июнь",
-  "Июль",
-  "Август",
-  "Сентябрь",
-  "Октябрь",
-  "Ноябрь",
-  "Декабрь",
-];
-
-const MONTH_NAMES_GENITIVE = [
-  "января",
-  "февраля",
-  "марта",
-  "апреля",
-  "мая",
-  "июня",
-  "июля",
-  "августа",
-  "сентября",
-  "октября",
-  "ноября",
-  "декабря",
-];
-
-const SHIFT_ICONS = {
-  day: '<svg class="shift-svg-icon shift-svg-icon--day" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>',
-  night: '<svg class="shift-svg-icon shift-svg-icon--night" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>',
-  extra: '<svg class="shift-svg-icon shift-svg-icon--extra" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>',
-};
-
-function getShiftIconSvg(type) {
-  return SHIFT_ICONS[type] || SHIFT_ICONS.day;
-}
-
-const SHIFT_TAGS = {
-  bonus: {
-    label: "Премия",
-    svg: '<svg class="tag-svg-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path><path d="M12 18V6"></path></svg>',
-  },
-  overtime: {
-    label: "Сверхурочно",
-    svg: '<svg class="tag-svg-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>',
-  },
-  taxi: {
-    label: "Такси",
-    svg: '<svg class="tag-svg-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"></path><circle cx="7" cy="17" r="2"></circle><path d="M9 17h6"></path><circle cx="17" cy="17" r="2"></circle></svg>',
-  },
-  sub: {
-    label: "Подмена",
-    svg: '<svg class="tag-svg-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 3 4 4-4 4"></path><path d="M20 7H4"></path><path d="m8 21-4-4 4-4"></path><path d="M4 17h16"></path></svg>',
-  },
-  penalty: {
-    label: "Штраф",
-    svg: '<svg class="tag-svg-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>',
-  },
-  heavy: {
-    label: "Тяжёлая",
-    svg: '<svg class="tag-svg-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>',
-  },
-  easy: {
-    label: "Спокойная",
-    svg: '<svg class="tag-svg-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 8h1a4 4 0 1 1 0 8h-1"></path><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"></path><line x1="6" y1="2" x2="6" y2="4"></line><line x1="10" y1="2" x2="10" y2="4"></line><line x1="14" y1="2" x2="14" y2="4"></line></svg>',
-  },
-};
-
-function loadSettings() {
-  try {
-    const raw = localStorage.getItem(SETTINGS_KEY);
-    if (!raw) return JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
-    const parsed = JSON.parse(raw);
-    const presets = {
-      day: {
-        start: parsed.presets?.day?.start || parsed.start || DEFAULT_PRESETS.day.start,
-        end: parsed.presets?.day?.end || parsed.end || DEFAULT_PRESETS.day.end,
-        breakMins: parsed.presets?.day?.breakMins ?? parsed.breakMins ?? DEFAULT_PRESETS.day.breakMins,
-      },
-      night: {
-        start: parsed.presets?.night?.start || DEFAULT_PRESETS.night.start,
-        end: parsed.presets?.night?.end || DEFAULT_PRESETS.night.end,
-        breakMins: parsed.presets?.night?.breakMins ?? DEFAULT_PRESETS.night.breakMins,
-      },
-      extra: {
-        start: parsed.presets?.extra?.start || DEFAULT_PRESETS.extra.start,
-        end: parsed.presets?.extra?.end || DEFAULT_PRESETS.extra.end,
-        breakMins: parsed.presets?.extra?.breakMins ?? DEFAULT_PRESETS.extra.breakMins,
-      },
-    };
-    return {
-      start: presets.day.start,
-      end: presets.day.end,
-      breakMins: presets.day.breakMins,
-      payMode: ["hourly", "fixed"].includes(parsed.payMode) ? parsed.payMode : DEFAULT_SETTINGS.payMode,
-      rate: typeof parsed.rate === "number" ? parsed.rate : DEFAULT_SETTINGS.rate,
-      currency: typeof parsed.currency === "string" ? parsed.currency : DEFAULT_SETTINGS.currency,
-      advanceCutoffDay: typeof parsed.advanceCutoffDay === "number" ? parsed.advanceCutoffDay : DEFAULT_SETTINGS.advanceCutoffDay,
-      payoutSplitEnabled: typeof parsed.payoutSplitEnabled === "boolean" ? parsed.payoutSplitEnabled : false,
-      monthlyGoal: typeof parsed.monthlyGoal === "number" ? Math.max(0, parsed.monthlyGoal) : DEFAULT_SETTINGS.monthlyGoal,
-      monthlyGoalEnabled: typeof parsed.monthlyGoalEnabled === "boolean" ? parsed.monthlyGoalEnabled : false,
-      presets,
-    };
-  } catch (_) {
-    return JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
-  }
-}
+/**
+ * app.js
+ * Точка входа приложения Work Tracker (v2.0).
+ * Координация состояния, модулей Domain, Data и UI, и привязка событий.
+ */
 
 // ============================================================
-// Состояние
+// Импорты модулей
+// ============================================================
+import {
+  STORAGE_KEY,
+  SETTINGS_KEY,
+  THEME_KEY,
+  DEFAULT_PRESETS,
+  DEFAULT_SETTINGS,
+  loadShifts,
+  saveShifts,
+  loadSettings,
+  saveSettings,
+  loadTheme,
+  saveTheme,
+} from "./data/storage.js";
+
+import {
+  downloadBackup,
+  parseBackupFile,
+  exportCSV,
+} from "./data/backup.js";
+
+import {
+  formatDateKey,
+  calcHoursDiff,
+  calcShiftPay,
+  calcMonthSummary,
+  recalcMonthShifts,
+  calcGoalProgress,
+} from "./domain/payroll.js";
+
+import {
+  calculateAllTimeAnalytics,
+  calcMomTrends,
+} from "./domain/analytics.js";
+
+import {
+  SCHEDULE_PATTERNS,
+  calculateScheduleDates,
+  buildShiftFromPreset,
+} from "./domain/schedule.js";
+
+import {
+  MONTH_NAMES,
+  MONTH_NAMES_GENITIVE,
+  SHIFT_ICONS,
+  getShiftIconSvg,
+  SHIFT_TAGS,
+  STREAK_ICONS,
+} from "./ui/icons.js";
+
+import {
+  escapeHtml,
+  getRussianDeclension,
+  triggerHaptic,
+  showToast,
+} from "./ui/toast.js";
+
+import {
+  openModal,
+  closeModal,
+  showConfirm,
+  initBottomSheetSwipe,
+} from "./ui/modals.js";
+
+import {
+  renderShiftList,
+  updateShiftListScrollGradients,
+} from "./ui/shift-list.js";
+
+import {
+  renderCalendarGrid,
+  animateMonthSwipe,
+  initCalendarSwipe,
+} from "./ui/calendar.js";
+
+// ============================================================
+// Состояние приложения
 // ============================================================
 let currentDate = new Date();
-let shifts = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+let shifts = loadShifts();
 let settings = loadSettings();
-let currentTheme = localStorage.getItem(THEME_KEY) || "dark";
+let currentTheme = loadTheme();
 let currentShiftTags = [];
+let currentShiftsFilter = "all"; // "all" | "advance" | "salary"
+let currentMonthShiftsCache = [];
+let currentSettingsPreset = "day";
+let tempPresets = {};
+let customCycle = ["day", "night", "off", "off"];
+let lastScheduleSnapshot = null;
+let lastMonthComparisonSummary = null;
+let bestMonthNavTarget = null;
+let bestShiftNavTarget = null;
 
 // ============================================================
 // Кэширование DOM-элементов
@@ -185,6 +125,7 @@ const elements = {
   statShiftsTrend: document.getElementById("statShiftsTrend"),
   statHoursTrend: document.getElementById("statHoursTrend"),
   statIncomeTrend: document.getElementById("statIncomeTrend"),
+  statShiftsBadge: document.getElementById("statShiftsBadge"),
 
   // Финансовая цель на месяц ("Копилка")
   goalTracker: document.getElementById("goalTracker"),
@@ -208,7 +149,6 @@ const elements = {
   // Календарь и триггер смен
   calendarGrid: document.getElementById("calendarGrid"),
   openShiftsBtn: document.getElementById("openShiftsBtn"),
-  statShiftsBadge: document.getElementById("statShiftsBadge"),
 
   // Модальное окно деталей смен (Шторка)
   shiftsModal: document.getElementById("shiftsModal"),
@@ -287,7 +227,7 @@ const elements = {
   scheduleDurationSegmented: document.getElementById("scheduleDurationSegmented"),
   scheduleDuration: document.getElementById("scheduleDuration"),
   scheduleSkipExisting: document.getElementById("scheduleSkipExisting"),
-  schedulePreviewText: document.getElementById("schedulePreviewText"),
+  previewScheduleText: document.getElementById("schedulePreviewText"),
   applyScheduleBtn: document.getElementById("applyScheduleBtn"),
 
   // Бэкап
@@ -332,64 +272,6 @@ const elements = {
   breakdownExtraText: document.getElementById("breakdownExtraText"),
   breakdownExtraFill: document.getElementById("breakdownExtraFill"),
 };
-
-// ============================================================
-// Утилиты
-// ============================================================
-
-/** Экранирование HTML-спецсимволов для защиты от XSS */
-function escapeHtml(str) {
-  if (!str) return "";
-  const div = document.createElement("div");
-  div.textContent = str;
-  return div.innerHTML;
-}
-
-function formatDateKey(year, month, day) {
-  return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-}
-
-function calcHoursDiff(start, end, breakMins) {
-  if (!start || !end) return 0;
-  const [sh, sm] = start.split(":").map(Number);
-  const [eh, em] = end.split(":").map(Number);
-  let startMins = sh * 60 + sm;
-  let endMins = eh * 60 + em;
-  if (endMins <= startMins) {
-    endMins += 24 * 60; // Переход через полночь
-  }
-  const netMins = Math.max(0, endMins - startMins - (Number(breakMins) || 0));
-  return Math.round((netMins / 60) * 100) / 100;
-}
-
-/** Склонение русских числительных (1 смена, 2 смены, 5 смен) */
-function getRussianDeclension(number, forms) {
-  const n = Math.abs(number) % 100;
-  const n1 = n % 10;
-  if (n > 10 && n < 20) return forms[2];
-  if (n1 > 1 && n1 < 5) return forms[1];
-  if (n1 === 1) return forms[0];
-  return forms[2];
-}
-
-/** Скачать blob-файл и освободить ObjectURL */
-function triggerDownload(blob, filename) {
-  const link = document.createElement("a");
-  const url = URL.createObjectURL(blob);
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
-/** Тактильный виброотклик (Haptic Feedback) для PWA */
-function triggerHaptic(pattern = 10) {
-  if ("vibrate" in navigator) {
-    try {
-      navigator.vibrate(pattern);
-    } catch (_) {}
-  }
-}
 
 // ============================================================
 // Сегментированные переключатели (Pill Switchers)
@@ -447,9 +329,6 @@ function updatePayModeLabels() {
   if (defFixedBtn) defFixedBtn.textContent = `${curr}/смена`;
 }
 
-let currentShiftsFilter = "all"; // "all" | "advance" | "salary"
-let currentMonthShiftsCache = [];
-
 function initSegmentedControls() {
   const configs = [
     {
@@ -470,7 +349,16 @@ function initSegmentedControls() {
       inputId: "shiftsFilterInput",
       onChange: (val) => {
         currentShiftsFilter = val;
-        renderShiftList(currentMonthShiftsCache, currentDate.getMonth());
+        renderShiftList({
+          listEl: elements.shiftList,
+          wrapperEl: elements.shiftListWrapper,
+          monthShifts: currentMonthShiftsCache,
+          year: currentDate.getFullYear(),
+          month: currentDate.getMonth(),
+          filter: currentShiftsFilter,
+          settings,
+          onShiftClick: openShiftModal,
+        });
         triggerHaptic(10);
       },
     },
@@ -532,7 +420,10 @@ function initSegmentedControls() {
 // Навигация по месяцам
 // ============================================================
 function changeMonth(delta) {
-  animateMonthSwipe(delta);
+  animateMonthSwipe(elements.calendarGrid, delta, () => {
+    currentDate.setMonth(currentDate.getMonth() + delta);
+    render();
+  });
 }
 
 function goToToday() {
@@ -558,7 +449,11 @@ function goToToday() {
       ? 1
       : -1;
 
-  animateMonthSwipe(delta, today);
+  animateMonthSwipe(elements.calendarGrid, delta, () => {
+    currentDate = today;
+    render();
+  });
+
   setTimeout(() => {
     const todayCell = document.querySelector(".calendar__day-cell--today");
     if (todayCell) {
@@ -585,173 +480,7 @@ function recalcModal() {
 
   const hours = calcHoursDiff(start, end, breakMins);
   elements.totalHours.value = hours;
-
-  const basePay = payMode === "hourly" ? hours * rate : rate;
-  elements.totalPay.value = Math.round(basePay + bonus);
-}
-
-// ============================================================
-// Модальные окна
-// ============================================================
-function openModal(id) {
-  const modal = elements[id] || document.getElementById(id);
-  if (modal) {
-    const content = modal.querySelector(".modal-overlay__content");
-    if (content) {
-      content.style.transform = "";
-      content.style.transition = "";
-    }
-    modal.style.backgroundColor = "";
-    modal.classList.add("active");
-    document.body.classList.add("modal-open");
-    if (id === "shiftsModal") {
-      requestAnimationFrame(() => updateShiftListScrollGradients());
-    }
-  }
-}
-
-function closeModal(id) {
-  const modal = elements[id] || document.getElementById(id);
-  if (modal) {
-    const content = modal.querySelector(".modal-overlay__content");
-    if (content) {
-      content.style.transform = "";
-      content.style.transition = "";
-    }
-    modal.style.backgroundColor = "";
-    modal.classList.remove("active");
-  }
-  const hasActiveModal = document.querySelector(".modal-overlay.active");
-  if (!hasActiveModal) {
-    document.body.classList.remove("modal-open");
-  }
-}
-
-// ============================================================
-// Всплывающие уведомления (Тосты) и диалог подтверждения
-// ============================================================
-let toastTimer = null;
-
-function showToast(message, type = "info", action = null, duration = null) {
-  const toast = elements.appToast;
-  if (!toast) return;
-
-  const iconEl = toast.querySelector(".app-toast__icon");
-  const msgEl = toast.querySelector(".app-toast__message");
-
-  msgEl.textContent = message;
-
-  // Очищаем старую кнопку действия
-  const oldAction = toast.querySelector(".app-toast__action");
-  if (oldAction) oldAction.remove();
-
-  if (action && typeof action.onClick === "function") {
-    const actionBtn = document.createElement("button");
-    actionBtn.type = "button";
-    actionBtn.className = "app-toast__action";
-    actionBtn.textContent = action.label || "Отменить";
-    actionBtn.addEventListener("click", () => {
-      toast.classList.remove("active");
-      action.onClick();
-    });
-    toast.appendChild(actionBtn);
-  }
-
-  toast.className = `app-toast app-toast--${type} active`;
-
-  if (type === "success") {
-    iconEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
-  } else if (type === "error") {
-    iconEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`;
-  } else {
-    iconEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
-  }
-
-  if (toastTimer) clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => {
-    toast.classList.remove("active");
-  }, duration || (action ? 5000 : 3500));
-}
-
-function showConfirm({
-  title = "Подтверждение",
-  message = "Вы уверены?",
-  confirmText = "Подтвердить",
-  cancelText = "Отмена",
-  type = "danger",
-} = {}) {
-  return new Promise((resolve) => {
-    const overlay = elements.confirmModal;
-    const titleEl = elements.confirmTitle;
-    const messageEl = elements.confirmMessage;
-    const iconEl = elements.confirmIcon;
-    const okBtn = elements.confirmOkBtn;
-    const cancelBtn = elements.confirmCancelBtn;
-
-    titleEl.textContent = title;
-    messageEl.textContent = message;
-    okBtn.textContent = confirmText;
-    cancelBtn.textContent = cancelText;
-
-    okBtn.className = `btn modal__dialog-btn ${type === "danger" ? "btn--danger" : "btn--primary"}`;
-
-    if (type === "danger") {
-      iconEl.className = "modal__dialog-icon modal__dialog-icon--danger";
-      iconEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
-    } else {
-      iconEl.className = "modal__dialog-icon modal__dialog-icon--info";
-      iconEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
-    }
-
-    const cleanup = () => {
-      overlay.classList.remove("active");
-      const hasOtherModal = document.querySelector(".modal-overlay.active:not(#confirmModal)");
-      if (!hasOtherModal) {
-        document.body.classList.remove("modal-open");
-      }
-      okBtn.removeEventListener("click", onOk);
-      cancelBtn.removeEventListener("click", onCancel);
-      overlay.removeEventListener("click", onOverlay);
-      document.removeEventListener("keydown", onKeyDown, true);
-    };
-
-    const onOk = () => {
-      cleanup();
-      resolve(true);
-    };
-
-    const onCancel = () => {
-      cleanup();
-      resolve(false);
-    };
-
-    const onOverlay = (e) => {
-      if (e.target === overlay) {
-        onCancel();
-      }
-    };
-
-    const onKeyDown = (e) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        e.stopPropagation();
-        onCancel();
-      } else if (e.key === "Enter") {
-        e.preventDefault();
-        e.stopPropagation();
-        onOk();
-      }
-    };
-
-    okBtn.addEventListener("click", onOk);
-    cancelBtn.addEventListener("click", onCancel);
-    overlay.addEventListener("click", onOverlay);
-    document.addEventListener("keydown", onKeyDown, true);
-
-    document.body.classList.add("modal-open");
-    overlay.classList.add("active");
-    cancelBtn.focus();
-  });
+  elements.totalPay.value = calcShiftPay(hours, rate, payMode, bonus);
 }
 
 function updateShiftTagsUI() {
@@ -821,7 +550,7 @@ function saveShift(e) {
     note: elements.note.value.trim(),
     tags: [...currentShiftTags],
   };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(shifts));
+  saveShifts(shifts);
   closeModal("shiftModal");
   render();
   triggerHaptic(15);
@@ -839,19 +568,37 @@ async function deleteShift() {
   if (!confirmed) return;
   const dateKey = elements.shiftDate.value;
   delete shifts[dateKey];
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(shifts));
+  saveShifts(shifts);
   closeModal("shiftModal");
   render();
   triggerHaptic(20);
   showToast("Смена удалена", "info");
 }
 
+function quickAddDefaultShift(dateKey) {
+  if (shifts[dateKey]) return;
+
+  shifts[dateKey] = buildShiftFromPreset("day", settings);
+  saveShifts(shifts);
+  triggerHaptic([30, 40, 30]);
+  render();
+
+  setTimeout(() => {
+    const updatedCell = document.querySelector(`.calendar__day-cell[data-date-key="${dateKey}"]`);
+    if (updatedCell) {
+      updatedCell.classList.add("calendar__day-cell--pulse");
+    }
+  }, 40);
+
+  const [y, m, d] = dateKey.split("-");
+  const monthName = MONTH_NAMES_GENITIVE[parseInt(m, 10) - 1];
+  const preset = settings.presets?.day || DEFAULT_PRESETS.day;
+  showToast(`Смена добавлена: ${parseInt(d, 10)} ${monthName} (${preset.start}–${preset.end})`, "success");
+}
+
 // ============================================================
 // Настройки
 // ============================================================
-let currentSettingsPreset = "day";
-let tempPresets = {};
-
 function openSettings() {
   updatePayModeLabels();
   tempPresets = JSON.parse(JSON.stringify(settings.presets || DEFAULT_PRESETS));
@@ -887,7 +634,7 @@ function saveCurrentSettingsInputsToTemp() {
   tempPresets[currentSettingsPreset].breakMins = Number(elements.defBreak.value) || 0;
 }
 
-function saveSettings(e) {
+function saveSettingsFromModal(e) {
   e.preventDefault();
   saveCurrentSettingsInputsToTemp();
 
@@ -903,7 +650,7 @@ function saveSettings(e) {
   settings.monthlyGoal = elements.defMonthlyGoal ? Math.max(0, parseFloat(elements.defMonthlyGoal.value) || 0) : (settings.monthlyGoal || 0);
   settings.monthlyGoalEnabled = elements.defGoalMode ? elements.defGoalMode.value === "on" : false;
 
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  saveSettings(settings);
   updatePayModeLabels();
   updatePresetTimesUI();
   closeModal("settingsModal");
@@ -915,19 +662,18 @@ function saveSettings(e) {
 async function recalcCurrentMonthRates() {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
-  const monthPrefix = `${year}-${String(month + 1).padStart(2, "0")}-`;
-  const monthShiftKeys = Object.keys(shifts).filter((k) => k.startsWith(monthPrefix));
-
-  if (monthShiftKeys.length === 0) {
-    showToast("В этом месяце нет смен для пересчета", "info");
-    return;
-  }
-
   const newRate = parseFloat(elements.defRate.value) >= 0 ? parseFloat(elements.defRate.value) : (settings.rate || 0);
   const newPayMode = elements.defPayMode ? elements.defPayMode.value : (settings.payMode || "hourly");
   const curr = (elements.defCurrency && elements.defCurrency.value.trim()) || settings.currency || "₽";
 
-  const count = monthShiftKeys.length;
+  const monthPrefix = `${year}-${String(month + 1).padStart(2, "0")}-`;
+  const count = Object.keys(shifts).filter((k) => k.startsWith(monthPrefix)).length;
+
+  if (count === 0) {
+    showToast("В этом месяце нет смен для пересчета", "info");
+    return;
+  }
+
   const countText = `${count} ${getRussianDeclension(count, ["смену", "смены", "смен"])}`;
   const rateLabel = newPayMode === "hourly" ? `${newRate} ${curr}/час` : `${newRate} ${curr}/смена`;
 
@@ -941,39 +687,20 @@ async function recalcCurrentMonthRates() {
 
   if (!confirmed) return;
 
-  monthShiftKeys.forEach((key) => {
-    const s = shifts[key];
-    if (!s) return;
-    s.rate = newRate;
-    s.payMode = newPayMode;
-    const hours = Number(s.hours) || 0;
-    const bonus = Number(s.bonus) || 0;
-    const basePay = newPayMode === "hourly" ? hours * newRate : newRate;
-    s.totalPay = Math.round(basePay + bonus);
-  });
-
-  // Синхронизируем ставку в настройках
+  const updatedCount = recalcMonthShifts(shifts, year, month, newRate, newPayMode);
   settings.rate = newRate;
   settings.payMode = newPayMode;
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(shifts));
+  saveSettings(settings);
+  saveShifts(shifts);
 
   render();
   triggerHaptic(20);
-  showToast(`Пересчитано смен: ${count}`, "success");
+  showToast(`Пересчитано смен: ${updatedCount}`, "success");
 }
 
 // ============================================================
 // Рекорды и общая аналитика
 // ============================================================
-let bestMonthNavTarget = null;
-let bestShiftNavTarget = null;
-
-function dateKeyToEpochDays(key) {
-  const [y, m, d] = key.split("-").map(Number);
-  return Math.round(Date.UTC(y, m - 1, d) / 86400000);
-}
-
 function openAnalyticsModal() {
   updateAnalyticsData();
   openModal("analyticsModal");
@@ -982,9 +709,9 @@ function openAnalyticsModal() {
 
 function updateAnalyticsData() {
   const curr = settings.currency || "₽";
-  const keys = Object.keys(shifts).sort();
+  const data = calculateAllTimeAnalytics(shifts);
 
-  if (keys.length === 0) {
+  if (data.isEmpty) {
     if (elements.allTimeIncome) elements.allTimeIncome.textContent = `0 ${curr}`;
     if (elements.allTimeAvgMonth) elements.allTimeAvgMonth.textContent = `~0 ${curr} / месяц`;
     if (elements.allTimeShifts) elements.allTimeShifts.textContent = "0 см";
@@ -992,9 +719,7 @@ function updateAnalyticsData() {
 
     if (elements.analyticsStreakTitle) elements.analyticsStreakTitle.textContent = "Текущий статус";
     if (elements.analyticsStreakDesc) elements.analyticsStreakDesc.textContent = "Смен пока нет";
-    if (elements.analyticsStreakIcon) {
-      elements.analyticsStreakIcon.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>';
-    }
+    if (elements.analyticsStreakIcon) elements.analyticsStreakIcon.innerHTML = STREAK_ICONS.empty;
 
     if (elements.bestMonthValue) elements.bestMonthValue.textContent = "—";
     if (elements.bestMonthDate) elements.bestMonthDate.textContent = "Нет смен";
@@ -1016,229 +741,97 @@ function updateAnalyticsData() {
     return;
   }
 
-  let totalIncome = 0;
-  let totalHours = 0;
-  const totalShifts = keys.length;
-
-  let dayShiftsCount = 0;
-  let nightShiftsCount = 0;
-  let extraShiftsCount = 0;
-
-  const monthTotals = {};
-
-  let bestShiftKey = null;
-  let bestShiftPay = -1;
-
-  let longestShiftKey = null;
-  let longestShiftHours = -1;
-
-  keys.forEach((key) => {
-    const s = shifts[key];
-    const pay = Number(s.totalPay) || 0;
-    const hours = Number(s.hours) || 0;
-
-    totalIncome += pay;
-    totalHours += hours;
-
-    if (s.type === "night") nightShiftsCount++;
-    else if (s.type === "extra") extraShiftsCount++;
-    else dayShiftsCount++;
-
-    const mKey = key.slice(0, 7);
-    if (!monthTotals[mKey]) {
-      monthTotals[mKey] = { income: 0, shifts: 0 };
-    }
-    monthTotals[mKey].income += pay;
-    monthTotals[mKey].shifts++;
-
-    if (pay > bestShiftPay) {
-      bestShiftPay = pay;
-      bestShiftKey = key;
-    }
-
-    if (hours > longestShiftHours) {
-      longestShiftHours = hours;
-      longestShiftKey = key;
-    }
-  });
-
-  const distinctMonths = Object.keys(monthTotals).length;
-  const avgMonthlyIncome = Math.round(totalIncome / Math.max(1, distinctMonths));
-
   if (elements.allTimeIncome) {
-    elements.allTimeIncome.textContent = `${totalIncome.toLocaleString("ru-RU")} ${curr}`;
+    elements.allTimeIncome.textContent = `${data.totalIncome.toLocaleString("ru-RU")} ${curr}`;
   }
   if (elements.allTimeAvgMonth) {
-    elements.allTimeAvgMonth.textContent = `~${avgMonthlyIncome.toLocaleString("ru-RU")} ${curr} / месяц`;
+    elements.allTimeAvgMonth.textContent = `~${data.avgMonthlyIncome.toLocaleString("ru-RU")} ${curr} / месяц`;
   }
   if (elements.allTimeShifts) {
-    elements.allTimeShifts.textContent = `${totalShifts} см`;
+    elements.allTimeShifts.textContent = `${data.totalShifts} см`;
   }
   if (elements.allTimeHours) {
-    elements.allTimeHours.textContent = `${Math.round(totalHours * 10) / 10} ч всего`;
+    elements.allTimeHours.textContent = `${data.totalHours} ч всего`;
   }
 
   // Рекордный месяц
-  let bestMKey = null;
-  let maxMonthIncome = -1;
-  Object.entries(monthTotals).forEach(([mKey, data]) => {
-    if (data.income > maxMonthIncome) {
-      maxMonthIncome = data.income;
-      bestMKey = mKey;
-    }
-  });
-
-  if (bestMKey) {
-    const [by, bm] = bestMKey.split("-").map(Number);
-    bestMonthNavTarget = { year: by, month: bm - 1 };
+  if (data.bestMonth) {
+    bestMonthNavTarget = { year: data.bestMonth.year, month: data.bestMonth.month };
     if (elements.bestMonthValue) {
-      elements.bestMonthValue.textContent = `${maxMonthIncome.toLocaleString("ru-RU")} ${curr}`;
+      elements.bestMonthValue.textContent = `${data.bestMonth.income.toLocaleString("ru-RU")} ${curr}`;
     }
     if (elements.bestMonthDate) {
-      elements.bestMonthDate.textContent = `${MONTH_NAMES[bm - 1]} ${by} ↗`;
+      elements.bestMonthDate.textContent = `${MONTH_NAMES[data.bestMonth.month]} ${data.bestMonth.year} ↗`;
     }
   }
 
   // Лучшая смена
-  if (bestShiftKey) {
-    bestShiftNavTarget = bestShiftKey;
-    const [sy, sm, sd] = bestShiftKey.split("-").map(Number);
+  if (data.bestShift) {
+    bestShiftNavTarget = data.bestShift.key;
     if (elements.bestShiftValue) {
-      elements.bestShiftValue.textContent = `${bestShiftPay.toLocaleString("ru-RU")} ${curr}`;
+      elements.bestShiftValue.textContent = `${data.bestShift.pay.toLocaleString("ru-RU")} ${curr}`;
     }
     if (elements.bestShiftDate) {
-      elements.bestShiftDate.textContent = `${sd} ${MONTH_NAMES_GENITIVE[sm - 1]} ${sy} ↗`;
+      elements.bestShiftDate.textContent = `${data.bestShift.day} ${MONTH_NAMES_GENITIVE[data.bestShift.month]} ${data.bestShift.year} ↗`;
     }
   }
 
   // Длинная смена
-  if (longestShiftKey) {
-    const [ly, lm, ld] = longestShiftKey.split("-").map(Number);
+  if (data.longestShift) {
     if (elements.longestShiftValue) {
-      elements.longestShiftValue.textContent = `${longestShiftHours} ч`;
+      elements.longestShiftValue.textContent = `${data.longestShift.hours} ч`;
     }
     if (elements.longestShiftDate) {
-      elements.longestShiftDate.textContent = `${ld} ${MONTH_NAMES_GENITIVE[lm - 1]} ${ly}`;
+      elements.longestShiftDate.textContent = `${data.longestShift.day} ${MONTH_NAMES_GENITIVE[data.longestShift.month]} ${data.longestShift.year}`;
     }
   }
 
-  // Стрики (последовательные дни)
-  const epochDays = keys.map(dateKeyToEpochDays).filter((val, idx, arr) => arr.indexOf(val) === idx);
-  let maxStreak = 1;
-  let currRun = 1;
-
-  for (let i = 1; i < epochDays.length; i++) {
-    if (epochDays[i] === epochDays[i - 1] + 1) {
-      currRun++;
-      if (currRun > maxStreak) maxStreak = currRun;
-    } else {
-      currRun = 1;
-    }
-  }
-
+  // Максимальный стрик
   if (elements.maxStreakValue) {
-    elements.maxStreakValue.textContent = maxStreak;
+    elements.maxStreakValue.textContent = data.maxStreak;
   }
   if (elements.maxStreakSub) {
-    elements.maxStreakSub.textContent = getRussianDeclension(maxStreak, ["смена подряд", "смены подряд", "смен подряд"]);
+    elements.maxStreakSub.textContent = getRussianDeclension(data.maxStreak, ["смена подряд", "смены подряд", "смен подряд"]);
   }
 
-  // Текущий стрик
-  const today = new Date();
-  const todayEpoch = Math.round(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()) / 86400000);
-  const epochSet = new Set(epochDays);
-
-  let activeStreak = 0;
-  let checkEpoch = todayEpoch;
-
-  if (epochSet.has(todayEpoch)) {
-    while (epochSet.has(checkEpoch)) {
-      activeStreak++;
-      checkEpoch--;
-    }
+  // Текущий стрик / отдых
+  if (data.currentStreak.status === "today") {
     if (elements.analyticsStreakCard) elements.analyticsStreakCard.classList.remove("analytics-streak--rest");
-    if (elements.analyticsStreakIcon) {
-      elements.analyticsStreakIcon.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>';
-    }
+    if (elements.analyticsStreakIcon) elements.analyticsStreakIcon.innerHTML = STREAK_ICONS.fire;
     if (elements.analyticsStreakTitle) elements.analyticsStreakTitle.textContent = "Текущий стрик смен";
     if (elements.analyticsStreakDesc) {
-      elements.analyticsStreakDesc.textContent = `${activeStreak} ${getRussianDeclension(activeStreak, ["смена подряд", "смены подряд", "смен подряд"])} (включая сегодня)`;
+      elements.analyticsStreakDesc.textContent = `${data.currentStreak.days} ${getRussianDeclension(data.currentStreak.days, ["смена подряд", "смены подряд", "смен подряд"])} (включая сегодня)`;
     }
-  } else if (epochSet.has(todayEpoch - 1)) {
-    checkEpoch = todayEpoch - 1;
-    while (epochSet.has(checkEpoch)) {
-      activeStreak++;
-      checkEpoch--;
-    }
+  } else if (data.currentStreak.status === "yesterday") {
     if (elements.analyticsStreakCard) elements.analyticsStreakCard.classList.remove("analytics-streak--rest");
-    if (elements.analyticsStreakIcon) {
-      elements.analyticsStreakIcon.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>';
-    }
+    if (elements.analyticsStreakIcon) elements.analyticsStreakIcon.innerHTML = STREAK_ICONS.flash;
     if (elements.analyticsStreakTitle) elements.analyticsStreakTitle.textContent = "Последний стрик";
     if (elements.analyticsStreakDesc) {
-      elements.analyticsStreakDesc.textContent = `${activeStreak} ${getRussianDeclension(activeStreak, ["смена подряд", "смены подряд", "смен подряд"])} (вчера была смена)`;
+      elements.analyticsStreakDesc.textContent = `${data.currentStreak.days} ${getRussianDeclension(data.currentStreak.days, ["смена подряд", "смены подряд", "смен подряд"])} (вчера была смена)`;
     }
   } else {
-    const lastDay = epochDays[epochDays.length - 1];
-    const restDays = Math.max(1, todayEpoch - lastDay);
     if (elements.analyticsStreakCard) elements.analyticsStreakCard.classList.add("analytics-streak--rest");
-    if (elements.analyticsStreakIcon) {
-      elements.analyticsStreakIcon.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 8h1a4 4 0 1 1 0 8h-1"></path><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"></path><line x1="6" y1="2" x2="6" y2="4"></line><line x1="10" y1="2" x2="10" y2="4"></line><line x1="14" y1="2" x2="14" y2="4"></line></svg>';
-    }
+    if (elements.analyticsStreakIcon) elements.analyticsStreakIcon.innerHTML = STREAK_ICONS.coffee;
     if (elements.analyticsStreakTitle) elements.analyticsStreakTitle.textContent = "Текущий статус";
     if (elements.analyticsStreakDesc) {
-      elements.analyticsStreakDesc.textContent = `Отдых: ${restDays} ${getRussianDeclension(restDays, ["день", "дня", "дней"])} без смен`;
+      elements.analyticsStreakDesc.textContent = `Отдых: ${data.currentStreak.days} ${getRussianDeclension(data.currentStreak.days, ["день", "дня", "дней"])} без смен`;
     }
   }
 
   // Структура работы (Breakdown)
-  const dayPct = Math.round((dayShiftsCount / totalShifts) * 100);
-  const nightPct = Math.round((nightShiftsCount / totalShifts) * 100);
-  const extraPct = Math.round((extraShiftsCount / totalShifts) * 100);
+  if (elements.breakdownDayText) elements.breakdownDayText.textContent = `${data.dayShiftsCount} см (${data.dayPct}%)`;
+  if (elements.breakdownDayFill) elements.breakdownDayFill.style.width = `${data.dayPct}%`;
 
-  if (elements.breakdownDayText) elements.breakdownDayText.textContent = `${dayShiftsCount} см (${dayPct}%)`;
-  if (elements.breakdownDayFill) elements.breakdownDayFill.style.width = `${dayPct}%`;
+  if (elements.breakdownNightText) elements.breakdownNightText.textContent = `${data.nightShiftsCount} см (${data.nightPct}%)`;
+  if (elements.breakdownNightFill) elements.breakdownNightFill.style.width = `${data.nightPct}%`;
 
-  if (elements.breakdownNightText) elements.breakdownNightText.textContent = `${nightShiftsCount} см (${nightPct}%)`;
-  if (elements.breakdownNightFill) elements.breakdownNightFill.style.width = `${nightPct}%`;
-
-  if (elements.breakdownExtraText) elements.breakdownExtraText.textContent = `${extraShiftsCount} см (${extraPct}%)`;
-  if (elements.breakdownExtraFill) elements.breakdownExtraFill.style.width = `${extraPct}%`;
+  if (elements.breakdownExtraText) elements.breakdownExtraText.textContent = `${data.extraShiftsCount} см (${data.extraPct}%)`;
+  if (elements.breakdownExtraFill) elements.breakdownExtraFill.style.width = `${data.extraPct}%`;
 }
 
 // ============================================================
-// Автозаполнение графиков (Генератор 2/2, 3/3, 5/2 и др.)
+// Автозаполнение графиков (Генератор)
 // ============================================================
-const SCHEDULE_PATTERNS = {
-  "2-2-day": {
-    name: "2/2 День",
-    cycle: ["day", "day", "off", "off"],
-  },
-  "2-2-mixed": {
-    name: "2/2 Смешанный",
-    cycle: ["day", "night", "off", "off"],
-  },
-  "3-3-day": {
-    name: "3/3 День",
-    cycle: ["day", "day", "day", "off", "off", "off"],
-  },
-  "1-3-mixed": {
-    name: "День-Ночь-48",
-    cycle: ["day", "night", "off", "off"],
-  },
-  "5-2-weekdays": {
-    name: "5/2 Будни",
-    isWeekdays: true,
-  },
-  custom: {
-    name: "Свой цикл",
-    cycle: ["day", "off"],
-  },
-};
-
-let customCycle = ["day", "night", "off", "off"];
-let lastScheduleSnapshot = null;
-
 function openScheduleModal() {
   const y = currentDate.getFullYear();
   const m = String(currentDate.getMonth() + 1).padStart(2, "0");
@@ -1297,68 +890,19 @@ function updateCustomPatternBuilderUI() {
   });
 }
 
-function calculateScheduleDates() {
-  const startStr = elements.scheduleStartDate.value;
-  if (!startStr) return [];
-
-  const [sy, sm, sd] = startStr.split("-").map(Number);
-  const startDate = new Date(sy, sm - 1, sd);
-  const durationMonths = parseInt(elements.scheduleDuration.value, 10) || 1;
-  const skipExisting = elements.scheduleSkipExisting.checked;
-  const patternKey = elements.selectedPattern.value;
-  const pattern = SCHEDULE_PATTERNS[patternKey] || SCHEDULE_PATTERNS["2-2-day"];
-
-  const endDate = new Date(startDate);
-  endDate.setMonth(endDate.getMonth() + durationMonths);
-  endDate.setDate(endDate.getDate() - 1);
-
-  const cycle = patternKey === "custom" ? customCycle : (pattern.cycle || []);
-  if (!pattern.isWeekdays && cycle.length === 0) return [];
-
-  const plannedShifts = [];
-  const cur = new Date(startDate);
-
-  let dayIndex = 0;
-  while (cur <= endDate) {
-    const y = cur.getFullYear();
-    const m = cur.getMonth();
-    const d = cur.getDate();
-    const dateKey = formatDateKey(y, m, d);
-
-    let type = "off";
-    if (pattern.isWeekdays) {
-      const dayOfWeek = cur.getDay(); // 0 = Вс, 6 = Сб
-      type = (dayOfWeek >= 1 && dayOfWeek <= 5) ? "day" : "off";
-    } else {
-      type = cycle[dayIndex % cycle.length];
-    }
-
-    if (type !== "off") {
-      const alreadyExists = !!shifts[dateKey];
-      if (!alreadyExists || !skipExisting) {
-        plannedShifts.push({
-          dateKey,
-          type,
-          day: d,
-          month: m,
-          year: y,
-          willOverwrite: alreadyExists,
-        });
-      }
-    }
-
-    cur.setDate(cur.getDate() + 1);
-    dayIndex++;
-  }
-
-  return plannedShifts;
-}
-
 function updateSchedulePreview() {
-  const previewEl = elements.schedulePreviewText;
+  const previewEl = elements.previewScheduleText;
   if (!previewEl) return;
 
-  const planned = calculateScheduleDates();
+  const planned = calculateScheduleDates({
+    startDateStr: elements.scheduleStartDate.value,
+    patternKey: elements.selectedPattern.value,
+    customCycle,
+    durationMonths: parseInt(elements.scheduleDuration.value, 10) || 1,
+    skipExisting: elements.scheduleSkipExisting.checked,
+    shifts,
+  });
+
   if (planned.length === 0) {
     previewEl.innerHTML = "Нет смен для добавления в выбранном периоде.";
     return;
@@ -1376,8 +920,7 @@ function updateSchedulePreview() {
   planned.forEach((s) => {
     const p = presets[s.type] || presets.day;
     const hours = calcHoursDiff(p.start, p.end, p.breakMins);
-    const pay = payMode === "hourly" ? hours * rate : rate;
-    estTotal += Math.round(pay);
+    estTotal += calcShiftPay(hours, rate, payMode, 0);
   });
 
   const durationStr = durationMonths === 1 ? "1 месяц" : `${durationMonths} месяца`;
@@ -1390,7 +933,15 @@ function updateSchedulePreview() {
 
 function applySchedule(e) {
   e.preventDefault();
-  const planned = calculateScheduleDates();
+  const planned = calculateScheduleDates({
+    startDateStr: elements.scheduleStartDate.value,
+    patternKey: elements.selectedPattern.value,
+    customCycle,
+    durationMonths: parseInt(elements.scheduleDuration.value, 10) || 1,
+    skipExisting: elements.scheduleSkipExisting.checked,
+    shifts,
+  });
+
   if (planned.length === 0) {
     showToast("Нет смен для добавления", "info");
     return;
@@ -1399,31 +950,11 @@ function applySchedule(e) {
   // Снимок для функции "Отменить"
   lastScheduleSnapshot = JSON.parse(JSON.stringify(shifts));
 
-  const presets = settings.presets || DEFAULT_PRESETS;
-  const rate = parseFloat(settings.rate) || 0;
-  const payMode = settings.payMode || "hourly";
-
   planned.forEach((s) => {
-    const p = presets[s.type] || presets.day;
-    const hours = calcHoursDiff(p.start, p.end, p.breakMins);
-    const basePay = payMode === "hourly" ? hours * rate : rate;
-
-    shifts[s.dateKey] = {
-      type: s.type,
-      start: p.start,
-      end: p.end,
-      breakMins: p.breakMins,
-      hours: hours,
-      payMode: payMode,
-      rate: rate,
-      bonus: 0,
-      totalPay: Math.round(basePay),
-      note: "",
-      tags: [],
-    };
+    shifts[s.dateKey] = buildShiftFromPreset(s.type, settings);
   });
 
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(shifts));
+  saveShifts(shifts);
   closeModal("scheduleModal");
   render();
   triggerHaptic([30, 40, 50]);
@@ -1433,7 +964,7 @@ function applySchedule(e) {
     onClick: () => {
       if (lastScheduleSnapshot) {
         shifts = lastScheduleSnapshot;
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(shifts));
+        saveShifts(shifts);
         render();
         triggerHaptic(15);
         showToast("Автозаполнение отменено", "info");
@@ -1442,317 +973,267 @@ function applySchedule(e) {
   });
 }
 
-function quickAddDefaultShift(dateKey) {
-  if (shifts[dateKey]) return;
+// ============================================================
+// Бэкап и Экспорт
+// ============================================================
+function handleBackupDownload() {
+  downloadBackup(shifts, settings);
+}
 
-  const preset = settings.presets?.day || DEFAULT_PRESETS.day;
-  const hours = calcHoursDiff(preset.start, preset.end, preset.breakMins);
-  const rate = parseFloat(settings.rate) || 0;
-  const basePay = settings.payMode === "hourly" ? hours * rate : rate;
+async function handleBackupRestore(event) {
+  const file = event.target.files[0];
+  if (!file) return;
 
-  shifts[dateKey] = {
-    type: "day",
-    start: preset.start,
-    end: preset.end,
-    breakMins: preset.breakMins,
-    hours: hours,
-    payMode: settings.payMode || "hourly",
-    rate: rate,
-    bonus: 0,
-    totalPay: Math.round(basePay),
-    note: "",
-    tags: [],
-  };
+  try {
+    const restored = await parseBackupFile(file);
+    shifts = restored.shifts;
+    settings = restored.settings;
+    saveShifts(shifts);
+    saveSettings(settings);
+    closeModal("settingsModal");
+    render();
+    showToast("Данные успешно восстановлены!", "success");
+  } catch (err) {
+    showToast("Ошибка чтения файла бэкапа", "error");
+  }
 
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(shifts));
-  triggerHaptic([30, 40, 30]);
-  render();
+  event.target.value = "";
+}
 
-  setTimeout(() => {
-    const updatedCell = document.querySelector(`.calendar__day-cell[data-date-key="${dateKey}"]`);
-    if (updatedCell) {
-      updatedCell.classList.add("calendar__day-cell--pulse");
-    }
-  }, 40);
+async function handleExportCSV(allTime = false) {
+  const result = await exportCSV({
+    shifts,
+    settings,
+    allTime,
+    currentDate,
+    monthName: MONTH_NAMES[currentDate.getMonth()],
+    shiftTags: SHIFT_TAGS,
+  });
 
-  const [y, m, d] = dateKey.split("-");
-  const monthName = MONTH_NAMES_GENITIVE[parseInt(m, 10) - 1];
-  showToast(`Смена добавлена: ${parseInt(d, 10)} ${monthName} (${preset.start}–${preset.end})`, "success");
+  if (result.count === 0) {
+    showToast("Нет смен для экспорта", "info");
+    return;
+  }
+
+  triggerHaptic(15);
+  if (result.shared) {
+    showToast("Отчёт успешно отправлен!", "success");
+  } else if (!result.aborted) {
+    showToast("Отчёт CSV скачан", "success");
+  }
 }
 
 // ============================================================
-// Рендер
+// Тема
 // ============================================================
+function applyTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+
+  if (elements.metaThemeColor) {
+    elements.metaThemeColor.setAttribute(
+      "content",
+      theme === "light" ? "#f7f4ec" : "#131535",
+    );
+  }
+
+  if (elements.themeIcon) {
+    elements.themeIcon.innerHTML =
+      theme === "light"
+        ? '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>'
+        : '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>';
+  }
+}
+
+function toggleTheme() {
+  currentTheme = currentTheme === "dark" ? "light" : "dark";
+  saveTheme(currentTheme);
+  applyTheme(currentTheme);
+}
+
+// ============================================================
+// Рендер и UI-виджеты
+// ============================================================
+function updateStatsTrends(year, month, currentShifts, currentHours, currentIncome) {
+  const curr = settings.currency || "₽";
+  const trends = calcMomTrends(year, month, shifts, currentShifts, currentHours, currentIncome);
+
+  const hideTrends = () => {
+    if (elements.statShiftsTrend) elements.statShiftsTrend.style.display = "none";
+    if (elements.statHoursTrend) elements.statHoursTrend.style.display = "none";
+    if (elements.statIncomeTrend) elements.statIncomeTrend.style.display = "none";
+    lastMonthComparisonSummary = null;
+  };
+
+  if (!trends) {
+    hideTrends();
+    return;
+  }
+
+  const prevMonthName = MONTH_NAMES[trends.prevMonth];
+  const curMonthName = MONTH_NAMES[month];
+
+  // Динамика дохода
+  if (elements.statIncomeTrend) {
+    elements.statIncomeTrend.style.display = "inline-flex";
+    if (trends.diffIncome > 0) {
+      elements.statIncomeTrend.className = "stats__trend stats__trend--up";
+      elements.statIncomeTrend.innerHTML = `<span class="stats__trend-arrow">↗</span>+${trends.diffIncome.toLocaleString("ru-RU")} ${curr} (+${trends.pctIncome}%)`;
+    } else if (trends.diffIncome < 0) {
+      elements.statIncomeTrend.className = "stats__trend stats__trend--down";
+      elements.statIncomeTrend.innerHTML = `<span class="stats__trend-arrow">↘</span>${trends.diffIncome.toLocaleString("ru-RU")} ${curr} (${trends.pctIncome}%)`;
+    } else {
+      elements.statIncomeTrend.className = "stats__trend stats__trend--neutral";
+      elements.statIncomeTrend.textContent = "= к пред. мес.";
+    }
+    elements.statIncomeTrend.title = `Сравнение с ${prevMonthName} ${trends.prevYear}: ${trends.prevIncome.toLocaleString("ru-RU")} ${curr}`;
+  }
+
+  // Динамика смен
+  if (elements.statShiftsTrend) {
+    elements.statShiftsTrend.style.display = "inline-flex";
+    if (trends.diffShifts > 0) {
+      elements.statShiftsTrend.className = "stats__trend stats__trend--up";
+      elements.statShiftsTrend.innerHTML = `<span class="stats__trend-arrow">↗</span>+${trends.diffShifts} см`;
+    } else if (trends.diffShifts < 0) {
+      elements.statShiftsTrend.className = "stats__trend stats__trend--down";
+      elements.statShiftsTrend.innerHTML = `<span class="stats__trend-arrow">↘</span>${trends.diffShifts} см`;
+    } else {
+      elements.statShiftsTrend.className = "stats__trend stats__trend--neutral";
+      elements.statShiftsTrend.textContent = "= см";
+    }
+    elements.statShiftsTrend.title = `${prevMonthName}: ${trends.prevShiftsCount} см`;
+  }
+
+  // Динамика часов
+  if (elements.statHoursTrend) {
+    elements.statHoursTrend.style.display = "inline-flex";
+    if (trends.diffHours > 0) {
+      elements.statHoursTrend.className = "stats__trend stats__trend--up";
+      elements.statHoursTrend.innerHTML = `<span class="stats__trend-arrow">↗</span>+${trends.diffHours} ч`;
+    } else if (trends.diffHours < 0) {
+      elements.statHoursTrend.className = "stats__trend stats__trend--down";
+      elements.statHoursTrend.innerHTML = `<span class="stats__trend-arrow">↘</span>${trends.diffHours} ч`;
+    } else {
+      elements.statHoursTrend.className = "stats__trend stats__trend--neutral";
+      elements.statHoursTrend.textContent = "= ч";
+    }
+    elements.statHoursTrend.title = `${prevMonthName}: ${trends.prevHours} ч`;
+  }
+
+  lastMonthComparisonSummary = {
+    ...trends,
+    prevMonthName,
+    curMonthName,
+  };
+}
+
+function updateGoalTrackerUI(totalIncome, totalShifts) {
+  if (!elements.goalTracker) return;
+
+  const goal = settings.monthlyGoal || 0;
+  const curr = settings.currency || "₽";
+
+  let avgShiftPay = 0;
+  if (totalShifts > 0 && totalIncome > 0) {
+    avgShiftPay = totalIncome / totalShifts;
+  } else {
+    if (settings.payMode === "hourly") {
+      const dayPreset = settings.presets?.day || DEFAULT_PRESETS.day;
+      const h = calcHoursDiff(dayPreset.start, dayPreset.end, dayPreset.breakMins) || 11;
+      avgShiftPay = h * (settings.rate || 300);
+    } else {
+      avgShiftPay = settings.rate || 3000;
+    }
+  }
+
+  const p = calcGoalProgress(totalIncome, goal, avgShiftPay);
+
+  if (p.isZeroGoal) {
+    elements.goalTracker.classList.remove("goal-tracker--completed");
+    if (elements.goalProgressText) elements.goalProgressText.textContent = `0 ${curr}`;
+    if (elements.goalPercentage) elements.goalPercentage.textContent = "0%";
+    if (elements.goalProgressBar) {
+      elements.goalProgressBar.style.width = "0%";
+      elements.goalProgressBar.classList.remove("goal-tracker__bar--completed");
+    }
+    if (elements.goalStatusText) elements.goalStatusText.textContent = "Поставьте цель заработка на месяц";
+    if (elements.goalActionHint) elements.goalActionHint.textContent = "Настроить";
+    return;
+  }
+
+  if (elements.goalProgressText) {
+    elements.goalProgressText.textContent = `${totalIncome.toLocaleString("ru-RU")} / ${goal.toLocaleString("ru-RU")} ${curr}`;
+  }
+  if (elements.goalPercentage) {
+    elements.goalPercentage.textContent = `${p.percent}%`;
+  }
+  if (elements.goalProgressBar) {
+    elements.goalProgressBar.style.width = `${p.clampedWidth}%`;
+  }
+
+  if (p.isCompleted) {
+    elements.goalTracker.classList.add("goal-tracker--completed");
+    if (elements.goalProgressBar) {
+      elements.goalProgressBar.classList.add("goal-tracker__bar--completed");
+    }
+    if (elements.goalStatusText) {
+      if (p.surplus > 0) {
+        elements.goalStatusText.textContent = `Цель выполнена! Перевыполнение: +${p.surplus.toLocaleString("ru-RU")} ${curr}`;
+      } else {
+        elements.goalStatusText.textContent = "Цель достигнута на 100%! Отличная работа!";
+      }
+    }
+    if (elements.goalActionHint) elements.goalActionHint.textContent = "Изменить";
+  } else {
+    elements.goalTracker.classList.remove("goal-tracker--completed");
+    if (elements.goalProgressBar) {
+      elements.goalProgressBar.classList.remove("goal-tracker__bar--completed");
+    }
+    if (elements.goalStatusText) {
+      if (p.neededShifts) {
+        const shiftWord = getRussianDeclension(p.neededShifts, ["смена", "смены", "смен"]);
+        elements.goalStatusText.textContent = `Осталось: ${p.remaining.toLocaleString("ru-RU")} ${curr} (~${p.neededShifts} ${shiftWord})`;
+      } else {
+        elements.goalStatusText.textContent = `Осталось заработать: ${p.remaining.toLocaleString("ru-RU")} ${curr}`;
+      }
+    }
+    if (elements.goalActionHint) elements.goalActionHint.textContent = "Изменить";
+  }
+}
+
 function render() {
   if (window.scrollX !== 0) {
     window.scrollTo(0, window.scrollY);
   }
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
+  const cutoffDay = settings.advanceCutoffDay || 15;
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
   elements.monthTitle.textContent = `${MONTH_NAMES[month]} ${year}`;
 
-  const firstDay = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const startOffset = (firstDay + 6) % 7; // Пн = 0
+  // Подсчет сводки по сменам месяца
+  const summary = calcMonthSummary(shifts, year, month, cutoffDay);
 
-  const today = new Date();
-  const todayKey = formatDateKey(
-    today.getFullYear(),
-    today.getMonth(),
-    today.getDate(),
-  );
+  // Отрисовка календаря
+  renderCalendarGrid(elements.calendarGrid, {
+    year,
+    month,
+    shifts,
+    onDayClick: openShiftModal,
+    onDayLongPress: quickAddDefaultShift,
+  });
 
-  const cutoffDay = settings.advanceCutoffDay || 15;
-  let totalShifts = 0;
-  let totalHours = 0;
-  let totalIncome = 0;
-
-  let advanceShiftsCount = 0;
-  let advanceHours = 0;
-  let advanceIncome = 0;
-
-  let salaryShiftsCount = 0;
-  let salaryHours = 0;
-  let salaryIncome = 0;
-
-  const monthShifts = [];
-
-  // Собираем ячейки через DocumentFragment для одной вставки в DOM
-  const fragment = document.createDocumentFragment();
-
-  function createDayCell({
-    day,
-    dateKey,
-    isOtherMonth = false,
-    isWeekend = false,
-    isToday = false,
-    ariaLabel = "",
-    onShift = null,
-  }) {
-    const shift = shifts[dateKey];
-    const cell = document.createElement("div");
-    cell.className = "calendar__day-cell";
-    cell.dataset.dateKey = dateKey;
-    if (isOtherMonth) cell.classList.add("calendar__day-cell--other-month");
-    if (isToday) cell.classList.add("calendar__day-cell--today");
-    if (isWeekend) cell.classList.add("calendar__day-cell--weekend");
-
-    const dayHeader = document.createElement("div");
-    dayHeader.className = "calendar__day-header";
-
-    const dayNum = document.createElement("div");
-    dayNum.className = "calendar__day-number";
-    dayNum.textContent = day;
-    dayHeader.appendChild(dayNum);
-
-    if (shift) {
-      cell.classList.add("calendar__day-cell--has-shift");
-      if (shift.type === "night")
-        cell.classList.add("calendar__day-cell--night");
-      if (shift.type === "extra")
-        cell.classList.add("calendar__day-cell--extra");
-
-      const iconWrapper = document.createElement("div");
-      iconWrapper.className = "calendar__day-icons";
-
-      const iconSpan = document.createElement("span");
-      iconSpan.className = "calendar__shift-icon";
-      iconSpan.setAttribute("aria-hidden", "true");
-      iconSpan.innerHTML = getShiftIconSvg(shift.type);
-      iconWrapper.appendChild(iconSpan);
-
-      const hasTags = shift.tags && shift.tags.length > 0;
-      const hasNote = Boolean(shift.note && shift.note.trim());
-      if (hasTags || hasNote) {
-        const dot = document.createElement("span");
-        dot.className = "calendar__tag-dot";
-        if (shift.tags?.includes("bonus")) dot.classList.add("calendar__tag-dot--bonus");
-        else if (shift.tags?.includes("penalty")) dot.classList.add("calendar__tag-dot--penalty");
-        else if (shift.tags?.includes("overtime")) dot.classList.add("calendar__tag-dot--overtime");
-        dot.title = hasNote ? shift.note : "Есть метки";
-        iconWrapper.appendChild(dot);
-      }
-
-      dayHeader.appendChild(iconWrapper);
-
-      const badge = document.createElement("div");
-      badge.className = "calendar__shift-badge";
-      badge.textContent = `${shift.hours}ч`;
-      cell.appendChild(dayHeader);
-      cell.appendChild(badge);
-
-      if (onShift) {
-        onShift(shift);
-      }
-    } else {
-      cell.appendChild(dayHeader);
-    }
-
-    cell.setAttribute("role", "button");
-    cell.setAttribute("tabindex", "0");
-    if (ariaLabel) cell.setAttribute("aria-label", ariaLabel);
-
-    let touchStartX = 0;
-    let touchStartY = 0;
-    let longPressTimeout = null;
-    let isLongPressTriggered = false;
-
-    const startLongPress = (e) => {
-      if (shifts[dateKey]) return;
-      isLongPressTriggered = false;
-      const touch = e.touches ? e.touches[0] : e;
-      touchStartX = touch.clientX;
-      touchStartY = touch.clientY;
-
-      longPressTimeout = setTimeout(() => {
-        isLongPressTriggered = true;
-        quickAddDefaultShift(dateKey);
-      }, 420);
-    };
-
-    const cancelLongPress = () => {
-      if (longPressTimeout) {
-        clearTimeout(longPressTimeout);
-        longPressTimeout = null;
-      }
-    };
-
-    const moveLongPress = (e) => {
-      if (!longPressTimeout) return;
-      const touch = e.touches ? e.touches[0] : e;
-      const dx = Math.abs(touch.clientX - touchStartX);
-      const dy = Math.abs(touch.clientY - touchStartY);
-      if (dx > 10 || dy > 10) {
-        cancelLongPress();
-      }
-    };
-
-    cell.addEventListener("touchstart", startLongPress, { passive: true });
-    cell.addEventListener("touchmove", moveLongPress, { passive: true });
-    cell.addEventListener("touchend", cancelLongPress, { passive: true });
-    cell.addEventListener("touchcancel", cancelLongPress, { passive: true });
-
-    cell.addEventListener("contextmenu", (e) => {
-      if (!shifts[dateKey]) {
-        e.preventDefault();
-        quickAddDefaultShift(dateKey);
-      }
-    });
-
-    cell.addEventListener("click", () => {
-      if (isLongPressTriggered) {
-        isLongPressTriggered = false;
-        return;
-      }
-      openShiftModal(dateKey);
-    });
-
-    cell.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        openShiftModal(dateKey);
-      }
-    });
-
-    return cell;
-  }
-
-  // Дни предыдущего месяца для заполнения пустых мест
-  const prevMonthDate = new Date(year, month - 1, 1);
-  const prevMonthYear = prevMonthDate.getFullYear();
-  const prevMonthIdx = prevMonthDate.getMonth();
-  const prevMonthLastDate = new Date(year, month, 0).getDate();
-
-  for (let i = startOffset - 1; i >= 0; i--) {
-    const prevDay = prevMonthLastDate - i;
-    const dateKey = formatDateKey(prevMonthYear, prevMonthIdx, prevDay);
-    const colIndex = startOffset - 1 - i;
-    const isWeekend = colIndex === 5 || colIndex === 6;
-
-    fragment.appendChild(
-      createDayCell({
-        day: prevDay,
-        dateKey,
-        isOtherMonth: true,
-        isWeekend,
-        isToday: dateKey === todayKey,
-        ariaLabel: `Предыдущий месяц, ${prevDay}`,
-      })
-    );
-  }
-
-  // Дни текущего месяца
-  for (let day = 1; day <= daysInMonth; day++) {
-    const dateKey = formatDateKey(year, month, day);
-    const dayOfWeek = (startOffset + day - 1) % 7;
-    const isWeekend = dayOfWeek === 5 || dayOfWeek === 6;
-
-    fragment.appendChild(
-      createDayCell({
-        day,
-        dateKey,
-        isOtherMonth: false,
-        isWeekend,
-        isToday: dateKey === todayKey,
-        onShift: (shift) => {
-          totalShifts++;
-          const h = Number(shift.hours) || 0;
-          const p = Number(shift.totalPay) || 0;
-          totalHours += h;
-          totalIncome += p;
-          monthShifts.push({ dateKey, day, ...shift });
-
-          if (day <= cutoffDay) {
-            advanceShiftsCount++;
-            advanceHours += h;
-            advanceIncome += p;
-          } else {
-            salaryShiftsCount++;
-            salaryHours += h;
-            salaryIncome += p;
-          }
-        },
-      })
-    );
-  }
-
-  // Дни следующего месяца для завершения сетки
-  const totalCells = startOffset + daysInMonth;
-  const remainingCells = (7 - (totalCells % 7)) % 7;
-  const nextMonthDate = new Date(year, month + 1, 1);
-  const nextMonthYear = nextMonthDate.getFullYear();
-  const nextMonthIdx = nextMonthDate.getMonth();
-
-  for (let d = 1; d <= remainingCells; d++) {
-    const dateKey = formatDateKey(nextMonthYear, nextMonthIdx, d);
-    const colIndex = (totalCells + d - 1) % 7;
-    const isWeekend = colIndex === 5 || colIndex === 6;
-
-    fragment.appendChild(
-      createDayCell({
-        day: d,
-        dateKey,
-        isOtherMonth: true,
-        isWeekend,
-        isToday: dateKey === todayKey,
-        ariaLabel: `Следующий месяц, ${d}`,
-      })
-    );
-  }
-
-  const grid = elements.calendarGrid;
-  grid.innerHTML = "";
-  grid.appendChild(fragment);
-
-  elements.statShifts.textContent = totalShifts;
-  elements.statHours.textContent = Math.round(totalHours * 100) / 100;
-  elements.statIncome.textContent = `${totalIncome.toLocaleString("ru-RU")} ${settings.currency}`;
+  // Основная статистика
+  elements.statShifts.textContent = summary.totalShifts;
+  elements.statHours.textContent = summary.totalHours;
+  elements.statIncome.textContent = `${summary.totalIncome.toLocaleString("ru-RU")} ${settings.currency}`;
   elements.statIncome.title = elements.statIncome.textContent;
 
-  // Вычисление динамики (трендов) относительно предыдущего месяца
-  updateStatsTrends(year, month, totalShifts, totalHours, totalIncome);
+  // Динамика трендов MoM
+  updateStatsTrends(year, month, summary.totalShifts, summary.totalHours, summary.totalIncome);
 
-  // Обновление карточек выплат (Аванс и Расчёт)
+  // Блоки выплат: Аванс и Расчет
   if (elements.payoutSplit) {
     elements.payoutSplit.style.display = settings.payoutSplitEnabled ? "" : "none";
   }
@@ -1764,18 +1245,18 @@ function render() {
     elements.salaryLabel.textContent = `Расчёт (${cutoffDay + 1}–${daysInMonth})`;
   }
   if (elements.statAdvanceIncome) {
-    elements.statAdvanceIncome.textContent = `${advanceIncome.toLocaleString("ru-RU")} ${curr}`;
+    elements.statAdvanceIncome.textContent = `${summary.advanceIncome.toLocaleString("ru-RU")} ${curr}`;
     elements.statAdvanceIncome.title = elements.statAdvanceIncome.textContent;
   }
   if (elements.statAdvanceMeta) {
-    elements.statAdvanceMeta.textContent = `${advanceShiftsCount} см • ${Math.round(advanceHours * 10) / 10} ч`;
+    elements.statAdvanceMeta.textContent = `${summary.advanceShiftsCount} см • ${summary.advanceHours} ч`;
   }
   if (elements.statSalaryIncome) {
-    elements.statSalaryIncome.textContent = `${salaryIncome.toLocaleString("ru-RU")} ${curr}`;
+    elements.statSalaryIncome.textContent = `${summary.salaryIncome.toLocaleString("ru-RU")} ${curr}`;
     elements.statSalaryIncome.title = elements.statSalaryIncome.textContent;
   }
   if (elements.statSalaryMeta) {
-    elements.statSalaryMeta.textContent = `${salaryShiftsCount} см • ${Math.round(salaryHours * 10) / 10} ч`;
+    elements.statSalaryMeta.textContent = `${summary.salaryShiftsCount} см • ${summary.salaryHours} ч`;
   }
   if (elements.filterAdvanceBtn) {
     elements.filterAdvanceBtn.textContent = `Аванс (1–${cutoffDay})`;
@@ -1784,20 +1265,23 @@ function render() {
     elements.filterSalaryBtn.textContent = `Расчёт (${cutoffDay + 1}–${daysInMonth})`;
   }
 
+  // Бейдж средней оплаты
   if (elements.statShiftsBadge) {
-    if (totalShifts > 0) {
-      const avgPay = Math.round(totalIncome / totalShifts);
+    if (summary.totalShifts > 0) {
+      const avgPay = Math.round(summary.totalIncome / summary.totalShifts);
       elements.statShiftsBadge.textContent = `~${avgPay.toLocaleString("ru-RU")} ${settings.currency} / смена`;
       elements.statShiftsBadge.style.display = "inline-flex";
     } else {
       elements.statShiftsBadge.style.display = "none";
     }
   }
+
   if (elements.shiftsModalMonth) {
     elements.shiftsModalMonth.textContent = `${MONTH_NAMES[month]} ${year}`;
   }
 
-  // Индикация на кнопке «Сегодня», если просматривается не текущий месяц
+  // Индикация на кнопке «Сегодня»
+  const today = new Date();
   const isCurrentMonth =
     currentDate.getFullYear() === today.getFullYear() &&
     currentDate.getMonth() === today.getMonth();
@@ -1808,774 +1292,29 @@ function render() {
       : `Вернуться к ${MONTH_NAMES[today.getMonth()]} ${today.getFullYear()}`;
   }
 
-  // Обновление финансовой цели ("Копилка")
+  // Финансовая цель ("Копилка")
   if (elements.goalTracker) {
     elements.goalTracker.style.display = settings.monthlyGoalEnabled ? "" : "none";
   }
   if (settings.monthlyGoalEnabled) {
-    updateGoalTrackerUI(totalIncome, totalShifts);
+    updateGoalTrackerUI(summary.totalIncome, summary.totalShifts);
   }
 
-  currentMonthShiftsCache = monthShifts;
-  renderShiftList(monthShifts, month);
-}
-
-let lastMonthComparisonSummary = null;
-
-/** Вычисление и отображение трендов сравнения с прошлым месяцем */
-function updateStatsTrends(year, month, currentShifts, currentHours, currentIncome) {
-  const curr = settings.currency || "₽";
-
-  // Предыдущий календарный месяц
-  const prevDate = new Date(year, month - 1, 1);
-  const prevYear = prevDate.getFullYear();
-  const prevMonth = prevDate.getMonth();
-  const prevPrefix = `${prevYear}-${String(prevMonth + 1).padStart(2, "0")}-`;
-
-  let prevShiftsCount = 0;
-  let prevHours = 0;
-  let prevIncome = 0;
-
-  Object.keys(shifts).forEach((key) => {
-    if (key.startsWith(prevPrefix)) {
-      const s = shifts[key];
-      prevShiftsCount++;
-      prevHours += Number(s.hours) || 0;
-      prevIncome += Number(s.totalPay) || 0;
-    }
-  });
-
-  const hideTrends = () => {
-    if (elements.statShiftsTrend) elements.statShiftsTrend.style.display = "none";
-    if (elements.statHoursTrend) elements.statHoursTrend.style.display = "none";
-    if (elements.statIncomeTrend) elements.statIncomeTrend.style.display = "none";
-    lastMonthComparisonSummary = null;
-  };
-
-  // Если в прошлом месяце вообще не было смен — скрываем плашки трендов
-  if (prevShiftsCount === 0) {
-    hideTrends();
-    return;
-  }
-
-  const prevMonthName = MONTH_NAMES[prevMonth];
-  const curMonthName = MONTH_NAMES[month];
-
-  // 1. Динамика дохода
-  const diffIncome = currentIncome - prevIncome;
-  const pctIncome = prevIncome > 0 ? Math.round((diffIncome / prevIncome) * 100) : 0;
-
-  if (elements.statIncomeTrend) {
-    elements.statIncomeTrend.style.display = "inline-flex";
-    if (diffIncome > 0) {
-      elements.statIncomeTrend.className = "stats__trend stats__trend--up";
-      elements.statIncomeTrend.innerHTML = `<span class="stats__trend-arrow">↗</span>+${diffIncome.toLocaleString("ru-RU")} ${curr} (+${pctIncome}%)`;
-    } else if (diffIncome < 0) {
-      elements.statIncomeTrend.className = "stats__trend stats__trend--down";
-      elements.statIncomeTrend.innerHTML = `<span class="stats__trend-arrow">↘</span>${diffIncome.toLocaleString("ru-RU")} ${curr} (${pctIncome}%)`;
-    } else {
-      elements.statIncomeTrend.className = "stats__trend stats__trend--neutral";
-      elements.statIncomeTrend.textContent = "= к пред. мес.";
-    }
-    elements.statIncomeTrend.title = `Сравнение с ${prevMonthName} ${prevYear}: ${prevIncome.toLocaleString("ru-RU")} ${curr}`;
-  }
-
-  // 2. Динамика смен
-  const diffShifts = currentShifts - prevShiftsCount;
-  if (elements.statShiftsTrend) {
-    elements.statShiftsTrend.style.display = "inline-flex";
-    if (diffShifts > 0) {
-      elements.statShiftsTrend.className = "stats__trend stats__trend--up";
-      elements.statShiftsTrend.innerHTML = `<span class="stats__trend-arrow">↗</span>+${diffShifts} см`;
-    } else if (diffShifts < 0) {
-      elements.statShiftsTrend.className = "stats__trend stats__trend--down";
-      elements.statShiftsTrend.innerHTML = `<span class="stats__trend-arrow">↘</span>${diffShifts} см`;
-    } else {
-      elements.statShiftsTrend.className = "stats__trend stats__trend--neutral";
-      elements.statShiftsTrend.textContent = "= см";
-    }
-    elements.statShiftsTrend.title = `${prevMonthName}: ${prevShiftsCount} см`;
-  }
-
-  // 3. Динамика часов
-  const diffHours = Math.round((currentHours - prevHours) * 10) / 10;
-  if (elements.statHoursTrend) {
-    elements.statHoursTrend.style.display = "inline-flex";
-    if (diffHours > 0) {
-      elements.statHoursTrend.className = "stats__trend stats__trend--up";
-      elements.statHoursTrend.innerHTML = `<span class="stats__trend-arrow">↗</span>+${diffHours} ч`;
-    } else if (diffHours < 0) {
-      elements.statHoursTrend.className = "stats__trend stats__trend--down";
-      elements.statHoursTrend.innerHTML = `<span class="stats__trend-arrow">↘</span>${diffHours} ч`;
-    } else {
-      elements.statHoursTrend.className = "stats__trend stats__trend--neutral";
-      elements.statHoursTrend.textContent = "= ч";
-    }
-    elements.statHoursTrend.title = `${prevMonthName}: ${Math.round(prevHours * 10) / 10} ч`;
-  }
-
-  lastMonthComparisonSummary = {
-    prevMonthName,
-    prevYear,
-    curMonthName,
-    prevIncome,
-    currentIncome,
-    diffIncome,
-    pctIncome,
-    prevShiftsCount,
-    currentShifts,
-    diffShifts,
-    prevHours: Math.round(prevHours * 10) / 10,
-    currentHours: Math.round(currentHours * 10) / 10,
-    diffHours,
-  };
-}
-
-/** Обновление виджета финансовой цели на месяц ("Копилка") */
-function updateGoalTrackerUI(totalIncome, totalShifts) {
-  if (!elements.goalTracker) return;
-
-  const goal = settings.monthlyGoal || 0;
-  const curr = settings.currency || "₽";
-
-  if (goal <= 0) {
-    elements.goalTracker.classList.remove("goal-tracker--completed");
-    if (elements.goalProgressText) elements.goalProgressText.textContent = `0 ${curr}`;
-    if (elements.goalPercentage) elements.goalPercentage.textContent = "0%";
-    if (elements.goalProgressBar) {
-      elements.goalProgressBar.style.width = "0%";
-      elements.goalProgressBar.classList.remove("goal-tracker__bar--completed");
-    }
-    if (elements.goalStatusText) {
-      elements.goalStatusText.textContent = "Поставьте цель заработка на месяц";
-    }
-    if (elements.goalActionHint) elements.goalActionHint.textContent = "Настроить";
-    return;
-  }
-
-  const percent = Math.round((totalIncome / goal) * 100);
-  const clampedWidth = Math.min(100, Math.max(0, percent));
-
-  if (elements.goalProgressText) {
-    elements.goalProgressText.textContent = `${totalIncome.toLocaleString("ru-RU")} / ${goal.toLocaleString("ru-RU")} ${curr}`;
-  }
-  if (elements.goalPercentage) {
-    elements.goalPercentage.textContent = `${percent}%`;
-  }
-  if (elements.goalProgressBar) {
-    elements.goalProgressBar.style.width = `${clampedWidth}%`;
-  }
-
-  if (percent >= 100) {
-    elements.goalTracker.classList.add("goal-tracker--completed");
-    if (elements.goalProgressBar) {
-      elements.goalProgressBar.classList.add("goal-tracker__bar--completed");
-    }
-    const surplus = totalIncome - goal;
-    if (elements.goalStatusText) {
-      if (surplus > 0) {
-        elements.goalStatusText.textContent = `Цель выполнена! Перевыполнение: +${surplus.toLocaleString("ru-RU")} ${curr}`;
-      } else {
-        elements.goalStatusText.textContent = "Цель достигнута на 100%! Отличная работа!";
-      }
-    }
-    if (elements.goalActionHint) elements.goalActionHint.textContent = "Изменить";
-  } else {
-    elements.goalTracker.classList.remove("goal-tracker--completed");
-    if (elements.goalProgressBar) {
-      elements.goalProgressBar.classList.remove("goal-tracker__bar--completed");
-    }
-    const remaining = goal - totalIncome;
-
-    // Оценка необходимого количества смен
-    let avgShiftPay = 0;
-    if (totalShifts > 0 && totalIncome > 0) {
-      avgShiftPay = totalIncome / totalShifts;
-    } else {
-      if (settings.payMode === "hourly") {
-        const dayPreset = settings.presets?.day || DEFAULT_PRESETS.day;
-        const h = calcHoursDiff(dayPreset.start, dayPreset.end, dayPreset.breakMins) || 11;
-        avgShiftPay = h * (settings.rate || 300);
-      } else {
-        avgShiftPay = settings.rate || 3000;
-      }
-    }
-
-    if (elements.goalStatusText) {
-      if (avgShiftPay > 0) {
-        const neededShifts = Math.max(1, Math.ceil(remaining / avgShiftPay));
-        const shiftWord = getRussianDeclension(neededShifts, ["смена", "смены", "смен"]);
-        elements.goalStatusText.textContent = `Осталось: ${remaining.toLocaleString("ru-RU")} ${curr} (~${neededShifts} ${shiftWord})`;
-      } else {
-        elements.goalStatusText.textContent = `Осталось заработать: ${remaining.toLocaleString("ru-RU")} ${curr}`;
-      }
-    }
-    if (elements.goalActionHint) elements.goalActionHint.textContent = "Изменить";
-  }
-}
-
-function renderShiftList(monthShifts, month) {
-  const listEl = elements.shiftList;
-  if (!listEl) return;
-
-  const cutoffDay = settings.advanceCutoffDay || 15;
-  const daysInMonth = new Date(currentDate.getFullYear(), month + 1, 0).getDate();
-
-  let filteredShifts = monthShifts;
-  if (currentShiftsFilter === "advance") {
-    filteredShifts = monthShifts.filter((s) => s.day <= cutoffDay);
-  } else if (currentShiftsFilter === "salary") {
-    filteredShifts = monthShifts.filter((s) => s.day > cutoffDay);
-  }
-
-  if (filteredShifts.length === 0) {
-    let emptyMsg = "Нажми на любой день в календаре, чтобы добавить смену";
-    if (currentShiftsFilter === "advance") {
-      emptyMsg = `В периоде аванса (1–${cutoffDay} ${MONTH_NAMES_GENITIVE[month]}) пока нет смен`;
-    } else if (currentShiftsFilter === "salary") {
-      emptyMsg = `В периоде расчёта (${cutoffDay + 1}–${daysInMonth} ${MONTH_NAMES_GENITIVE[month]}) пока нет смен`;
-    }
-    listEl.innerHTML = `<div class="shift-list__empty">${emptyMsg}</div>`;
-    return;
-  }
-
-  const fragment = document.createDocumentFragment();
-  const currency = escapeHtml(settings.currency);
-
-  // Безопасный reverse без мутации исходного массива
-  [...filteredShifts].reverse().forEach((s) => {
-    const noteStr = s.note ? ` • ${escapeHtml(s.note)}` : "";
-
-    let tagsHtml = "";
-    if (s.tags && s.tags.length > 0) {
-      const badges = s.tags
-        .map((t) => {
-          const info = SHIFT_TAGS[t];
-          if (!info) return "";
-          return `<span class="shift-tag-badge shift-tag-badge--${escapeHtml(t)}">${info.svg}<span>${escapeHtml(info.label)}</span></span>`;
-        })
-        .filter(Boolean)
-        .join("");
-      if (badges) {
-        tagsHtml = `<div class="shift-list__tags">${badges}</div>`;
-      }
-    }
-
-    const article = document.createElement("article");
-    article.className = "shift-list__item";
-    article.setAttribute("role", "button");
-    article.setAttribute("tabindex", "0");
-    article.innerHTML = `
-      <div class="shift-list__left">
-        <div class="shift-list__date">${getShiftIconSvg(s.type)}<span>${s.day} ${MONTH_NAMES_GENITIVE[month]}</span></div>
-        <div class="shift-list__meta">${escapeHtml(s.start)} – ${escapeHtml(s.end)}${noteStr}</div>
-        ${tagsHtml}
-      </div>
-      <div class="shift-list__right">
-        <div class="shift-list__pay">+${Number(s.totalPay).toLocaleString("ru-RU")} ${currency}</div>
-        <div class="shift-list__hours">${s.hours} ч.</div>
-      </div>
-    `;
-    article.addEventListener("click", () => openShiftModal(s.dateKey));
-    article.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        openShiftModal(s.dateKey);
-      }
-    });
-    fragment.appendChild(article);
-  });
-
-  listEl.innerHTML = "";
-  listEl.appendChild(fragment);
-  requestAnimationFrame(() => updateShiftListScrollGradients());
-}
-
-/** Динамическое управление плавным затуханием и размытием списка смен при прокрутке */
-function updateShiftListScrollGradients() {
-  const el = elements.shiftList;
-  const wrapper = elements.shiftListWrapper;
-  if (!el || !wrapper) return;
-
-  const isScrolled = el.scrollTop > 4;
-  const isAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight <= 4;
-  const hasScroll = el.scrollHeight > el.clientHeight + 4;
-
-  wrapper.classList.toggle("can-scroll-up", isScrolled);
-  wrapper.classList.toggle("can-scroll-down", hasScroll && !isAtBottom);
-}
-
-// ============================================================
-// Экспорт CSV (с поддержкой Web Share API)
-// ============================================================
-async function exportCSV(allTime = false) {
-  const year = currentDate.getFullYear();
-  const month = String(currentDate.getMonth() + 1).padStart(2, "0");
-  const monthPrefix = `${year}-${month}`;
-  const datePrefix = `${monthPrefix}-`;
-
-  const rows = [
-    [
-      "Дата",
-      "Тип",
-      "Начало",
-      "Конец",
-      "Перерыв(мин)",
-      "Часы",
-      "Бонус",
-      "Итого",
-      "Метки",
-      "Заметка",
-    ],
-  ];
-
-  let count = 0;
-  Object.keys(shifts)
-    .sort()
-    .forEach((key) => {
-      if (allTime || key.startsWith(datePrefix)) {
-        const s = shifts[key];
-        count++;
-        const tagsStr =
-          s.tags && s.tags.length > 0
-            ? s.tags.map((t) => SHIFT_TAGS[t]?.label || t).join("; ")
-            : "";
-        rows.push([
-          key,
-          s.type,
-          s.start,
-          s.end,
-          s.breakMins,
-          s.hours,
-          s.bonus,
-          s.totalPay,
-          `"${tagsStr.replace(/"/g, '""')}"`,
-          `"${(s.note || "").replace(/"/g, '""')}"`,
-        ]);
-      }
-    });
-
-  if (count === 0) {
-    showToast("Нет смен для экспорта", "info");
-    return;
-  }
-
-  const csvContent = "\uFEFF" + rows.map((e) => e.join(";")).join("\n");
-  const filename = allTime ? "shifts_all.csv" : `shifts_${monthPrefix}.csv`;
-  const file = new File([csvContent], filename, { type: "text/csv;charset=utf-8" });
-
-  // Web Share API для удобной отправки напрямую в Telegram, WhatsApp и др.
-  if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    try {
-      await navigator.share({
-        title: allTime ? "Все смены" : `Смены за ${MONTH_NAMES[currentDate.getMonth()]} ${year}`,
-        text: `Отчёт по сменам (${count} смен)`,
-        files: [file],
-      });
-      triggerHaptic(15);
-      showToast("Отчёт успешно отправлен!", "success");
-      return;
-    } catch (err) {
-      if (err.name === "AbortError") {
-        // Пользователь отменил шеринг сам
-        return;
-      }
-    }
-  }
-
-  // Фоллбэк: стандартное скачивание файла
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  triggerDownload(blob, filename);
-  triggerHaptic(15);
-  showToast("Отчёт CSV скачан", "success");
-}
-
-// ============================================================
-// Бэкап
-// ============================================================
-function downloadBackup() {
-  const data = JSON.stringify({ shifts, settings }, null, 2);
-  const blob = new Blob([data], { type: "application/json" });
-  triggerDownload(
-    blob,
-    `shifts_backup_${new Date().toISOString().slice(0, 10)}.json`,
-  );
-}
-
-function restoreBackup(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function (e) {
-    try {
-      const parsed = JSON.parse(e.target.result);
-
-      // Валидация структуры бэкапа
-      if (!parsed || typeof parsed !== "object") {
-        throw new Error("Неверный формат");
-      }
-
-      if (parsed.shifts && typeof parsed.shifts === "object") {
-        shifts = parsed.shifts;
-      }
-
-      if (parsed.settings && typeof parsed.settings === "object") {
-        const s = parsed.settings;
-        const presets = s.presets && typeof s.presets === "object" ? {
-          day: {
-            start: s.presets.day?.start || s.start || DEFAULT_PRESETS.day.start,
-            end: s.presets.day?.end || s.end || DEFAULT_PRESETS.day.end,
-            breakMins: s.presets.day?.breakMins ?? s.breakMins ?? DEFAULT_PRESETS.day.breakMins,
-          },
-          night: {
-            start: s.presets.night?.start || DEFAULT_PRESETS.night.start,
-            end: s.presets.night?.end || DEFAULT_PRESETS.night.end,
-            breakMins: s.presets.night?.breakMins ?? DEFAULT_PRESETS.night.breakMins,
-          },
-          extra: {
-            start: s.presets.extra?.start || DEFAULT_PRESETS.extra.start,
-            end: s.presets.extra?.end || DEFAULT_PRESETS.extra.end,
-            breakMins: s.presets.extra?.breakMins ?? DEFAULT_PRESETS.extra.breakMins,
-          },
-        } : {
-          day: {
-            start: s.start || DEFAULT_PRESETS.day.start,
-            end: s.end || DEFAULT_PRESETS.day.end,
-            breakMins: s.breakMins ?? DEFAULT_PRESETS.day.breakMins,
-          },
-          night: { ...DEFAULT_PRESETS.night },
-          extra: { ...DEFAULT_PRESETS.extra },
-        };
-
-        settings = {
-          start: presets.day.start,
-          end: presets.day.end,
-          breakMins: presets.day.breakMins,
-          payMode: ["hourly", "fixed"].includes(s.payMode) ? s.payMode : DEFAULT_SETTINGS.payMode,
-          rate: typeof s.rate === "number" ? s.rate : DEFAULT_SETTINGS.rate,
-          currency: typeof s.currency === "string" ? s.currency : DEFAULT_SETTINGS.currency,
-          advanceCutoffDay: typeof s.advanceCutoffDay === "number" ? s.advanceCutoffDay : DEFAULT_SETTINGS.advanceCutoffDay,
-          payoutSplitEnabled: typeof s.payoutSplitEnabled === "boolean" ? s.payoutSplitEnabled : false,
-          monthlyGoal: typeof s.monthlyGoal === "number" ? Math.max(0, s.monthlyGoal) : DEFAULT_SETTINGS.monthlyGoal,
-          monthlyGoalEnabled: typeof s.monthlyGoalEnabled === "boolean" ? s.monthlyGoalEnabled : false,
-          presets,
-        };
-      }
-
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(shifts));
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-      closeModal("settingsModal");
-      render();
-      showToast("Данные успешно восстановлены!", "success");
-    } catch (err) {
-      showToast("Ошибка чтения файла бэкапа", "error");
-    }
-    // Сбрасываем input, чтобы повторная загрузка того же файла сработала
-    event.target.value = "";
-  };
-  reader.readAsText(file);
-}
-
-// ============================================================
-// Тема (Светлая / Тёмная)
-// ============================================================
-function applyTheme(theme) {
-  document.documentElement.setAttribute("data-theme", theme);
-
-  const metaThemeColor = elements.metaThemeColor;
-  if (metaThemeColor) {
-    metaThemeColor.setAttribute(
-      "content",
-      theme === "light" ? "#f7f4ec" : "#131535",
-    );
-  }
-
-  const icon = elements.themeIcon;
-  if (icon) {
-    icon.innerHTML =
-      theme === "light"
-        ? '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>'
-        : '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>';
-  }
-}
-
-function toggleTheme() {
-  currentTheme = currentTheme === "dark" ? "light" : "dark";
-  localStorage.setItem(THEME_KEY, currentTheme);
-  applyTheme(currentTheme);
-}
-
-// ============================================================
-// Свайп по календарю для смены месяца
-// ============================================================
-let isSwipingMonth = false;
-
-function animateMonthSwipe(delta, targetDate = null) {
-  if (isSwipingMonth) return;
-  isSwipingMonth = true;
-
-  const grid = elements.calendarGrid;
-  if (!grid) {
-    if (targetDate) {
-      currentDate = targetDate;
-    } else {
-      currentDate.setMonth(currentDate.getMonth() + delta);
-    }
-    render();
-    isSwipingMonth = false;
-    return;
-  }
-
-  // При переходе вперед (delta === 1), текущая сетка уходит влево (-100%)
-  // При переходе назад (delta === -1), текущая сетка уходит вправо (+100%)
-  const outX = delta === 1 ? -100 : 100;
-  const inX = delta === 1 ? 100 : -100;
-
-  grid.style.transition = "transform 0.16s ease-out, opacity 0.16s ease-out";
-  grid.style.transform = `translateX(${outX}%)`;
-  grid.style.opacity = "0";
-
-  setTimeout(() => {
-    if (targetDate) {
-      currentDate = targetDate;
-    } else {
-      currentDate.setMonth(currentDate.getMonth() + delta);
-    }
-    render();
-
-    grid.style.transition = "none";
-    grid.style.transform = `translateX(${inX}%)`;
-    grid.style.opacity = "0";
-
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        grid.style.transition = "transform 0.2s ease-out, opacity 0.2s ease-out";
-        grid.style.transform = "translateX(0)";
-        grid.style.opacity = "1";
-
-        setTimeout(() => {
-          grid.style.transition = "";
-          grid.style.transform = "";
-          grid.style.opacity = "";
-          if (window.scrollX !== 0) {
-            window.scrollTo(0, window.scrollY);
-          }
-          isSwipingMonth = false;
-        }, 210);
-      });
-    });
-  }, 160);
-}
-
-function initSwipe() {
-  const calendar = document.querySelector(".calendar");
-  const grid = elements.calendarGrid;
-  if (!calendar || !grid) return;
-
-  let touchStartX = 0;
-  let touchStartY = 0;
-  let isTracking = false;
-  let isHorizontal = false;
-
-  calendar.addEventListener(
-    "touchstart",
-    (e) => {
-      if (isSwipingMonth) return;
-      touchStartX = e.touches[0].clientX;
-      touchStartY = e.touches[0].clientY;
-      isTracking = true;
-      isHorizontal = false;
-    },
-    { passive: true },
-  );
-
-  calendar.addEventListener(
-    "touchmove",
-    (e) => {
-      if (!isTracking || isSwipingMonth) return;
-
-      const touchX = e.touches[0].clientX;
-      const touchY = e.touches[0].clientY;
-      const dx = touchX - touchStartX;
-      const dy = touchY - touchStartY;
-
-      if (!isHorizontal) {
-        if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) {
-          isHorizontal = true;
-          grid.style.transition = "none";
-        } else if (Math.abs(dy) > 10) {
-          isTracking = false;
-          return;
-        }
-      }
-
-      if (isHorizontal) {
-        const damping = 0.45;
-        grid.style.transform = `translateX(${dx * damping}px)`;
-        grid.style.opacity = `${Math.max(0.4, 1 - Math.abs(dx) / 300)}`;
-      }
-    },
-    { passive: true },
-  );
-
-  calendar.addEventListener(
-    "touchend",
-    (e) => {
-      if (!isTracking || isSwipingMonth) return;
-      isTracking = false;
-
-      if (!isHorizontal) return;
-      isHorizontal = false;
-
-      const touchEndX = e.changedTouches[0].clientX;
-      const touchEndY = e.changedTouches[0].clientY;
-      const dx = touchEndX - touchStartX;
-      const dy = touchEndY - touchStartY;
-
-      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
-        animateMonthSwipe(dx > 0 ? -1 : 1);
-      } else {
-        grid.style.transition = "transform 0.18s ease-out, opacity 0.18s ease-out";
-        grid.style.transform = "translateX(0)";
-        grid.style.opacity = "1";
-        setTimeout(() => {
-          grid.style.transition = "";
-          grid.style.transform = "";
-          grid.style.opacity = "";
-        }, 190);
-      }
-    },
-    { passive: true },
-  );
-}
-
-// ============================================================
-// Смахивание шторки на мобильных (Swipe to dismiss)
-// ============================================================
-function initBottomSheetSwipe() {
-  const modalOverlays = [
-    elements.shiftModal,
-    elements.settingsModal,
-    elements.shiftsModal,
-    elements.scheduleModal,
-    elements.analyticsModal,
-  ].filter(Boolean);
-
-  modalOverlays.forEach((overlay) => {
-    if (!overlay) return;
-    const content = overlay.querySelector(".modal-overlay__content");
-    if (!content) return;
-
-    let startY = 0;
-    let currentY = 0;
-    let isTracking = false;
-    let isDragging = false;
-    let isTopDrag = false;
-
-    // Предотвращаем фоновый pull-to-refresh при касании самого фона оверлея
-    overlay.addEventListener(
-      "touchmove",
-      (e) => {
-        if (e.target === overlay && e.cancelable) {
-          e.preventDefault();
-        }
-      },
-      { passive: false },
-    );
-
-    content.addEventListener(
-      "touchstart",
-      (e) => {
-        if (window.innerWidth > 600) return;
-        const touch = e.touches[0];
-        startY = touch.clientY;
-        currentY = startY;
-
-        const target = e.target;
-        const isHeader = !!target.closest(".modal__header");
-        const rect = content.getBoundingClientRect();
-        const isNearTop = touch.clientY - rect.top < 65;
-        isTopDrag = isHeader || isNearTop;
-
-        const scrollable = content.querySelector(".shift-list") || content;
-
-        // Разрешаем смахивание, если шторка прокручена к самому верху или тап по шапке/ручке
-        if (scrollable.scrollTop <= 0 || isTopDrag) {
-          isTracking = true;
-          isDragging = false;
-        } else {
-          isTracking = false;
-        }
-      },
-      { passive: true },
-    );
-
-    content.addEventListener(
-      "touchmove",
-      (e) => {
-        if (!isTracking || window.innerWidth > 600) return;
-        const touch = e.touches[0];
-        currentY = touch.clientY;
-        const dy = currentY - startY;
-
-        const scrollable = content.querySelector(".shift-list") || content;
-
-        // Если тянем вниз от верха шторки или за шапку — отменяем нативный жест (pull-to-refresh)
-        if (dy > 0 && (scrollable.scrollTop <= 0 || isTopDrag)) {
-          if (e.cancelable) {
-            e.preventDefault();
-          }
-        }
-
-        if (dy > 6) {
-          isDragging = true;
-          content.style.transition = "none";
-          content.style.transform = `translateY(${dy}px)`;
-          overlay.style.backgroundColor = `rgba(0, 0, 0, ${Math.max(0.15, 0.7 - dy / 600)})`;
-        } else if (dy < 0 && isDragging) {
-          content.style.transform = "translateY(0)";
-          isDragging = false;
-        }
-      },
-      { passive: false },
-    );
-
-    const finishDrag = () => {
-      if (!isTracking || window.innerWidth > 600) return;
-      isTracking = false;
-
-      if (!isDragging) return;
-      isDragging = false;
-
-      const dy = currentY - startY;
-      content.style.transition = "transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)";
-      overlay.style.backgroundColor = "";
-
-      if (dy > 110) {
-        // Смахиваем шторку вниз до конца и закрываем
-        content.style.transform = "translateY(100%)";
-        setTimeout(() => {
-          closeModal(overlay.id);
-          content.style.transform = "";
-          content.style.transition = "";
-        }, 200);
-      } else {
-        // Возвращаем шторку на место
-        content.style.transform = "translateY(0)";
-        setTimeout(() => {
-          content.style.transform = "";
-          content.style.transition = "";
-        }, 220);
-      }
-    };
-
-    content.addEventListener("touchend", finishDrag, { passive: true });
-    content.addEventListener("touchcancel", finishDrag, { passive: true });
+  currentMonthShiftsCache = summary.monthShifts;
+  renderShiftList({
+    listEl: elements.shiftList,
+    wrapperEl: elements.shiftListWrapper,
+    monthShifts: summary.monthShifts,
+    year,
+    month,
+    filter: currentShiftsFilter,
+    settings,
+    onShiftClick: openShiftModal,
   });
 }
 
 // ============================================================
-// PWA: Service Worker и фоновое автообновление
+// Service Worker
 // ============================================================
 function registerSW() {
   if (!("serviceWorker" in navigator)) return;
@@ -2588,10 +1327,10 @@ function registerSW() {
 }
 
 // ============================================================
-// Привязка обработчиков событий
+// Привязка событий
 // ============================================================
 function bindEvents() {
-  // Навигация по месяцам
+  // Навигация
   elements.prevMonthBtn.addEventListener("click", (e) => {
     changeMonth(-1);
     e.currentTarget.blur();
@@ -2611,7 +1350,6 @@ function bindEvents() {
     }
   });
 
-  // Кнопка быстрого возврата к сегодняшнему дню
   if (elements.todayBtn) {
     elements.todayBtn.addEventListener("click", (e) => {
       goToToday();
@@ -2668,7 +1406,7 @@ function bindEvents() {
     });
   }
 
-  // Интерактивное сравнение с прошлым месяцем по клику на карточки статистики
+  // Интерактивное сравнение с прошлым месяцем
   if (elements.statIncomeCard) {
     elements.statIncomeCard.addEventListener("click", () => {
       triggerHaptic(10);
@@ -2728,10 +1466,10 @@ function bindEvents() {
   }
 
   // Экспорт
-  elements.exportMonthBtn.addEventListener("click", () => exportCSV(false));
-  elements.exportAllBtn.addEventListener("click", () => exportCSV(true));
+  elements.exportMonthBtn.addEventListener("click", () => handleExportCSV(false));
+  elements.exportAllBtn.addEventListener("click", () => handleExportCSV(true));
 
-  // Финансовая цель на месяц ("Копилка")
+  // Цель на месяц
   if (elements.goalTracker) {
     elements.goalTracker.addEventListener("click", () => {
       triggerHaptic(10);
@@ -2751,12 +1489,21 @@ function bindEvents() {
     });
   }
 
-  // Модальное окно детализации смен и карточки выплат
+  // Детализация смен и выплаты
   if (elements.payoutAdvanceCard) {
     elements.payoutAdvanceCard.addEventListener("click", () => {
       currentShiftsFilter = "advance";
       setSegmentedValue("shiftsFilterSegmented", "shiftsFilterInput", "advance");
-      renderShiftList(currentMonthShiftsCache, currentDate.getMonth());
+      renderShiftList({
+        listEl: elements.shiftList,
+        wrapperEl: elements.shiftListWrapper,
+        monthShifts: currentMonthShiftsCache,
+        year: currentDate.getFullYear(),
+        month: currentDate.getMonth(),
+        filter: currentShiftsFilter,
+        settings,
+        onShiftClick: openShiftModal,
+      });
       openModal("shiftsModal");
       triggerHaptic(12);
     });
@@ -2772,7 +1519,16 @@ function bindEvents() {
     elements.payoutSalaryCard.addEventListener("click", () => {
       currentShiftsFilter = "salary";
       setSegmentedValue("shiftsFilterSegmented", "shiftsFilterInput", "salary");
-      renderShiftList(currentMonthShiftsCache, currentDate.getMonth());
+      renderShiftList({
+        listEl: elements.shiftList,
+        wrapperEl: elements.shiftListWrapper,
+        monthShifts: currentMonthShiftsCache,
+        year: currentDate.getFullYear(),
+        month: currentDate.getMonth(),
+        filter: currentShiftsFilter,
+        settings,
+        onShiftClick: openShiftModal,
+      });
       openModal("shiftsModal");
       triggerHaptic(12);
     });
@@ -2788,7 +1544,16 @@ function bindEvents() {
     elements.openShiftsBtn.addEventListener("click", () => {
       currentShiftsFilter = "all";
       setSegmentedValue("shiftsFilterSegmented", "shiftsFilterInput", "all");
-      renderShiftList(currentMonthShiftsCache, currentDate.getMonth());
+      renderShiftList({
+        listEl: elements.shiftList,
+        wrapperEl: elements.shiftListWrapper,
+        monthShifts: currentMonthShiftsCache,
+        year: currentDate.getFullYear(),
+        month: currentDate.getMonth(),
+        filter: currentShiftsFilter,
+        settings,
+        onShiftClick: openShiftModal,
+      });
       openModal("shiftsModal");
     });
   }
@@ -2796,18 +1561,20 @@ function bindEvents() {
     elements.shiftsModalCloseBtn.addEventListener("click", () => closeModal("shiftsModal"));
   }
   if (elements.shiftList) {
-    elements.shiftList.addEventListener("scroll", updateShiftListScrollGradients, { passive: true });
+    elements.shiftList.addEventListener("scroll", () => {
+      updateShiftListScrollGradients(elements.shiftList, elements.shiftListWrapper);
+    }, { passive: true });
   }
-  window.addEventListener("resize", updateShiftListScrollGradients, { passive: true });
+  window.addEventListener("resize", () => {
+    updateShiftListScrollGradients(elements.shiftList, elements.shiftListWrapper);
+  }, { passive: true });
 
   // Форма смены
   elements.shiftForm.addEventListener("submit", saveShift);
-  elements.shiftModalCloseBtn.addEventListener("click", () =>
-    closeModal("shiftModal"),
-  );
+  elements.shiftModalCloseBtn.addEventListener("click", () => closeModal("shiftModal"));
   elements.deleteBtn.addEventListener("click", deleteShift);
 
-  // Быстрые метки смены
+  // Метки смены
   if (elements.shiftTagsPicker) {
     elements.shiftTagsPicker.querySelectorAll(".shift-tag-chip").forEach((chip) => {
       chip.addEventListener("click", () => {
@@ -2824,7 +1591,7 @@ function bindEvents() {
     });
   }
 
-  // Пересчёт при изменении полей
+  // Пересчёт при изменении полей модалки
   elements.startTime.addEventListener("change", recalcModal);
   elements.endTime.addEventListener("change", recalcModal);
   elements.breakMins.addEventListener("change", recalcModal);
@@ -2833,10 +1600,8 @@ function bindEvents() {
   elements.bonus.addEventListener("input", recalcModal);
 
   // Форма настроек
-  elements.settingsForm.addEventListener("submit", saveSettings);
-  elements.settingsModalCloseBtn.addEventListener("click", () =>
-    closeModal("settingsModal"),
-  );
+  elements.settingsForm.addEventListener("submit", saveSettingsFromModal);
+  elements.settingsModalCloseBtn.addEventListener("click", () => closeModal("settingsModal"));
   if (elements.recalcMonthRatesBtn) {
     elements.recalcMonthRatesBtn.addEventListener("click", recalcCurrentMonthRates);
   }
@@ -2895,13 +1660,11 @@ function bindEvents() {
   }
 
   // Бэкап
-  elements.backupDownloadBtn.addEventListener("click", downloadBackup);
-  elements.backupRestoreBtn.addEventListener("click", () =>
-    elements.importFile.click(),
-  );
-  elements.importFile.addEventListener("change", restoreBackup);
+  elements.backupDownloadBtn.addEventListener("click", handleBackupDownload);
+  elements.backupRestoreBtn.addEventListener("click", () => elements.importFile.click());
+  elements.importFile.addEventListener("change", handleBackupRestore);
 
-  // Закрытие модалок по клику на оверлей или по Escape
+  // Закрытие модалок по клику на фон оверлея
   [
     elements.shiftModal,
     elements.settingsModal,
@@ -2926,12 +1689,15 @@ function bindEvents() {
 }
 
 // ============================================================
-// Инициализация
+// Инициализация приложения
 // ============================================================
 applyTheme(currentTheme);
 initSegmentedControls();
 bindEvents();
-initSwipe();
+initCalendarSwipe(document.querySelector(".calendar"), elements.calendarGrid, {
+  onSwipeLeft: () => changeMonth(1),
+  onSwipeRight: () => changeMonth(-1),
+});
 initBottomSheetSwipe();
 registerSW();
 render();

@@ -415,6 +415,7 @@ function initSegmentedControls() {
 // ============================================================
 function changeMonth(delta) {
   animateMonthSwipe(elements.calendarGrid, delta, () => {
+    currentDate.setDate(1);
     currentDate.setMonth(currentDate.getMonth() + delta);
     render();
   });
@@ -519,6 +520,10 @@ function openShiftModal(dateKey) {
 function saveShift(e) {
   e.preventDefault();
   const dateKey = elements.shiftDate.value;
+
+  // Перезагрузка перед слиянием, чтобы не стереть изменения из другой вкладки
+  shifts = loadShifts();
+
   shifts[dateKey] = {
     type: elements.shiftType.value,
     start: elements.startTime.value,
@@ -532,7 +537,10 @@ function saveShift(e) {
     note: elements.note.value.trim(),
     tags: [],
   };
-  saveShifts(shifts);
+  if (!saveShifts(shifts)) {
+    showToast("Ошибка сохранения", "error");
+    return;
+  }
   closeModal("shiftModal");
   render();
   triggerHaptic(15);
@@ -549,8 +557,15 @@ async function deleteShift() {
   });
   if (!confirmed) return;
   const dateKey = elements.shiftDate.value;
+
+  // Перезагрузка перед удалением
+  shifts = loadShifts();
+
   delete shifts[dateKey];
-  saveShifts(shifts);
+  if (!saveShifts(shifts)) {
+    showToast("Ошибка сохранения", "error");
+    return;
+  }
   closeModal("shiftModal");
   render();
   triggerHaptic(20);
@@ -558,10 +573,14 @@ async function deleteShift() {
 }
 
 function quickAddDefaultShift(dateKey) {
+  shifts = loadShifts();
   if (shifts[dateKey]) return;
 
   shifts[dateKey] = buildShiftFromPreset("day", settings);
-  saveShifts(shifts);
+  if (!saveShifts(shifts)) {
+    showToast("Ошибка сохранения", "error");
+    return;
+  }
   triggerHaptic([30, 40, 30]);
   render();
 
@@ -632,7 +651,10 @@ function saveSettingsFromModal(e) {
   settings.monthlyGoal = elements.defMonthlyGoal ? Math.max(0, parseFloat(elements.defMonthlyGoal.value) || 0) : (settings.monthlyGoal || 0);
   settings.monthlyGoalEnabled = elements.defGoalMode ? elements.defGoalMode.value === "on" : false;
 
-  saveSettings(settings);
+  if (!saveSettings(settings)) {
+    showToast("Ошибка сохранения", "error");
+    return;
+  }
   updatePayModeLabels();
   updatePresetTimesUI();
   closeModal("settingsModal");
@@ -669,11 +691,19 @@ async function recalcCurrentMonthRates() {
 
   if (!confirmed) return;
 
-  const updatedCount = recalcMonthShifts(shifts, year, month, newRate, newPayMode);
+  shifts = loadShifts(); // Load latest state
+  const { count: updatedCount, updatedShifts } = recalcMonthShifts(shifts, year, month, newRate, newPayMode);
+  shifts = updatedShifts;
+
   settings.rate = newRate;
   settings.payMode = newPayMode;
-  saveSettings(settings);
-  saveShifts(shifts);
+  const settingsSaved = saveSettings(settings);
+  const shiftsSaved = saveShifts(shifts);
+
+  if (!settingsSaved || !shiftsSaved) {
+    showToast("Ошибка сохранения", "error");
+    return;
+  }
 
   render();
   triggerHaptic(20);
@@ -932,11 +962,15 @@ function applySchedule(e) {
   // Снимок для функции "Отменить"
   lastScheduleSnapshot = JSON.parse(JSON.stringify(shifts));
 
+  shifts = loadShifts();
   planned.forEach((s) => {
     shifts[s.dateKey] = buildShiftFromPreset(s.type, settings);
   });
 
-  saveShifts(shifts);
+  if (!saveShifts(shifts)) {
+    showToast("Ошибка сохранения", "error");
+    return;
+  }
   closeModal("scheduleModal");
   render();
   triggerHaptic([30, 40, 50]);
@@ -946,7 +980,10 @@ function applySchedule(e) {
     onClick: () => {
       if (lastScheduleSnapshot) {
         shifts = lastScheduleSnapshot;
-        saveShifts(shifts);
+        if (!saveShifts(shifts)) {
+          showToast("Ошибка сохранения", "error");
+          return;
+        }
         render();
         triggerHaptic(15);
         showToast("Автозаполнение отменено", "info");
@@ -970,8 +1007,12 @@ async function handleBackupRestore(event) {
     const restored = await parseBackupFile(file);
     shifts = restored.shifts;
     settings = restored.settings;
-    saveShifts(shifts);
-    saveSettings(settings);
+    const shiftsSaved = saveShifts(shifts);
+    const settingsSaved = saveSettings(settings);
+    if (!shiftsSaved || !settingsSaved) {
+      showToast("Ошибка сохранения при восстановлении", "error");
+      return;
+    }
     closeModal("settingsModal");
     render();
     showToast("Данные успешно восстановлены!", "success");
@@ -1491,6 +1532,16 @@ function bindEvents() {
   if (elements.shiftsModalCloseBtn) {
     elements.shiftsModalCloseBtn.addEventListener("click", () => closeModal("shiftsModal"));
   }
+
+  window.addEventListener("storage", (e) => {
+    if (e.key === STORAGE_KEY) {
+      shifts = loadShifts();
+      render();
+    } else if (e.key === SETTINGS_KEY) {
+      settings = loadSettings();
+      render();
+    }
+  });
   if (elements.shiftList) {
     elements.shiftList.addEventListener("scroll", () => {
       updateShiftListScrollGradients(elements.shiftList, elements.shiftListWrapper);

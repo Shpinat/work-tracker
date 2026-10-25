@@ -28,7 +28,7 @@ export function calcHoursDiff(start, end, breakMins = 0) {
   const [eh, em] = end.split(":").map(Number);
   let startMins = sh * 60 + sm;
   let endMins = eh * 60 + em;
-  if (endMins <= startMins) {
+  if (endMins < startMins) {
     endMins += 24 * 60; // Переход через полночь
   }
   const netMins = Math.max(0, endMins - startMins - (Number(breakMins) || 0));

@@ -115,6 +115,21 @@ export async function exportCSV({
       if (allTime || key.startsWith(datePrefix)) {
         const s = shifts[key];
         count++;
+        let tagsStr =
+          s.tags && Array.isArray(s.tags) && s.tags.length > 0
+            ? s.tags.map((t) => shiftTags[t]?.label || t).join("; ")
+            : "";
+
+        let noteStr = s.note || "";
+
+        // Prevent CSV/Formula Injection
+        if (/^[=+\-@]/.test(tagsStr)) {
+          tagsStr = "'" + tagsStr;
+        }
+        if (/^[=+\-@]/.test(noteStr)) {
+          noteStr = "'" + noteStr;
+        }
+
         rows.push([
           key,
           s.type || "day",
@@ -124,7 +139,8 @@ export async function exportCSV({
           s.hours ?? 0,
           s.bonus ?? 0,
           s.totalPay ?? 0,
-          `"${(s.note || "").replace(/"/g, '""')}"`,
+          `"${tagsStr.replace(/"/g, '""')}"`,
+          `"${noteStr.replace(/"/g, '""')}"`,
         ]);
       }
     });

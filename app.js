@@ -484,45 +484,21 @@ function render() {
   // Собираем ячейки через DocumentFragment для одной вставки в DOM
   const fragment = document.createDocumentFragment();
 
-  // Дни предыдущего месяца для заполнения пустых мест
-  const prevMonthLastDate = new Date(year, month, 0).getDate();
-  for (let i = startOffset - 1; i >= 0; i--) {
-    const prevDay = prevMonthLastDate - i;
-    const cell = document.createElement("div");
-    cell.className = "calendar__day-cell calendar__day-cell--other-month";
-    const dayHeader = document.createElement("div");
-    dayHeader.className = "calendar__day-header";
-    const dayNum = document.createElement("div");
-    dayNum.className = "calendar__day-number";
-    dayNum.textContent = prevDay;
-    dayHeader.appendChild(dayNum);
-    cell.appendChild(dayHeader);
-    cell.setAttribute("role", "button");
-    cell.setAttribute("tabindex", "0");
-    cell.setAttribute("aria-label", `Предыдущий месяц, ${prevDay}`);
-    cell.addEventListener("click", () => changeMonth(-1));
-    cell.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        changeMonth(-1);
-      }
-    });
-    fragment.appendChild(cell);
-  }
-
-  // Дни текущего месяца
-  for (let day = 1; day <= daysInMonth; day++) {
-    const dateKey = formatDateKey(year, month, day);
+  function createDayCell({
+    day,
+    dateKey,
+    isOtherMonth = false,
+    isWeekend = false,
+    isToday = false,
+    ariaLabel = "",
+    onShift = null,
+  }) {
     const shift = shifts[dateKey];
     const cell = document.createElement("div");
     cell.className = "calendar__day-cell";
-    if (dateKey === todayKey) cell.classList.add("calendar__day-cell--today");
-
-    // Выходные дни (Сб = 5, Вс = 6 при старте с Пн = 0)
-    const dayOfWeek = (startOffset + day - 1) % 7;
-    if (dayOfWeek === 5 || dayOfWeek === 6) {
-      cell.classList.add("calendar__day-cell--weekend");
-    }
+    if (isOtherMonth) cell.classList.add("calendar__day-cell--other-month");
+    if (isToday) cell.classList.add("calendar__day-cell--today");
+    if (isWeekend) cell.classList.add("calendar__day-cell--weekend");
 
     const dayHeader = document.createElement("div");
     dayHeader.className = "calendar__day-header";
@@ -551,16 +527,17 @@ function render() {
       cell.appendChild(dayHeader);
       cell.appendChild(badge);
 
-      totalShifts++;
-      totalHours += Number(shift.hours) || 0;
-      totalIncome += Number(shift.totalPay) || 0;
-      monthShifts.push({ dateKey, day, ...shift });
+      if (onShift) {
+        onShift(shift);
+      }
     } else {
       cell.appendChild(dayHeader);
     }
 
     cell.setAttribute("role", "button");
     cell.setAttribute("tabindex", "0");
+    if (ariaLabel) cell.setAttribute("aria-label", ariaLabel);
+
     cell.addEventListener("click", () => openShiftModal(dateKey));
     cell.addEventListener("keydown", (e) => {
       if (e.key === "Enter" || e.key === " ") {
@@ -568,33 +545,79 @@ function render() {
         openShiftModal(dateKey);
       }
     });
-    fragment.appendChild(cell);
+
+    return cell;
+  }
+
+  // Дни предыдущего месяца для заполнения пустых мест
+  const prevMonthDate = new Date(year, month - 1, 1);
+  const prevMonthYear = prevMonthDate.getFullYear();
+  const prevMonthIdx = prevMonthDate.getMonth();
+  const prevMonthLastDate = new Date(year, month, 0).getDate();
+
+  for (let i = startOffset - 1; i >= 0; i--) {
+    const prevDay = prevMonthLastDate - i;
+    const dateKey = formatDateKey(prevMonthYear, prevMonthIdx, prevDay);
+    const colIndex = startOffset - 1 - i;
+    const isWeekend = colIndex === 5 || colIndex === 6;
+
+    fragment.appendChild(
+      createDayCell({
+        day: prevDay,
+        dateKey,
+        isOtherMonth: true,
+        isWeekend,
+        isToday: dateKey === todayKey,
+        ariaLabel: `Предыдущий месяц, ${prevDay}`,
+      })
+    );
+  }
+
+  // Дни текущего месяца
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateKey = formatDateKey(year, month, day);
+    const dayOfWeek = (startOffset + day - 1) % 7;
+    const isWeekend = dayOfWeek === 5 || dayOfWeek === 6;
+
+    fragment.appendChild(
+      createDayCell({
+        day,
+        dateKey,
+        isOtherMonth: false,
+        isWeekend,
+        isToday: dateKey === todayKey,
+        onShift: (shift) => {
+          totalShifts++;
+          totalHours += Number(shift.hours) || 0;
+          totalIncome += Number(shift.totalPay) || 0;
+          monthShifts.push({ dateKey, day, ...shift });
+        },
+      })
+    );
   }
 
   // Дни следующего месяца для завершения сетки
   const totalCells = startOffset + daysInMonth;
   const remainingCells = (7 - (totalCells % 7)) % 7;
+  const nextMonthDate = new Date(year, month + 1, 1);
+  const nextMonthYear = nextMonthDate.getFullYear();
+  const nextMonthIdx = nextMonthDate.getMonth();
+
   for (let d = 1; d <= remainingCells; d++) {
-    const cell = document.createElement("div");
-    cell.className = "calendar__day-cell calendar__day-cell--other-month";
-    const dayHeader = document.createElement("div");
-    dayHeader.className = "calendar__day-header";
-    const dayNum = document.createElement("div");
-    dayNum.className = "calendar__day-number";
-    dayNum.textContent = d;
-    dayHeader.appendChild(dayNum);
-    cell.appendChild(dayHeader);
-    cell.setAttribute("role", "button");
-    cell.setAttribute("tabindex", "0");
-    cell.setAttribute("aria-label", `Следующий месяц, ${d}`);
-    cell.addEventListener("click", () => changeMonth(1));
-    cell.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        changeMonth(1);
-      }
-    });
-    fragment.appendChild(cell);
+    const dateKey = formatDateKey(nextMonthYear, nextMonthIdx, d);
+    const colIndex = (totalCells + d - 1) % 7;
+    const isWeekend = colIndex === 5 || colIndex === 6;
+
+    fragment.appendChild(
+      createDayCell({
+        day: d,
+        dateKey,
+        isOtherMonth: true,
+        isWeekend,
+        isToday: dateKey === todayKey,
+        ariaLabel: `Следующий месяц, ${d}`,
+      })
+    );
   }
 
   const grid = elements.calendarGrid;
@@ -1154,9 +1177,18 @@ function initSelectAnimations() {
 // ============================================================
 function bindEvents() {
   // Навигация по месяцам
-  elements.prevMonthBtn.addEventListener("click", () => changeMonth(-1));
-  elements.nextMonthBtn.addEventListener("click", () => changeMonth(1));
-  elements.monthTitle.addEventListener("click", goToToday);
+  elements.prevMonthBtn.addEventListener("click", (e) => {
+    changeMonth(-1);
+    e.currentTarget.blur();
+  });
+  elements.nextMonthBtn.addEventListener("click", (e) => {
+    changeMonth(1);
+    e.currentTarget.blur();
+  });
+  elements.monthTitle.addEventListener("click", (e) => {
+    goToToday();
+    e.currentTarget.blur();
+  });
   elements.monthTitle.addEventListener("keydown", (e) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
@@ -1166,7 +1198,10 @@ function bindEvents() {
 
   // Кнопка быстрого возврата к сегодняшнему дню
   if (elements.todayBtn) {
-    elements.todayBtn.addEventListener("click", goToToday);
+    elements.todayBtn.addEventListener("click", (e) => {
+      goToToday();
+      e.currentTarget.blur();
+    });
   }
 
   // Тема и настройки

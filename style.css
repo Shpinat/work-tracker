@@ -105,13 +105,15 @@
 }
 
 [data-theme="light"] .calendar__day-cell--other-month {
-    opacity: 0.50;
-    background: rgba(0, 0, 0, 0.04) !important;
+    opacity: 0.45;
+}
+
+[data-theme="light"] .calendar__day-cell--other-month.calendar__day-cell--has-shift {
+    opacity: 0.70;
 }
 
 [data-theme="light"] .calendar__day-cell--other-month:hover {
     opacity: 1;
-    background: rgba(0, 0, 0, 0.04) !important;
 }
 
 [data-theme="light"] .calendar__day-cell--night .calendar__shift-badge {
@@ -346,11 +348,19 @@ body.modal-open {
 }
 
 .btn--icon:active {
+    background: rgba(255, 255, 255, 0.12);
     transform: scale(0.92);
 }
 
-.btn--icon:hover {
-    background: rgba(255, 255, 255, 0.1);
+@media (hover: hover) {
+    .btn--icon:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+}
+
+.btn--icon:focus:not(:focus-visible),
+.btn--icon:focus {
+    outline: none;
 }
 
 /* Header (Block) */
@@ -427,14 +437,6 @@ body.modal-open {
     border: 1px solid var(--border);
 }
 
-.month-selector:hover {
-    background: rgba(255, 255, 255, 0.08);
-}
-
-[data-theme="light"] .month-selector:hover {
-    background: rgba(0, 0, 0, 0.05);
-}
-
 .month-selector__btn {
     background: transparent;
     border: none;
@@ -449,20 +451,41 @@ body.modal-open {
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     flex-shrink: 0;
     padding: 0;
+    -webkit-tap-highlight-color: transparent;
 }
 
-.month-selector__btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--text);
-}
+@media (hover: hover) {
+    .month-selector:hover {
+        background: rgba(255, 255, 255, 0.08);
+    }
 
-[data-theme="light"] .month-selector__btn:hover {
-    background: rgba(0, 0, 0, 0.06);
-    color: var(--text);
+    [data-theme="light"] .month-selector:hover {
+        background: rgba(0, 0, 0, 0.05);
+    }
+
+    .month-selector__btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--text);
+    }
+
+    [data-theme="light"] .month-selector__btn:hover {
+        background: rgba(0, 0, 0, 0.06);
+        color: var(--text);
+    }
 }
 
 .month-selector__btn:active {
+    background: rgba(255, 255, 255, 0.12);
     transform: scale(0.92);
+}
+
+[data-theme="light"] .month-selector__btn:active {
+    background: rgba(0, 0, 0, 0.08);
+}
+
+.month-selector__btn:focus:not(:focus-visible),
+.month-selector__btn:focus {
+    outline: none;
 }
 
 .month-selector__btn:focus-visible {
@@ -598,13 +621,15 @@ body.modal-open {
 }
 
 .calendar__day-cell--other-month {
-    opacity: 0.28;
-    background: rgba(255, 255, 255, 0.04) !important;
+    opacity: 0.35;
+}
+
+.calendar__day-cell--other-month.calendar__day-cell--has-shift {
+    opacity: 0.60;
 }
 
 .calendar__day-cell--other-month:hover {
-    opacity: 0.50;
-    background: rgba(255, 255, 255, 0.04) !important;
+    opacity: 0.85;
 }
 
 .calendar__day-cell--today {

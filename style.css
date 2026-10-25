@@ -1009,6 +1009,78 @@ body.modal-open {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }
 
+/* Кастомный тонкий скроллбар для всех модальных окон */
+.modal,
+.shift-list {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+}
+
+[data-theme="light"] .modal,
+[data-theme="light"] .shift-list {
+    scrollbar-color: rgba(65, 58, 48, 0.22) transparent;
+}
+
+.modal::-webkit-scrollbar,
+.shift-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.modal::-webkit-scrollbar-track,
+.shift-list::-webkit-scrollbar-track {
+    background: transparent;
+    margin: 16px 0;
+}
+
+.modal::-webkit-scrollbar-thumb,
+.shift-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.22);
+    border-radius: 999px;
+    transition: background-color 0.2s ease;
+}
+
+.modal::-webkit-scrollbar-thumb:hover,
+.shift-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.4);
+}
+
+[data-theme="light"] .modal::-webkit-scrollbar-thumb,
+[data-theme="light"] .shift-list::-webkit-scrollbar-thumb {
+    background: rgba(65, 58, 48, 0.22);
+}
+
+[data-theme="light"] .modal::-webkit-scrollbar-thumb:hover,
+[data-theme="light"] .shift-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(65, 58, 48, 0.4);
+}
+
+/* Модальное окно детализации смен — фиксированная шапка и встроенный скролл списка */
+.modal--shifts {
+    display: flex;
+    flex-direction: column;
+    max-height: 85vh;
+    overflow: hidden;
+}
+
+.modal--shifts .modal__header {
+    flex-shrink: 0;
+    margin-bottom: 16px;
+}
+
+.modal--shifts .modal__export-group {
+    flex-shrink: 0;
+    margin-bottom: 16px;
+}
+
+.modal--shifts .shift-list {
+    flex: 1;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    padding-right: 6px;
+    margin-right: -4px;
+}
+
 .modal__header {
     display: flex;
     justify-content: space-between;
@@ -1459,6 +1531,19 @@ body.modal-open {
         touch-action: pan-y;
         overscroll-behavior-y: contain;
         -webkit-overflow-scrolling: touch;
+    }
+
+    .modal--shifts {
+        max-height: 85vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        padding-bottom: 24px;
+    }
+
+    .modal--shifts .shift-list {
+        padding-right: 4px;
+        margin-right: -4px;
     }
 
     .modal__close-btn {

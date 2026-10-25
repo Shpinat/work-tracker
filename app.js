@@ -1024,8 +1024,10 @@ function initBottomSheetSwipe() {
         const isNearTop = touch.clientY - rect.top < 65;
         isTopDrag = isHeader || isNearTop;
 
+        const scrollable = content.querySelector(".shift-list") || content;
+
         // Разрешаем смахивание, если шторка прокручена к самому верху или тап по шапке/ручке
-        if (content.scrollTop <= 0 || isTopDrag) {
+        if (scrollable.scrollTop <= 0 || isTopDrag) {
           isTracking = true;
           isDragging = false;
         } else {
@@ -1043,8 +1045,10 @@ function initBottomSheetSwipe() {
         currentY = touch.clientY;
         const dy = currentY - startY;
 
+        const scrollable = content.querySelector(".shift-list") || content;
+
         // Если тянем вниз от верха шторки или за шапку — отменяем нативный жест (pull-to-refresh)
-        if (dy > 0 && (content.scrollTop <= 0 || isTopDrag)) {
+        if (dy > 0 && (scrollable.scrollTop <= 0 || isTopDrag)) {
           if (e.cancelable) {
             e.preventDefault();
           }

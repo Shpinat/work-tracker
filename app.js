@@ -128,6 +128,7 @@ const elements = {
   prevMonthBtn: document.getElementById("prevMonthBtn"),
   nextMonthBtn: document.getElementById("nextMonthBtn"),
   todayBtn: document.getElementById("todayBtn"),
+  autoScheduleBtn: document.getElementById("autoScheduleBtn"),
   themeToggleBtn: document.getElementById("themeToggleBtn"),
   themeIcon: document.getElementById("themeIcon"),
   settingsBtn: document.getElementById("settingsBtn"),
@@ -207,6 +208,24 @@ const elements = {
   defRate: document.getElementById("defRate"),
   defCurrency: document.getElementById("defCurrency"),
   defCutoffDay: document.getElementById("defCutoffDay"),
+
+  // Модальное окно автозаполнения графика
+  scheduleModal: document.getElementById("scheduleModal"),
+  scheduleModalTitle: document.getElementById("scheduleModalTitle"),
+  scheduleModalCloseBtn: document.getElementById("scheduleModalCloseBtn"),
+  scheduleForm: document.getElementById("scheduleForm"),
+  scheduleStartDate: document.getElementById("scheduleStartDate"),
+  schedulePatternGrid: document.getElementById("schedulePatternGrid"),
+  selectedPattern: document.getElementById("selectedPattern"),
+  customPatternGroup: document.getElementById("customPatternGroup"),
+  customPatternBuilder: document.getElementById("customPatternBuilder"),
+  customPatternLabel: document.getElementById("customPatternLabel"),
+  customResetBtn: document.getElementById("customResetBtn"),
+  scheduleDurationSegmented: document.getElementById("scheduleDurationSegmented"),
+  scheduleDuration: document.getElementById("scheduleDuration"),
+  scheduleSkipExisting: document.getElementById("scheduleSkipExisting"),
+  schedulePreviewText: document.getElementById("schedulePreviewText"),
+  applyScheduleBtn: document.getElementById("applyScheduleBtn"),
 
   // Бэкап
   backupDownloadBtn: document.getElementById("backupDownloadBtn"),
@@ -369,6 +388,14 @@ function initSegmentedControls() {
       inputId: "defPayMode",
       onChange: null,
     },
+    {
+      containerId: "scheduleDurationSegmented",
+      inputId: "scheduleDuration",
+      onChange: () => {
+        updateSchedulePreview();
+        triggerHaptic(10);
+      },
+    },
   ];
 
   configs.forEach(({ containerId, inputId, onChange }) => {
@@ -491,7 +518,7 @@ function closeModal(id) {
 // ============================================================
 let toastTimer = null;
 
-function showToast(message, type = "info") {
+function showToast(message, type = "info", action = null) {
   const toast = elements.appToast;
   if (!toast) return;
 
@@ -499,6 +526,23 @@ function showToast(message, type = "info") {
   const msgEl = toast.querySelector(".app-toast__message");
 
   msgEl.textContent = message;
+
+  // Очищаем старую кнопку действия
+  const oldAction = toast.querySelector(".app-toast__action");
+  if (oldAction) oldAction.remove();
+
+  if (action && typeof action.onClick === "function") {
+    const actionBtn = document.createElement("button");
+    actionBtn.type = "button";
+    actionBtn.className = "app-toast__action";
+    actionBtn.textContent = action.label || "Отменить";
+    actionBtn.addEventListener("click", () => {
+      toast.classList.remove("active");
+      action.onClick();
+    });
+    toast.appendChild(actionBtn);
+  }
+
   toast.className = `app-toast app-toast--${type} active`;
 
   if (type === "success") {
@@ -512,7 +556,7 @@ function showToast(message, type = "info") {
   if (toastTimer) clearTimeout(toastTimer);
   toastTimer = setTimeout(() => {
     toast.classList.remove("active");
-  }, 3000);
+  }, action ? 5000 : 3000);
 }
 
 function showConfirm({
@@ -731,6 +775,241 @@ function saveSettings(e) {
   render();
   triggerHaptic(15);
   showToast("Настройки и шаблоны сохранены", "success");
+}
+
+// ============================================================
+// Автозаполнение графиков (Генератор 2/2, 3/3, 5/2 и др.)
+// ============================================================
+const SCHEDULE_PATTERNS = {
+  "2-2-day": {
+    name: "2/2 День",
+    cycle: ["day", "day", "off", "off"],
+  },
+  "2-2-mixed": {
+    name: "2/2 Смешанный",
+    cycle: ["day", "night", "off", "off"],
+  },
+  "3-3-day": {
+    name: "3/3 День",
+    cycle: ["day", "day", "day", "off", "off", "off"],
+  },
+  "1-3-mixed": {
+    name: "День-Ночь-48",
+    cycle: ["day", "night", "off", "off"],
+  },
+  "5-2-weekdays": {
+    name: "5/2 Будни",
+    isWeekdays: true,
+  },
+  custom: {
+    name: "Свой цикл",
+    cycle: ["day", "off"],
+  },
+};
+
+let customCycle = ["day", "night", "off", "off"];
+let lastScheduleSnapshot = null;
+
+function openScheduleModal() {
+  const y = currentDate.getFullYear();
+  const m = String(currentDate.getMonth() + 1).padStart(2, "0");
+  elements.scheduleStartDate.value = `${y}-${m}-01`;
+
+  elements.selectedPattern.value = "2-2-day";
+  if (elements.schedulePatternGrid) {
+    elements.schedulePatternGrid.querySelectorAll(".schedule-pattern-btn").forEach((btn) => {
+      btn.classList.toggle("is-active", btn.dataset.pattern === "2-2-day");
+    });
+  }
+  if (elements.customPatternGroup) {
+    elements.customPatternGroup.style.display = "none";
+  }
+
+  setSegmentedValue("scheduleDurationSegmented", "scheduleDuration", "1");
+  elements.scheduleSkipExisting.checked = true;
+
+  updateCustomPatternBuilderUI();
+  updateSchedulePreview();
+  openModal("scheduleModal");
+}
+
+function updateCustomPatternBuilderUI() {
+  const container = elements.customPatternBuilder;
+  if (!container) return;
+
+  if (customCycle.length === 0) {
+    container.innerHTML = '<span style="color: var(--text-muted); font-size: 0.8rem;">Нажмите кнопки ниже, чтобы составить цикл</span>';
+    return;
+  }
+
+  container.innerHTML = "";
+  customCycle.forEach((type, idx) => {
+    const chip = document.createElement("span");
+    chip.className = `custom-pattern-chip custom-pattern-chip--${type}`;
+    let icon = "⚪";
+    let title = "Вых";
+    if (type === "day") {
+      icon = "☀️";
+      title = "День";
+    } else if (type === "night") {
+      icon = "🌙";
+      title = "Ночь";
+    }
+
+    chip.innerHTML = `${icon} ${title} <span style="font-size: 0.7rem; opacity: 0.6; margin-left: 2px;">✕</span>`;
+    chip.title = "Нажмите, чтобы удалить день из цикла";
+    chip.addEventListener("click", () => {
+      customCycle.splice(idx, 1);
+      updateCustomPatternBuilderUI();
+      updateSchedulePreview();
+      triggerHaptic(8);
+    });
+    container.appendChild(chip);
+  });
+}
+
+function calculateScheduleDates() {
+  const startStr = elements.scheduleStartDate.value;
+  if (!startStr) return [];
+
+  const [sy, sm, sd] = startStr.split("-").map(Number);
+  const startDate = new Date(sy, sm - 1, sd);
+  const durationMonths = parseInt(elements.scheduleDuration.value, 10) || 1;
+  const skipExisting = elements.scheduleSkipExisting.checked;
+  const patternKey = elements.selectedPattern.value;
+  const pattern = SCHEDULE_PATTERNS[patternKey] || SCHEDULE_PATTERNS["2-2-day"];
+
+  const endDate = new Date(startDate);
+  endDate.setMonth(endDate.getMonth() + durationMonths);
+  endDate.setDate(endDate.getDate() - 1);
+
+  const cycle = patternKey === "custom" ? customCycle : (pattern.cycle || []);
+  if (!pattern.isWeekdays && cycle.length === 0) return [];
+
+  const plannedShifts = [];
+  const cur = new Date(startDate);
+
+  let dayIndex = 0;
+  while (cur <= endDate) {
+    const y = cur.getFullYear();
+    const m = cur.getMonth();
+    const d = cur.getDate();
+    const dateKey = formatDateKey(y, m, d);
+
+    let type = "off";
+    if (pattern.isWeekdays) {
+      const dayOfWeek = cur.getDay(); // 0 = Вс, 6 = Сб
+      type = (dayOfWeek >= 1 && dayOfWeek <= 5) ? "day" : "off";
+    } else {
+      type = cycle[dayIndex % cycle.length];
+    }
+
+    if (type !== "off") {
+      const alreadyExists = !!shifts[dateKey];
+      if (!alreadyExists || !skipExisting) {
+        plannedShifts.push({
+          dateKey,
+          type,
+          day: d,
+          month: m,
+          year: y,
+          willOverwrite: alreadyExists,
+        });
+      }
+    }
+
+    cur.setDate(cur.getDate() + 1);
+    dayIndex++;
+  }
+
+  return plannedShifts;
+}
+
+function updateSchedulePreview() {
+  const previewEl = elements.schedulePreviewText;
+  if (!previewEl) return;
+
+  const planned = calculateScheduleDates();
+  if (planned.length === 0) {
+    previewEl.innerHTML = "Нет смен для добавления в выбранном периоде.";
+    return;
+  }
+
+  const durationMonths = parseInt(elements.scheduleDuration.value, 10) || 1;
+  const dayCount = planned.filter((s) => s.type === "day").length;
+  const nightCount = planned.filter((s) => s.type === "night").length;
+
+  const presets = settings.presets || DEFAULT_PRESETS;
+  const rate = parseFloat(settings.rate) || 0;
+  const payMode = settings.payMode || "hourly";
+
+  let estTotal = 0;
+  planned.forEach((s) => {
+    const p = presets[s.type] || presets.day;
+    const hours = calcHoursDiff(p.start, p.end, p.breakMins);
+    const pay = payMode === "hourly" ? hours * rate : rate;
+    estTotal += Math.round(pay);
+  });
+
+  const durationStr = durationMonths === 1 ? "1 месяц" : `${durationMonths} месяца`;
+  let breakdown = [];
+  if (dayCount > 0) breakdown.push(`${dayCount} дневных`);
+  if (nightCount > 0) breakdown.push(`${nightCount} ночных`);
+
+  previewEl.innerHTML = `Будет добавлено <strong>${planned.length} смен</strong> (${breakdown.join(", ")}) на <strong>${durationStr}</strong>.<br>Прогнозируемый доход: ~<strong>${estTotal.toLocaleString("ru-RU")} ${settings.currency}</strong>.`;
+}
+
+function applySchedule(e) {
+  e.preventDefault();
+  const planned = calculateScheduleDates();
+  if (planned.length === 0) {
+    showToast("Нет смен для добавления", "info");
+    return;
+  }
+
+  // Снимок для функции "Отменить"
+  lastScheduleSnapshot = JSON.parse(JSON.stringify(shifts));
+
+  const presets = settings.presets || DEFAULT_PRESETS;
+  const rate = parseFloat(settings.rate) || 0;
+  const payMode = settings.payMode || "hourly";
+
+  planned.forEach((s) => {
+    const p = presets[s.type] || presets.day;
+    const hours = calcHoursDiff(p.start, p.end, p.breakMins);
+    const basePay = payMode === "hourly" ? hours * rate : rate;
+
+    shifts[s.dateKey] = {
+      type: s.type,
+      start: p.start,
+      end: p.end,
+      breakMins: p.breakMins,
+      hours: hours,
+      payMode: payMode,
+      rate: rate,
+      bonus: 0,
+      totalPay: Math.round(basePay),
+      note: "",
+    };
+  });
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(shifts));
+  closeModal("scheduleModal");
+  render();
+  triggerHaptic([30, 40, 50]);
+
+  showToast(`График заполнен (+${planned.length} смен)!`, "success", {
+    label: "Отменить",
+    onClick: () => {
+      if (lastScheduleSnapshot) {
+        shifts = lastScheduleSnapshot;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(shifts));
+        render();
+        triggerHaptic(15);
+        showToast("Автозаполнение отменено", "info");
+      }
+    },
+  });
 }
 
 function quickAddDefaultShift(dateKey) {
@@ -1716,6 +1995,59 @@ function bindEvents() {
     closeModal("settingsModal"),
   );
 
+  // Автозаполнение графика
+  if (elements.autoScheduleBtn) {
+    elements.autoScheduleBtn.addEventListener("click", openScheduleModal);
+  }
+  if (elements.scheduleModalCloseBtn) {
+    elements.scheduleModalCloseBtn.addEventListener("click", () => closeModal("scheduleModal"));
+  }
+  if (elements.scheduleForm) {
+    elements.scheduleForm.addEventListener("submit", applySchedule);
+  }
+  if (elements.scheduleStartDate) {
+    elements.scheduleStartDate.addEventListener("change", updateSchedulePreview);
+  }
+  if (elements.scheduleSkipExisting) {
+    elements.scheduleSkipExisting.addEventListener("change", updateSchedulePreview);
+  }
+
+  if (elements.schedulePatternGrid) {
+    elements.schedulePatternGrid.querySelectorAll(".schedule-pattern-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const pattern = btn.dataset.pattern;
+        elements.selectedPattern.value = pattern;
+        elements.schedulePatternGrid.querySelectorAll(".schedule-pattern-btn").forEach((b) => {
+          b.classList.toggle("is-active", b === btn);
+        });
+        if (elements.customPatternGroup) {
+          elements.customPatternGroup.style.display = pattern === "custom" ? "block" : "none";
+        }
+        updateSchedulePreview();
+        triggerHaptic(10);
+      });
+    });
+  }
+
+  document.querySelectorAll(".custom-add-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const type = btn.dataset.type;
+      customCycle.push(type);
+      updateCustomPatternBuilderUI();
+      updateSchedulePreview();
+      triggerHaptic(8);
+    });
+  });
+
+  if (elements.customResetBtn) {
+    elements.customResetBtn.addEventListener("click", () => {
+      customCycle = [];
+      updateCustomPatternBuilderUI();
+      updateSchedulePreview();
+      triggerHaptic(12);
+    });
+  }
+
   // Бэкап
   elements.backupDownloadBtn.addEventListener("click", downloadBackup);
   elements.backupRestoreBtn.addEventListener("click", () =>
@@ -1724,7 +2056,7 @@ function bindEvents() {
   elements.importFile.addEventListener("change", restoreBackup);
 
   // Закрытие модалок по клику на оверлей или по Escape
-  [elements.shiftModal, elements.settingsModal, elements.shiftsModal].forEach((overlay) => {
+  [elements.shiftModal, elements.settingsModal, elements.shiftsModal, elements.scheduleModal].forEach((overlay) => {
     if (!overlay) return;
     overlay.addEventListener("click", (e) => {
       if (e.target === overlay) closeModal(overlay.id);
@@ -1736,6 +2068,7 @@ function bindEvents() {
       closeModal("shiftModal");
       closeModal("settingsModal");
       closeModal("shiftsModal");
+      closeModal("scheduleModal");
     }
   });
 }

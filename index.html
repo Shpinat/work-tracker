@@ -59,6 +59,21 @@
           </svg>
         </button>
 
+        <!-- Кнопка автозаполнения графика -->
+        <button
+          id="autoScheduleBtn"
+          class="btn btn--icon header__schedule-btn"
+          title="Автозаполнение графика (2/2, 3/3 и др.)"
+          aria-label="Автозаполнение графика"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="17 1 21 5 17 9"></polyline>
+            <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+            <polyline points="7 23 3 19 7 15"></polyline>
+            <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+          </svg>
+        </button>
+
         <!-- Кнопка смены темы -->
         <button id="themeToggleBtn" class="btn btn--icon" aria-label="Сменить тему">
           <svg id="themeIcon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -555,6 +570,133 @@
             accept=".json"
           />
         </div>
+      </div>
+    </div>
+
+    <!-- Модальное окно автозаполнения графика -->
+    <div class="modal-overlay" id="scheduleModal">
+      <div class="modal modal-overlay__content" role="dialog" aria-modal="true" aria-labelledby="scheduleModalTitle">
+        <header class="modal__header">
+          <div>
+            <h3 class="modal__title" id="scheduleModalTitle">Автозаполнение графика</h3>
+            <div class="modal__subtitle">Повторяющиеся смены по циклу</div>
+          </div>
+          <button
+            class="btn btn--icon modal__close-btn"
+            id="scheduleModalCloseBtn"
+            aria-label="Закрыть"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </header>
+
+        <form class="form modal__form" id="scheduleForm">
+          <div class="form__group">
+            <label class="form__label" for="scheduleStartDate">Дата первой смены цикла</label>
+            <input
+              class="form__control form__input"
+              type="date"
+              id="scheduleStartDate"
+              required
+            />
+          </div>
+
+          <div class="form__group">
+            <label class="form__label">Тип графика</label>
+            <div class="schedule-patterns" id="schedulePatternGrid">
+              <button type="button" class="schedule-pattern-btn is-active" data-pattern="2-2-day">
+                <span class="schedule-pattern-btn__title">2/2 День</span>
+                <span class="schedule-pattern-btn__badge">2 дня • 2 вых</span>
+              </button>
+              <button type="button" class="schedule-pattern-btn" data-pattern="2-2-mixed">
+                <span class="schedule-pattern-btn__title">2/2 Смешанный</span>
+                <span class="schedule-pattern-btn__badge">День • Ночь • 2 вых</span>
+              </button>
+              <button type="button" class="schedule-pattern-btn" data-pattern="3-3-day">
+                <span class="schedule-pattern-btn__title">3/3 День</span>
+                <span class="schedule-pattern-btn__badge">3 дня • 3 вых</span>
+              </button>
+              <button type="button" class="schedule-pattern-btn" data-pattern="1-3-mixed">
+                <span class="schedule-pattern-btn__title">День-Ночь-48</span>
+                <span class="schedule-pattern-btn__badge">День • Ночь • 2 вых</span>
+              </button>
+              <button type="button" class="schedule-pattern-btn" data-pattern="5-2-weekdays">
+                <span class="schedule-pattern-btn__title">5/2 Будни</span>
+                <span class="schedule-pattern-btn__badge">Пн–Пт • Сб–Вс вых</span>
+              </button>
+              <button type="button" class="schedule-pattern-btn" data-pattern="custom">
+                <span class="schedule-pattern-btn__title">Свой цикл</span>
+                <span class="schedule-pattern-btn__badge" id="customPatternLabel">Настроить</span>
+              </button>
+            </div>
+            <input type="hidden" id="selectedPattern" value="2-2-day" />
+          </div>
+
+          <!-- Конструктор своего цикла -->
+          <div class="form__group custom-pattern-group" id="customPatternGroup" style="display: none;">
+            <label class="form__label">Дни в цикле (нажимайте кнопки ниже):</label>
+            <div class="custom-pattern-builder" id="customPatternBuilder">
+              <!-- Сюда вставляются чипсы -->
+            </div>
+            <div class="custom-pattern-actions">
+              <button type="button" class="btn btn--secondary btn--sm custom-add-btn" data-type="day">
+                + День
+              </button>
+              <button type="button" class="btn btn--secondary btn--sm custom-add-btn" data-type="night">
+                + Ночь
+              </button>
+              <button type="button" class="btn btn--secondary btn--sm custom-add-btn" data-type="off">
+                + Выходной
+              </button>
+              <button type="button" class="btn btn--secondary btn--sm custom-reset-btn" id="customResetBtn">
+                Сброс
+              </button>
+            </div>
+          </div>
+
+          <div class="form__group">
+            <label class="form__label">Период заполнения</label>
+            <div class="segmented-control" role="radiogroup" aria-label="Период заполнения" id="scheduleDurationSegmented">
+              <button type="button" class="segmented-control__btn is-active" data-value="1">
+                1 месяц
+              </button>
+              <button type="button" class="segmented-control__btn" data-value="2">
+                2 месяца
+              </button>
+              <button type="button" class="segmented-control__btn" data-value="3">
+                3 месяца
+              </button>
+            </div>
+            <input type="hidden" id="scheduleDuration" value="1" />
+          </div>
+
+          <div class="form__group schedule-checkbox-group">
+            <label class="schedule-checkbox-label">
+              <input type="checkbox" id="scheduleSkipExisting" checked class="schedule-checkbox" />
+              <span>Не перезаписывать уже заполненные дни</span>
+            </label>
+          </div>
+
+          <!-- Превью расчета перед запуском -->
+          <div class="schedule-preview-card" id="schedulePreviewCard">
+            <div class="schedule-preview-card__icon">⚡</div>
+            <div class="schedule-preview-card__content">
+              <div class="schedule-preview-card__title" id="schedulePreviewTitle">Предпросмотр:</div>
+              <div class="schedule-preview-card__text" id="schedulePreviewText">Расчет графика...</div>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            class="btn btn--primary form__btn form__btn--full"
+            id="applyScheduleBtn"
+          >
+            Заполнить график
+          </button>
+        </form>
       </div>
     </div>
 

@@ -1364,6 +1364,23 @@ body.modal-open {
     color: var(--primary);
 }
 
+.app-toast__action {
+    background: transparent;
+    border: none;
+    color: var(--primary);
+    font-weight: 700;
+    font-size: 0.82rem;
+    margin-left: 6px;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 2px 4px;
+    flex-shrink: 0;
+}
+
+.app-toast__action:hover {
+    opacity: 0.8;
+}
+
 [data-theme="light"] .modal--dialog,
 [data-theme="light"] .app-toast {
     box-shadow: 0 12px 32px rgba(120, 105, 85, 0.15);
@@ -1613,6 +1630,221 @@ body.modal-open {
     stroke: #ea580c;
 }
 
+/* Schedule Patterns (Генератор графиков) */
+.schedule-patterns {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    width: 100%;
+}
+
+.schedule-pattern-btn {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 3px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    color: var(--text-muted);
+    text-align: left;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.schedule-pattern-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.schedule-pattern-btn:active {
+    transform: scale(0.98);
+}
+
+.schedule-pattern-btn.is-active {
+    background: #2c2c2e;
+    color: #ffffff;
+    border-color: var(--primary);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+.schedule-pattern-btn__title {
+    font-size: 0.88rem;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.schedule-pattern-btn__badge {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    line-height: 1.2;
+}
+
+.schedule-pattern-btn.is-active .schedule-pattern-btn__badge {
+    color: rgba(255, 255, 255, 0.75);
+}
+
+[data-theme="light"] .schedule-pattern-btn {
+    background: rgba(0, 0, 0, 0.03);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+}
+
+[data-theme="light"] .schedule-pattern-btn:hover {
+    background: rgba(0, 0, 0, 0.06);
+    color: var(--text);
+}
+
+[data-theme="light"] .schedule-pattern-btn.is-active {
+    background: #ffffff;
+    color: #1f1d1a;
+    border-color: var(--primary);
+    box-shadow: 0 4px 16px rgba(120, 105, 85, 0.12);
+}
+
+[data-theme="light"] .schedule-pattern-btn.is-active .schedule-pattern-btn__badge {
+    color: rgba(31, 29, 26, 0.7);
+}
+
+/* Custom Pattern Builder */
+.custom-pattern-builder {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-sm);
+    min-height: 48px;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+[data-theme="light"] .custom-pattern-builder {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.custom-pattern-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 8px;
+    border-radius: var(--radius-pill);
+    font-size: 0.78rem;
+    font-weight: 600;
+    background: #2c2c2e;
+    color: #ffffff;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: transform 0.15s ease;
+}
+
+.custom-pattern-chip:hover {
+    transform: scale(0.95);
+    opacity: 0.8;
+}
+
+.custom-pattern-chip--day {
+    border-color: rgba(255, 214, 10, 0.4);
+    background: rgba(255, 214, 10, 0.12);
+    color: #ffd60a;
+}
+
+.custom-pattern-chip--night {
+    border-color: rgba(191, 90, 242, 0.4);
+    background: rgba(191, 90, 242, 0.12);
+    color: #bf5af2;
+}
+
+.custom-pattern-chip--off {
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-muted);
+}
+
+.custom-pattern-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.custom-pattern-actions .btn--sm {
+    padding: 6px 12px;
+    font-size: 0.78rem;
+}
+
+/* Schedule Checkbox Group */
+.schedule-checkbox-group {
+    margin-top: 4px;
+    margin-bottom: 14px;
+}
+
+.schedule-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.85rem;
+    color: var(--text);
+    cursor: pointer;
+    user-select: none;
+}
+
+.schedule-checkbox {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary);
+    cursor: pointer;
+}
+
+/* Schedule Preview Card */
+.schedule-preview-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    background: rgba(10, 132, 255, 0.08);
+    border: 1px solid rgba(10, 132, 255, 0.25);
+    border-radius: var(--radius-sm);
+    margin-bottom: 16px;
+}
+
+[data-theme="light"] .schedule-preview-card {
+    background: rgba(0, 122, 255, 0.06);
+    border: 1px solid rgba(0, 122, 255, 0.2);
+}
+
+.schedule-preview-card__icon {
+    font-size: 1.2rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.schedule-preview-card__content {
+    flex: 1;
+    min-width: 0;
+}
+
+.schedule-preview-card__title {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-bottom: 2px;
+}
+
+.schedule-preview-card__text {
+    font-size: 0.84rem;
+    color: var(--text);
+    line-height: 1.4;
+}
+
 /* Общие контурные векторные иконки для типов смен (Календарь и Список смен) */
 .shift-svg-icon {
     width: 14px;
@@ -1789,6 +2021,23 @@ body.modal-open {
     }
 
     .payout-split__meta {
+        font-size: 0.68rem;
+    }
+
+    .schedule-patterns {
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+    }
+
+    .schedule-pattern-btn {
+        padding: 8px 8px;
+    }
+
+    .schedule-pattern-btn__title {
+        font-size: 0.8rem;
+    }
+
+    .schedule-pattern-btn__badge {
         font-size: 0.68rem;
     }
 

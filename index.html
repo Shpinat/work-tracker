@@ -20,17 +20,6 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <!-- Скрытые SVG-символы для переиспользования иконок -->
-    <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
-      <defs>
-        <symbol id="icon-arrow-right" viewBox="0 0 1280 1280">
-          <g transform="translate(0,1280) scale(0.1,-0.1)" fill="currentColor" stroke="none">
-            <path d="M7556 10480 c-384 -61 -686 -316 -799 -676 -88 -278 -46 -583 115 -832 40 -62 200 -228 806 -834 l756 -758 -3289 -3 -3290 -2 -83 -23 c-412 -110 -696 -437 -742 -850 -50 -453 224 -878 662 -1028 166 -57 -15 -54 3503 -54 l3240 0 -756 -757 c-470 -471 -772 -781 -796 -818 -266 -399 -218 -911 117 -1245 186 -187 417 -282 685 -283 169 -1 295 28 445 103 168 85 66 -15 2024 1955 l1441 1450 52 95 c196 364 159 787 -98 1104 -32 39 -772 785 -1646 1657 -1369 1367 -1600 1594 -1674 1643 -157 102 -315 153 -504 160 -60 3 -137 1 -169 -4z" />
-          </g>
-        </symbol>
-      </defs>
-    </svg>
-
     <!-- Уведомление о наличии обновления PWA -->
     <div id="updateToast" class="update-toast">
       <span class="update-toast__message">Доступна новая версия!</span>
@@ -40,24 +29,24 @@
     </div>
 
     <header class="header">
-      <nav class="month-selector header__month-selector">
+      <nav class="month-selector header__month-selector" aria-label="Выбор месяца">
         <button
           id="prevMonthBtn"
-          class="btn btn--icon month-selector__btn"
+          class="month-selector__btn"
           aria-label="Предыдущий месяц"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" style="transform: scaleX(-1)">
-            <use href="#icon-arrow-right" />
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
           </svg>
         </button>
         <h1 class="month-selector__title" id="monthTitle" title="Перейти к текущему месяцу" role="button" tabindex="0">Октябрь 2026</h1>
         <button
           id="nextMonthBtn"
-          class="btn btn--icon month-selector__btn"
+          class="month-selector__btn"
           aria-label="Следующий месяц"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15">
-            <use href="#icon-arrow-right" />
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
           </svg>
         </button>
       </nav>

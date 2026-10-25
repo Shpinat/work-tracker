@@ -404,27 +404,83 @@ body.modal-open {
     }
 }
 
-/* Month Selector (Block) */
+/* Month Selector (Unified Pill Bar) */
 .month-selector {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 12px;
+    background: var(--card);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-pill);
+    padding: 3px 6px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    user-select: none;
+    transition: all 0.2s ease;
+}
+
+[data-theme="light"] .month-selector {
+    background: var(--card);
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 16px rgba(120, 105, 85, 0.1);
+}
+
+.month-selector__btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    flex-shrink: 0;
+    padding: 0;
+}
+
+.month-selector__btn:hover {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="light"] .month-selector__btn:hover {
+    color: var(--text);
+    background: rgba(90, 75, 55, 0.08);
+}
+
+.month-selector__btn:active {
+    transform: scale(0.9);
+}
+
+.month-selector__btn:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 1px;
 }
 
 .month-selector__title {
-    font-size: 1.3rem;
-    font-weight: 500;
-    min-width: 150px;
+    font-size: 1.05rem;
+    font-weight: 600;
+    padding: 0 10px;
+    min-width: 130px;
     text-align: center;
     text-transform: capitalize;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.2px;
     cursor: pointer;
-    transition: color 0.2s ease;
+    transition: color 0.2s ease, transform 0.2s ease;
     user-select: none;
+    color: var(--text);
+    line-height: 1;
 }
 
 .month-selector__title:hover {
     color: var(--primary);
+}
+
+.month-selector__title:active {
+    transform: scale(0.98);
 }
 
 /* Stats (Block) */
@@ -1185,9 +1241,19 @@ body.modal-open {
         margin-bottom: 16px;
     }
 
+    .month-selector {
+        padding: 2px 4px;
+    }
+
+    .month-selector__btn {
+        width: 28px;
+        height: 28px;
+    }
+
     .month-selector__title {
-        font-size: 1.1rem;
-        min-width: 120px;
+        font-size: 0.95rem;
+        min-width: 105px;
+        padding: 0 4px;
     }
 
     .stats {

@@ -28,7 +28,7 @@
     --text-muted: rgba(65, 58, 48, 0.65);
     --primary: #007aff;
     --primary-glow: rgba(0, 122, 255, 0.3);
-    --success: #34c759;
+    --success: #248a3d;
     --warning: #ff9500;
     --danger: #ff3b30;
     --border: rgba(90, 75, 55, 0.18);
@@ -526,7 +526,7 @@ body.modal-open {
 }
 
 .stats__card--income .stats__value {
-    color: var(--text-primary);
+    color: var(--success);
 }
 
 /* Calendar (Block) */

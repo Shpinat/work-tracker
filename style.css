@@ -131,11 +131,30 @@
 }
 
 [data-theme="light"] .stats__card,
+[data-theme="light"] .goal-tracker,
 [data-theme="light"] .payout-split__card,
 [data-theme="light"] .calendar,
 [data-theme="light"] .shift-list__item,
 [data-theme="light"] .modal {
     box-shadow: 0 8px 24px rgba(120, 105, 85, 0.09);
+}
+
+[data-theme="light"] .goal-tracker {
+    background: var(--card-solid);
+}
+
+[data-theme="light"] .goal-tracker:hover {
+    background: #ffffff;
+    border-color: rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] .goal-tracker__bar-wrapper {
+    background: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .goal-tracker--completed {
+    border-color: rgba(40, 167, 69, 0.4);
+    background: linear-gradient(135deg, rgba(40, 167, 69, 0.09) 0%, #ffffff 100%);
 }
 
 [data-theme="light"] .payout-split__card {
@@ -518,7 +537,7 @@ body.modal-open {
     display: grid;
     grid-template-columns: 1fr 1fr 1.45fr;
     gap: 12px;
-    margin-bottom: 20px;
+    margin-bottom: 12px;
 }
 
 .stats__card {
@@ -549,6 +568,148 @@ body.modal-open {
 
 .stats__card--income .stats__value {
     color: var(--success);
+}
+
+/* Monthly Goal Tracker (Block) - Финансовая цель ("Копилка") */
+.goal-tracker {
+    background: var(--card-solid);
+    border: 1px solid var(--border);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+    overflow: hidden;
+}
+
+.goal-tracker:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+}
+
+.goal-tracker:active {
+    transform: scale(0.99);
+}
+
+.goal-tracker__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    gap: 8px;
+}
+
+.goal-tracker__title-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.goal-tracker__icon {
+    font-size: 0.95rem;
+    line-height: 1;
+}
+
+.goal-tracker__title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+}
+
+.goal-tracker__figures {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.goal-tracker__progress-text {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.goal-tracker__percentage {
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: #0a84ff;
+    letter-spacing: -0.2px;
+    white-space: nowrap;
+}
+
+.goal-tracker__bar-wrapper {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    overflow: hidden;
+    position: relative;
+    margin-bottom: 8px;
+}
+
+.goal-tracker__bar {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #0a84ff 0%, #5e5ce6 50%, #bf5af2 100%);
+    box-shadow: 0 0 12px rgba(94, 92, 230, 0.5);
+    transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1), background 0.3s ease;
+}
+
+.goal-tracker__footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.74rem;
+}
+
+.goal-tracker__status-text {
+    color: var(--text-muted);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.goal-tracker__action-hint {
+    color: var(--accent);
+    font-weight: 600;
+    white-space: nowrap;
+    opacity: 0.85;
+    transition: opacity 0.2s ease;
+}
+
+.goal-tracker:hover .goal-tracker__action-hint {
+    opacity: 1;
+}
+
+/* Состояние выполненной цели (Celebration mode) */
+.goal-tracker--completed {
+    border-color: rgba(48, 209, 88, 0.35);
+    background: linear-gradient(135deg, rgba(48, 209, 88, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
+}
+
+.goal-tracker--completed .goal-tracker__percentage {
+    color: #30d158;
+}
+
+.goal-tracker--completed .goal-tracker__bar {
+    background: linear-gradient(90deg, #30d158 0%, #34c759 70%, #68d391 100%);
+    box-shadow: 0 0 14px rgba(48, 209, 88, 0.6);
+}
+
+.goal-tracker--completed .goal-tracker__status-text {
+    color: #30d158;
+    font-weight: 600;
 }
 
 /* Payout Split (Block) - Симулятор выплат: Аванс и Зарплата */
@@ -1988,7 +2149,7 @@ body.modal-open {
 
     .stats {
         gap: 8px;
-        margin-bottom: 16px;
+        margin-bottom: 10px;
     }
 
     .stats__card {
@@ -2000,6 +2161,36 @@ body.modal-open {
     }
 
     .stats__label {
+        font-size: 0.7rem;
+    }
+
+    .goal-tracker {
+        padding: 10px 12px;
+        margin-bottom: 10px;
+    }
+
+    .goal-tracker__header {
+        margin-bottom: 6px;
+    }
+
+    .goal-tracker__title {
+        font-size: 0.78rem;
+    }
+
+    .goal-tracker__progress-text {
+        font-size: 0.74rem;
+    }
+
+    .goal-tracker__percentage {
+        font-size: 0.84rem;
+    }
+
+    .goal-tracker__bar-wrapper {
+        height: 7px;
+        margin-bottom: 6px;
+    }
+
+    .goal-tracker__footer {
         font-size: 0.7rem;
     }
 

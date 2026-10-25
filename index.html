@@ -109,6 +109,27 @@
         </article>
       </section>
 
+      <!-- Финансовая цель на месяц ("Копилка") -->
+      <section class="goal-tracker main__goal-tracker" id="goalTracker" role="button" tabindex="0" title="Нажмите, чтобы изменить цель в настройках" aria-label="Финансовая цель на месяц">
+        <div class="goal-tracker__header">
+          <div class="goal-tracker__title-group">
+            <span class="goal-tracker__icon" aria-hidden="true">🎯</span>
+            <span class="goal-tracker__title">Цель на месяц</span>
+          </div>
+          <div class="goal-tracker__figures">
+            <span class="goal-tracker__progress-text" id="goalProgressText">0 / 0 ₽</span>
+            <span class="goal-tracker__percentage" id="goalPercentage">0%</span>
+          </div>
+        </div>
+        <div class="goal-tracker__bar-wrapper">
+          <div class="goal-tracker__bar" id="goalProgressBar" style="width: 0%;"></div>
+        </div>
+        <div class="goal-tracker__footer">
+          <span class="goal-tracker__status-text" id="goalStatusText">Поставьте цель в настройках</span>
+          <span class="goal-tracker__action-hint" id="goalActionHint">Настроить ⚙️</span>
+        </div>
+      </section>
+
       <!-- Распределение выплат: Аванс и Зарплата -->
       <section class="payout-split main__payout-split" id="payoutSplit" aria-label="Периоды выплат">
         <article class="payout-split__card payout-split__card--advance" id="payoutAdvanceCard" role="button" tabindex="0" title="Нажмите, чтобы посмотреть смены аванса">
@@ -534,6 +555,18 @@
                 required
               />
             </div>
+          </div>
+
+          <div class="form__group">
+            <label class="form__label" for="defMonthlyGoal">Цель заработка на месяц (0 = отключено)</label>
+            <input
+              class="form__control form__input"
+              type="number"
+              id="defMonthlyGoal"
+              placeholder="Например: 80000"
+              min="0"
+              step="1000"
+            />
           </div>
 
           <button

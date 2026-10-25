@@ -31,6 +31,7 @@ const DEFAULT_SETTINGS = {
   rate: 300,
   currency: "₽",
   advanceCutoffDay: 15,
+  monthlyGoal: 0,
   presets: DEFAULT_PRESETS,
 };
 
@@ -104,6 +105,7 @@ function loadSettings() {
       rate: typeof parsed.rate === "number" ? parsed.rate : DEFAULT_SETTINGS.rate,
       currency: typeof parsed.currency === "string" ? parsed.currency : DEFAULT_SETTINGS.currency,
       advanceCutoffDay: typeof parsed.advanceCutoffDay === "number" ? parsed.advanceCutoffDay : DEFAULT_SETTINGS.advanceCutoffDay,
+      monthlyGoal: typeof parsed.monthlyGoal === "number" ? Math.max(0, parsed.monthlyGoal) : DEFAULT_SETTINGS.monthlyGoal,
       presets,
     };
   } catch (_) {
@@ -138,6 +140,14 @@ const elements = {
   statShifts: document.getElementById("statShifts"),
   statHours: document.getElementById("statHours"),
   statIncome: document.getElementById("statIncome"),
+
+  // Финансовая цель на месяц ("Копилка")
+  goalTracker: document.getElementById("goalTracker"),
+  goalProgressText: document.getElementById("goalProgressText"),
+  goalPercentage: document.getElementById("goalPercentage"),
+  goalProgressBar: document.getElementById("goalProgressBar"),
+  goalStatusText: document.getElementById("goalStatusText"),
+  goalActionHint: document.getElementById("goalActionHint"),
 
   // Выплаты: Аванс и Расчёт
   payoutSplit: document.getElementById("payoutSplit"),
@@ -208,6 +218,7 @@ const elements = {
   defRate: document.getElementById("defRate"),
   defCurrency: document.getElementById("defCurrency"),
   defCutoffDay: document.getElementById("defCutoffDay"),
+  defMonthlyGoal: document.getElementById("defMonthlyGoal"),
 
   // Модальное окно автозаполнения графика
   scheduleModal: document.getElementById("scheduleModal"),
@@ -269,6 +280,16 @@ function calcHoursDiff(start, end, breakMins) {
   }
   const netMins = Math.max(0, endMins - startMins - (Number(breakMins) || 0));
   return Math.round((netMins / 60) * 100) / 100;
+}
+
+/** Склонение русских числительных (1 смена, 2 смены, 5 смен) */
+function getRussianDeclension(number, forms) {
+  const n = Math.abs(number) % 100;
+  const n1 = n % 10;
+  if (n > 10 && n < 20) return forms[2];
+  if (n1 > 1 && n1 < 5) return forms[1];
+  if (n1 === 1) return forms[0];
+  return forms[2];
 }
 
 /** Скачать blob-файл и освободить ObjectURL */
@@ -736,6 +757,9 @@ function openSettings() {
   elements.defRate.value = settings.rate;
   elements.defCurrency.value = settings.currency || "₽";
   elements.defCutoffDay.value = settings.advanceCutoffDay || 15;
+  if (elements.defMonthlyGoal) {
+    elements.defMonthlyGoal.value = settings.monthlyGoal ? settings.monthlyGoal : "";
+  }
   openModal("settingsModal");
 }
 
@@ -767,6 +791,7 @@ function saveSettings(e) {
   settings.rate = parseFloat(elements.defRate.value) || 0;
   settings.currency = elements.defCurrency.value.trim() || "₽";
   settings.advanceCutoffDay = Math.min(28, Math.max(1, parseInt(elements.defCutoffDay.value, 10) || 15));
+  settings.monthlyGoal = elements.defMonthlyGoal ? Math.max(0, parseFloat(elements.defMonthlyGoal.value) || 0) : (settings.monthlyGoal || 0);
 
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   updatePayModeLabels();
@@ -1354,8 +1379,94 @@ function render() {
       : `Вернуться к ${MONTH_NAMES[today.getMonth()]} ${today.getFullYear()}`;
   }
 
+  // Обновление финансовой цели ("Копилка")
+  updateGoalTrackerUI(totalIncome, totalShifts);
+
   currentMonthShiftsCache = monthShifts;
   renderShiftList(monthShifts, month);
+}
+
+/** Обновление виджета финансовой цели на месяц ("Копилка") */
+function updateGoalTrackerUI(totalIncome, totalShifts) {
+  if (!elements.goalTracker) return;
+
+  const goal = settings.monthlyGoal || 0;
+  const curr = settings.currency || "₽";
+
+  if (goal <= 0) {
+    elements.goalTracker.classList.remove("goal-tracker--completed");
+    if (elements.goalProgressText) elements.goalProgressText.textContent = `0 ${curr}`;
+    if (elements.goalPercentage) elements.goalPercentage.textContent = "0%";
+    if (elements.goalProgressBar) {
+      elements.goalProgressBar.style.width = "0%";
+      elements.goalProgressBar.classList.remove("goal-tracker__bar--completed");
+    }
+    if (elements.goalStatusText) {
+      elements.goalStatusText.textContent = "🎯 Поставьте цель заработка на месяц";
+    }
+    if (elements.goalActionHint) elements.goalActionHint.textContent = "Включить ⚙️";
+    return;
+  }
+
+  const percent = Math.round((totalIncome / goal) * 100);
+  const clampedWidth = Math.min(100, Math.max(0, percent));
+
+  if (elements.goalProgressText) {
+    elements.goalProgressText.textContent = `${totalIncome.toLocaleString("ru-RU")} / ${goal.toLocaleString("ru-RU")} ${curr}`;
+  }
+  if (elements.goalPercentage) {
+    elements.goalPercentage.textContent = `${percent}%`;
+  }
+  if (elements.goalProgressBar) {
+    elements.goalProgressBar.style.width = `${clampedWidth}%`;
+  }
+
+  if (percent >= 100) {
+    elements.goalTracker.classList.add("goal-tracker--completed");
+    if (elements.goalProgressBar) {
+      elements.goalProgressBar.classList.add("goal-tracker__bar--completed");
+    }
+    const surplus = totalIncome - goal;
+    if (elements.goalStatusText) {
+      if (surplus > 0) {
+        elements.goalStatusText.textContent = `🎉 Цель выполнена! Перевыполнение: +${surplus.toLocaleString("ru-RU")} ${curr}`;
+      } else {
+        elements.goalStatusText.textContent = "🎉 Цель достигнута на 100%! Отличная работа!";
+      }
+    }
+    if (elements.goalActionHint) elements.goalActionHint.textContent = "Изменить ⚙️";
+  } else {
+    elements.goalTracker.classList.remove("goal-tracker--completed");
+    if (elements.goalProgressBar) {
+      elements.goalProgressBar.classList.remove("goal-tracker__bar--completed");
+    }
+    const remaining = goal - totalIncome;
+
+    // Оценка необходимого количества смен
+    let avgShiftPay = 0;
+    if (totalShifts > 0 && totalIncome > 0) {
+      avgShiftPay = totalIncome / totalShifts;
+    } else {
+      if (settings.payMode === "hourly") {
+        const dayPreset = settings.presets?.day || DEFAULT_PRESETS.day;
+        const h = calcHoursDiff(dayPreset.start, dayPreset.end, dayPreset.breakMins) || 11;
+        avgShiftPay = h * (settings.rate || 300);
+      } else {
+        avgShiftPay = settings.rate || 3000;
+      }
+    }
+
+    if (elements.goalStatusText) {
+      if (avgShiftPay > 0) {
+        const neededShifts = Math.max(1, Math.ceil(remaining / avgShiftPay));
+        const shiftWord = getRussianDeclension(neededShifts, ["смена", "смены", "смен"]);
+        elements.goalStatusText.textContent = `Осталось: ${remaining.toLocaleString("ru-RU")} ${curr} (~${neededShifts} ${shiftWord})`;
+      } else {
+        elements.goalStatusText.textContent = `Осталось заработать: ${remaining.toLocaleString("ru-RU")} ${curr}`;
+      }
+    }
+    if (elements.goalActionHint) elements.goalActionHint.textContent = "Изменить ⚙️";
+  }
 }
 
 function renderShiftList(monthShifts, month) {
@@ -1562,6 +1673,7 @@ function restoreBackup(event) {
           rate: typeof s.rate === "number" ? s.rate : DEFAULT_SETTINGS.rate,
           currency: typeof s.currency === "string" ? s.currency : DEFAULT_SETTINGS.currency,
           advanceCutoffDay: typeof s.advanceCutoffDay === "number" ? s.advanceCutoffDay : DEFAULT_SETTINGS.advanceCutoffDay,
+          monthlyGoal: typeof s.monthlyGoal === "number" ? Math.max(0, s.monthlyGoal) : DEFAULT_SETTINGS.monthlyGoal,
           presets,
         };
       }
@@ -1928,6 +2040,26 @@ function bindEvents() {
   // Экспорт
   elements.exportMonthBtn.addEventListener("click", () => exportCSV(false));
   elements.exportAllBtn.addEventListener("click", () => exportCSV(true));
+
+  // Финансовая цель на месяц ("Копилка")
+  if (elements.goalTracker) {
+    elements.goalTracker.addEventListener("click", () => {
+      triggerHaptic(10);
+      openSettings();
+      setTimeout(() => {
+        if (elements.defMonthlyGoal) {
+          elements.defMonthlyGoal.focus();
+          elements.defMonthlyGoal.select();
+        }
+      }, 150);
+    });
+    elements.goalTracker.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        elements.goalTracker.click();
+      }
+    });
+  }
 
   // Модальное окно детализации смен и карточки выплат
   if (elements.payoutAdvanceCard) {

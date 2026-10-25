@@ -88,7 +88,6 @@ export async function exportCSV({
   allTime = false,
   currentDate,
   monthName = "",
-  shiftTags = {},
 }) {
   const year = currentDate.getFullYear();
   const monthStr = String(currentDate.getMonth() + 1).padStart(2, "0");
@@ -105,7 +104,6 @@ export async function exportCSV({
       "Часы",
       "Бонус",
       "Итого",
-      "Метки",
       "Заметка",
     ],
   ];

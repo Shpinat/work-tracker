@@ -23,6 +23,8 @@ const DEFAULT_PRESETS = {
   },
 };
 
+const APP_VERSION = "2.0";
+
 const DEFAULT_SETTINGS = {
   start: "09:00",
   end: "21:00",
@@ -31,7 +33,9 @@ const DEFAULT_SETTINGS = {
   rate: 300,
   currency: "₽",
   advanceCutoffDay: 15,
+  payoutSplitEnabled: false,
   monthlyGoal: 0,
+  monthlyGoalEnabled: false,
   presets: DEFAULT_PRESETS,
 };
 
@@ -76,13 +80,34 @@ function getShiftIconSvg(type) {
 }
 
 const SHIFT_TAGS = {
-  bonus: { label: "Премия", emoji: "💰" },
-  overtime: { label: "Сверхурочно", emoji: "⏱️" },
-  taxi: { label: "Такси", emoji: "🚕" },
-  sub: { label: "Подмена", emoji: "🤝" },
-  penalty: { label: "Штраф", emoji: "⚠️" },
-  heavy: { label: "Тяжёлая", emoji: "⚡" },
-  easy: { label: "Спокойная", emoji: "☕" },
+  bonus: {
+    label: "Премия",
+    svg: '<svg class="tag-svg-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path><path d="M12 18V6"></path></svg>',
+  },
+  overtime: {
+    label: "Сверхурочно",
+    svg: '<svg class="tag-svg-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>',
+  },
+  taxi: {
+    label: "Такси",
+    svg: '<svg class="tag-svg-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"></path><circle cx="7" cy="17" r="2"></circle><path d="M9 17h6"></path><circle cx="17" cy="17" r="2"></circle></svg>',
+  },
+  sub: {
+    label: "Подмена",
+    svg: '<svg class="tag-svg-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 3 4 4-4 4"></path><path d="M20 7H4"></path><path d="m8 21-4-4 4-4"></path><path d="M4 17h16"></path></svg>',
+  },
+  penalty: {
+    label: "Штраф",
+    svg: '<svg class="tag-svg-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>',
+  },
+  heavy: {
+    label: "Тяжёлая",
+    svg: '<svg class="tag-svg-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>',
+  },
+  easy: {
+    label: "Спокойная",
+    svg: '<svg class="tag-svg-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 8h1a4 4 0 1 1 0 8h-1"></path><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"></path><line x1="6" y1="2" x2="6" y2="4"></line><line x1="10" y1="2" x2="10" y2="4"></line><line x1="14" y1="2" x2="14" y2="4"></line></svg>',
+  },
 };
 
 function loadSettings() {
@@ -115,7 +140,9 @@ function loadSettings() {
       rate: typeof parsed.rate === "number" ? parsed.rate : DEFAULT_SETTINGS.rate,
       currency: typeof parsed.currency === "string" ? parsed.currency : DEFAULT_SETTINGS.currency,
       advanceCutoffDay: typeof parsed.advanceCutoffDay === "number" ? parsed.advanceCutoffDay : DEFAULT_SETTINGS.advanceCutoffDay,
+      payoutSplitEnabled: typeof parsed.payoutSplitEnabled === "boolean" ? parsed.payoutSplitEnabled : false,
       monthlyGoal: typeof parsed.monthlyGoal === "number" ? Math.max(0, parsed.monthlyGoal) : DEFAULT_SETTINGS.monthlyGoal,
+      monthlyGoalEnabled: typeof parsed.monthlyGoalEnabled === "boolean" ? parsed.monthlyGoalEnabled : false,
       presets,
     };
   } catch (_) {
@@ -235,9 +262,14 @@ const elements = {
   defPayMode: document.getElementById("defPayMode"),
   defPayModeSegmented: document.getElementById("defPayModeSegmented"),
   defRate: document.getElementById("defRate"),
+  recalcMonthRatesBtn: document.getElementById("recalcMonthRatesBtn"),
   defCurrency: document.getElementById("defCurrency"),
   defCutoffDay: document.getElementById("defCutoffDay"),
+  defPayoutModeSegmented: document.getElementById("defPayoutModeSegmented"),
+  defPayoutMode: document.getElementById("defPayoutMode"),
   defMonthlyGoal: document.getElementById("defMonthlyGoal"),
+  defGoalModeSegmented: document.getElementById("defGoalModeSegmented"),
+  defGoalMode: document.getElementById("defGoalMode"),
 
   // Модальное окно автозаполнения графика
   scheduleModal: document.getElementById("scheduleModal"),
@@ -455,6 +487,16 @@ function initSegmentedControls() {
       containerId: "defPayModeSegmented",
       inputId: "defPayMode",
       onChange: null,
+    },
+    {
+      containerId: "defPayoutModeSegmented",
+      inputId: "defPayoutMode",
+      onChange: () => triggerHaptic(10),
+    },
+    {
+      containerId: "defGoalModeSegmented",
+      inputId: "defGoalMode",
+      onChange: () => triggerHaptic(10),
     },
     {
       containerId: "scheduleDurationSegmented",
@@ -817,9 +859,11 @@ function openSettings() {
   elements.defRate.value = settings.rate;
   elements.defCurrency.value = settings.currency || "₽";
   elements.defCutoffDay.value = settings.advanceCutoffDay || 15;
+  setSegmentedValue("defPayoutModeSegmented", "defPayoutMode", settings.payoutSplitEnabled ? "on" : "off");
   if (elements.defMonthlyGoal) {
     elements.defMonthlyGoal.value = settings.monthlyGoal ? settings.monthlyGoal : "";
   }
+  setSegmentedValue("defGoalModeSegmented", "defGoalMode", settings.monthlyGoalEnabled ? "on" : "off");
   openModal("settingsModal");
 }
 
@@ -851,7 +895,9 @@ function saveSettings(e) {
   settings.rate = parseFloat(elements.defRate.value) || 0;
   settings.currency = elements.defCurrency.value.trim() || "₽";
   settings.advanceCutoffDay = Math.min(28, Math.max(1, parseInt(elements.defCutoffDay.value, 10) || 15));
+  settings.payoutSplitEnabled = elements.defPayoutMode ? elements.defPayoutMode.value === "on" : false;
   settings.monthlyGoal = elements.defMonthlyGoal ? Math.max(0, parseFloat(elements.defMonthlyGoal.value) || 0) : (settings.monthlyGoal || 0);
+  settings.monthlyGoalEnabled = elements.defGoalMode ? elements.defGoalMode.value === "on" : false;
 
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   updatePayModeLabels();
@@ -860,6 +906,57 @@ function saveSettings(e) {
   render();
   triggerHaptic(15);
   showToast("Настройки и шаблоны сохранены", "success");
+}
+
+async function recalcCurrentMonthRates() {
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const monthPrefix = `${year}-${String(month + 1).padStart(2, "0")}-`;
+  const monthShiftKeys = Object.keys(shifts).filter((k) => k.startsWith(monthPrefix));
+
+  if (monthShiftKeys.length === 0) {
+    showToast("В этом месяце нет смен для пересчета", "info");
+    return;
+  }
+
+  const newRate = parseFloat(elements.defRate.value) >= 0 ? parseFloat(elements.defRate.value) : (settings.rate || 0);
+  const newPayMode = elements.defPayMode ? elements.defPayMode.value : (settings.payMode || "hourly");
+  const curr = (elements.defCurrency && elements.defCurrency.value.trim()) || settings.currency || "₽";
+
+  const count = monthShiftKeys.length;
+  const countText = `${count} ${getRussianDeclension(count, ["смену", "смены", "смен"])}`;
+  const rateLabel = newPayMode === "hourly" ? `${newRate} ${curr}/час` : `${newRate} ${curr}/смена`;
+
+  const confirmed = await showConfirm({
+    title: "Пересчитать смены месяца?",
+    message: `Применить ставку ${rateLabel} для ${countText} за ${MONTH_NAMES[month]} ${year}? Индивидуальные часы, бонусы и заметки сохранятся.`,
+    confirmText: "Пересчитать",
+    cancelText: "Отмена",
+    type: "primary",
+  });
+
+  if (!confirmed) return;
+
+  monthShiftKeys.forEach((key) => {
+    const s = shifts[key];
+    if (!s) return;
+    s.rate = newRate;
+    s.payMode = newPayMode;
+    const hours = Number(s.hours) || 0;
+    const bonus = Number(s.bonus) || 0;
+    const basePay = newPayMode === "hourly" ? hours * newRate : newRate;
+    s.totalPay = Math.round(basePay + bonus);
+  });
+
+  // Синхронизируем ставку в настройках
+  settings.rate = newRate;
+  settings.payMode = newPayMode;
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(shifts));
+
+  render();
+  triggerHaptic(20);
+  showToast(`Пересчитано смен: ${count}`, "success");
 }
 
 // ============================================================
@@ -891,7 +988,9 @@ function updateAnalyticsData() {
 
     if (elements.analyticsStreakTitle) elements.analyticsStreakTitle.textContent = "Текущий статус";
     if (elements.analyticsStreakDesc) elements.analyticsStreakDesc.textContent = "Смен пока нет";
-    if (elements.analyticsStreakIcon) elements.analyticsStreakIcon.textContent = "🌱";
+    if (elements.analyticsStreakIcon) {
+      elements.analyticsStreakIcon.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>';
+    }
 
     if (elements.bestMonthValue) elements.bestMonthValue.textContent = "—";
     if (elements.bestMonthDate) elements.bestMonthDate.textContent = "Нет смен";
@@ -1054,7 +1153,9 @@ function updateAnalyticsData() {
       checkEpoch--;
     }
     if (elements.analyticsStreakCard) elements.analyticsStreakCard.classList.remove("analytics-streak--rest");
-    if (elements.analyticsStreakIcon) elements.analyticsStreakIcon.textContent = "🔥";
+    if (elements.analyticsStreakIcon) {
+      elements.analyticsStreakIcon.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>';
+    }
     if (elements.analyticsStreakTitle) elements.analyticsStreakTitle.textContent = "Текущий стрик смен";
     if (elements.analyticsStreakDesc) {
       elements.analyticsStreakDesc.textContent = `${activeStreak} ${getRussianDeclension(activeStreak, ["смена подряд", "смены подряд", "смен подряд"])} (включая сегодня)`;
@@ -1066,7 +1167,9 @@ function updateAnalyticsData() {
       checkEpoch--;
     }
     if (elements.analyticsStreakCard) elements.analyticsStreakCard.classList.remove("analytics-streak--rest");
-    if (elements.analyticsStreakIcon) elements.analyticsStreakIcon.textContent = "⚡";
+    if (elements.analyticsStreakIcon) {
+      elements.analyticsStreakIcon.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>';
+    }
     if (elements.analyticsStreakTitle) elements.analyticsStreakTitle.textContent = "Последний стрик";
     if (elements.analyticsStreakDesc) {
       elements.analyticsStreakDesc.textContent = `${activeStreak} ${getRussianDeclension(activeStreak, ["смена подряд", "смены подряд", "смен подряд"])} (вчера была смена)`;
@@ -1075,7 +1178,9 @@ function updateAnalyticsData() {
     const lastDay = epochDays[epochDays.length - 1];
     const restDays = Math.max(1, todayEpoch - lastDay);
     if (elements.analyticsStreakCard) elements.analyticsStreakCard.classList.add("analytics-streak--rest");
-    if (elements.analyticsStreakIcon) elements.analyticsStreakIcon.textContent = "🌴";
+    if (elements.analyticsStreakIcon) {
+      elements.analyticsStreakIcon.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 8h1a4 4 0 1 1 0 8h-1"></path><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"></path><line x1="6" y1="2" x2="6" y2="4"></line><line x1="10" y1="2" x2="10" y2="4"></line><line x1="14" y1="2" x2="14" y2="4"></line></svg>';
+    }
     if (elements.analyticsStreakTitle) elements.analyticsStreakTitle.textContent = "Текущий статус";
     if (elements.analyticsStreakDesc) {
       elements.analyticsStreakDesc.textContent = `Отдых: ${restDays} ${getRussianDeclension(restDays, ["день", "дня", "дней"])} без смен`;
@@ -1166,17 +1271,17 @@ function updateCustomPatternBuilderUI() {
   customCycle.forEach((type, idx) => {
     const chip = document.createElement("span");
     chip.className = `custom-pattern-chip custom-pattern-chip--${type}`;
-    let icon = "⚪";
+    let iconSvg = '<svg class="tag-svg-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><line x1="8" y1="12" x2="16" y2="12"></line></svg>';
     let title = "Вых";
     if (type === "day") {
-      icon = "☀️";
+      iconSvg = '<svg class="tag-svg-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>';
       title = "День";
     } else if (type === "night") {
-      icon = "🌙";
+      iconSvg = '<svg class="tag-svg-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>';
       title = "Ночь";
     }
 
-    chip.innerHTML = `${icon} ${title} <span style="font-size: 0.7rem; opacity: 0.6; margin-left: 2px;">✕</span>`;
+    chip.innerHTML = `${iconSvg} <span>${title}</span> <span style="font-size: 0.7rem; opacity: 0.6; margin-left: 2px;">✕</span>`;
     chip.title = "Нажмите, чтобы удалить день из цикла";
     chip.addEventListener("click", () => {
       customCycle.splice(idx, 1);
@@ -1644,6 +1749,9 @@ function render() {
   updateStatsTrends(year, month, totalShifts, totalHours, totalIncome);
 
   // Обновление карточек выплат (Аванс и Расчёт)
+  if (elements.payoutSplit) {
+    elements.payoutSplit.style.display = settings.payoutSplitEnabled ? "" : "none";
+  }
   const curr = settings.currency || "₽";
   if (elements.advanceLabel) {
     elements.advanceLabel.textContent = `Аванс (1–${cutoffDay})`;
@@ -1697,7 +1805,12 @@ function render() {
   }
 
   // Обновление финансовой цели ("Копилка")
-  updateGoalTrackerUI(totalIncome, totalShifts);
+  if (elements.goalTracker) {
+    elements.goalTracker.style.display = settings.monthlyGoalEnabled ? "" : "none";
+  }
+  if (settings.monthlyGoalEnabled) {
+    updateGoalTrackerUI(totalIncome, totalShifts);
+  }
 
   currentMonthShiftsCache = monthShifts;
   renderShiftList(monthShifts, month);
@@ -1830,9 +1943,9 @@ function updateGoalTrackerUI(totalIncome, totalShifts) {
       elements.goalProgressBar.classList.remove("goal-tracker__bar--completed");
     }
     if (elements.goalStatusText) {
-      elements.goalStatusText.textContent = "🎯 Поставьте цель заработка на месяц";
+      elements.goalStatusText.textContent = "Поставьте цель заработка на месяц";
     }
-    if (elements.goalActionHint) elements.goalActionHint.textContent = "Включить ⚙️";
+    if (elements.goalActionHint) elements.goalActionHint.textContent = "Настроить";
     return;
   }
 
@@ -1857,12 +1970,12 @@ function updateGoalTrackerUI(totalIncome, totalShifts) {
     const surplus = totalIncome - goal;
     if (elements.goalStatusText) {
       if (surplus > 0) {
-        elements.goalStatusText.textContent = `🎉 Цель выполнена! Перевыполнение: +${surplus.toLocaleString("ru-RU")} ${curr}`;
+        elements.goalStatusText.textContent = `Цель выполнена! Перевыполнение: +${surplus.toLocaleString("ru-RU")} ${curr}`;
       } else {
-        elements.goalStatusText.textContent = "🎉 Цель достигнута на 100%! Отличная работа!";
+        elements.goalStatusText.textContent = "Цель достигнута на 100%! Отличная работа!";
       }
     }
-    if (elements.goalActionHint) elements.goalActionHint.textContent = "Изменить ⚙️";
+    if (elements.goalActionHint) elements.goalActionHint.textContent = "Изменить";
   } else {
     elements.goalTracker.classList.remove("goal-tracker--completed");
     if (elements.goalProgressBar) {
@@ -1893,7 +2006,7 @@ function updateGoalTrackerUI(totalIncome, totalShifts) {
         elements.goalStatusText.textContent = `Осталось заработать: ${remaining.toLocaleString("ru-RU")} ${curr}`;
       }
     }
-    if (elements.goalActionHint) elements.goalActionHint.textContent = "Изменить ⚙️";
+    if (elements.goalActionHint) elements.goalActionHint.textContent = "Изменить";
   }
 }
 
@@ -1935,7 +2048,7 @@ function renderShiftList(monthShifts, month) {
         .map((t) => {
           const info = SHIFT_TAGS[t];
           if (!info) return "";
-          return `<span class="shift-tag-badge shift-tag-badge--${escapeHtml(t)}">${info.emoji} ${escapeHtml(info.label)}</span>`;
+          return `<span class="shift-tag-badge shift-tag-badge--${escapeHtml(t)}">${info.svg}<span>${escapeHtml(info.label)}</span></span>`;
         })
         .filter(Boolean)
         .join("");
@@ -2123,7 +2236,9 @@ function restoreBackup(event) {
           rate: typeof s.rate === "number" ? s.rate : DEFAULT_SETTINGS.rate,
           currency: typeof s.currency === "string" ? s.currency : DEFAULT_SETTINGS.currency,
           advanceCutoffDay: typeof s.advanceCutoffDay === "number" ? s.advanceCutoffDay : DEFAULT_SETTINGS.advanceCutoffDay,
+          payoutSplitEnabled: typeof s.payoutSplitEnabled === "boolean" ? s.payoutSplitEnabled : false,
           monthlyGoal: typeof s.monthlyGoal === "number" ? Math.max(0, s.monthlyGoal) : DEFAULT_SETTINGS.monthlyGoal,
+          monthlyGoalEnabled: typeof s.monthlyGoalEnabled === "boolean" ? s.monthlyGoalEnabled : false,
           presets,
         };
       }
@@ -2699,6 +2814,9 @@ function bindEvents() {
   elements.settingsModalCloseBtn.addEventListener("click", () =>
     closeModal("settingsModal"),
   );
+  if (elements.recalcMonthRatesBtn) {
+    elements.recalcMonthRatesBtn.addEventListener("click", recalcCurrentMonthRates);
+  }
 
   // Автозаполнение графика
   if (elements.autoScheduleBtn) {

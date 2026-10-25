@@ -184,6 +184,7 @@
 html {
     overflow-x: hidden;
     width: 100%;
+    overscroll-behavior-y: contain;
 }
 
 * {
@@ -195,6 +196,7 @@ html {
 }
 
 body {
+    overscroll-behavior-y: contain;
     background-color: var(--bg);
     background-image:
         /* SVG-шум (зернистость) */
@@ -224,6 +226,11 @@ body {
     margin: 0 auto;
     padding-bottom: 80px;
     min-height: 100vh;
+}
+
+body.modal-open {
+    overflow: hidden;
+    overscroll-behavior: none;
 }
 
 /* Update Toast (Block) */
@@ -346,14 +353,20 @@ body {
 }
 
 .header__today-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
     position: relative;
     transition: all 0.2s ease;
-}
-
-.header__today-btn--active {
     color: var(--primary);
     border-color: rgba(10, 132, 255, 0.4);
     box-shadow: 0 0 12px var(--primary-glow);
+    animation: fadeInScale 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    cursor: pointer;
+}
+
+.header__today-btn--active {
+    display: flex;
 }
 
 .header__today-btn--active::after {
@@ -365,6 +378,17 @@ body {
     height: 6px;
     border-radius: 50%;
     background: var(--primary);
+}
+
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 /* Month Selector (Block) */
@@ -501,6 +525,24 @@ body {
 .calendar__day-cell--today {
     border: 1px solid rgba(10, 132, 255, 0.4);
     box-shadow: 0 0 15px var(--primary-glow);
+}
+
+.calendar__day-cell--pulse {
+    animation: pulseHighlight 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 2;
+}
+
+@keyframes pulseHighlight {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.08);
+        box-shadow: 0 0 22px rgba(10, 132, 255, 0.85);
+    }
+    100% {
+        transform: scale(1);
+    }
 }
 
 .calendar__day-header {
@@ -791,6 +833,7 @@ body {
     visibility: hidden;
     pointer-events: none;
     transition: opacity 0.25s ease, visibility 0.25s;
+    overscroll-behavior: contain;
 }
 
 .modal-overlay.active {
@@ -819,6 +862,8 @@ body {
     padding: 24px;
     max-height: 90vh;
     overflow-y: auto;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
     color: var(--text);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }
@@ -1098,6 +1143,7 @@ body {
     .modal-overlay {
         align-items: flex-end;
         padding: 0;
+        overscroll-behavior: contain;
     }
 
     .modal-overlay__content {
@@ -1120,6 +1166,8 @@ body {
         max-height: 85vh;
         padding: 12px 18px 32px 18px;
         touch-action: pan-y;
+        overscroll-behavior-y: contain;
+        -webkit-overflow-scrolling: touch;
     }
 
     .modal__close-btn {

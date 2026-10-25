@@ -246,19 +246,34 @@ function changeMonth(delta) {
 
 function goToToday() {
   const today = new Date();
-  if (
+  const isCurrent =
     currentDate.getFullYear() === today.getFullYear() &&
-    currentDate.getMonth() === today.getMonth()
-  ) {
+    currentDate.getMonth() === today.getMonth();
+
+  if (isCurrent) {
+    const todayCell = document.querySelector(".calendar__day-cell--today");
+    if (todayCell) {
+      todayCell.classList.remove("calendar__day-cell--pulse");
+      void todayCell.offsetWidth;
+      todayCell.classList.add("calendar__day-cell--pulse");
+    }
     return;
   }
+
   const delta =
     today.getFullYear() > currentDate.getFullYear() ||
     (today.getFullYear() === currentDate.getFullYear() &&
       today.getMonth() > currentDate.getMonth())
       ? 1
       : -1;
+
   animateMonthSwipe(delta, today);
+  setTimeout(() => {
+    const todayCell = document.querySelector(".calendar__day-cell--today");
+    if (todayCell) {
+      todayCell.classList.add("calendar__day-cell--pulse");
+    }
+  }, 220);
 }
 
 // ============================================================
@@ -297,6 +312,7 @@ function openModal(id) {
     }
     modal.style.backgroundColor = "";
     modal.classList.add("active");
+    document.body.classList.add("modal-open");
   }
 }
 
@@ -310,6 +326,10 @@ function closeModal(id) {
     }
     modal.style.backgroundColor = "";
     modal.classList.remove("active");
+  }
+  const hasActiveModal = document.querySelector(".modal-overlay.active");
+  if (!hasActiveModal) {
+    document.body.classList.remove("modal-open");
   }
 }
 
@@ -932,6 +952,18 @@ function initBottomSheetSwipe() {
     let currentY = 0;
     let isTracking = false;
     let isDragging = false;
+    let isTopDrag = false;
+
+    // Предотвращаем фоновый pull-to-refresh при касании самого фона оверлея
+    overlay.addEventListener(
+      "touchmove",
+      (e) => {
+        if (e.target === overlay && e.cancelable) {
+          e.preventDefault();
+        }
+      },
+      { passive: false },
+    );
 
     content.addEventListener(
       "touchstart",
@@ -941,13 +973,14 @@ function initBottomSheetSwipe() {
         startY = touch.clientY;
         currentY = startY;
 
-        // Разрешаем смахивание, если шторка прокручена к самому верху или тап по шапке/ручке
         const target = e.target;
         const isHeader = !!target.closest(".modal__header");
         const rect = content.getBoundingClientRect();
         const isNearTop = touch.clientY - rect.top < 65;
+        isTopDrag = isHeader || isNearTop;
 
-        if (content.scrollTop <= 0 || isHeader || isNearTop) {
+        // Разрешаем смахивание, если шторка прокручена к самому верху или тап по шапке/ручке
+        if (content.scrollTop <= 0 || isTopDrag) {
           isTracking = true;
           isDragging = false;
         } else {
@@ -965,50 +998,57 @@ function initBottomSheetSwipe() {
         currentY = touch.clientY;
         const dy = currentY - startY;
 
-        if (dy > 8) {
+        // Если тянем вниз от верха шторки или за шапку — отменяем нативный жест (pull-to-refresh)
+        if (dy > 0 && (content.scrollTop <= 0 || isTopDrag)) {
+          if (e.cancelable) {
+            e.preventDefault();
+          }
+        }
+
+        if (dy > 6) {
           isDragging = true;
           content.style.transition = "none";
           content.style.transform = `translateY(${dy}px)`;
           overlay.style.backgroundColor = `rgba(0, 0, 0, ${Math.max(0.15, 0.7 - dy / 600)})`;
         } else if (dy < 0 && isDragging) {
           content.style.transform = "translateY(0)";
+          isDragging = false;
         }
       },
-      { passive: true },
+      { passive: false },
     );
 
-    content.addEventListener(
-      "touchend",
-      () => {
-        if (!isTracking || window.innerWidth > 600) return;
-        isTracking = false;
+    const finishDrag = () => {
+      if (!isTracking || window.innerWidth > 600) return;
+      isTracking = false;
 
-        if (!isDragging) return;
-        isDragging = false;
+      if (!isDragging) return;
+      isDragging = false;
 
-        const dy = currentY - startY;
-        content.style.transition = "transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)";
-        overlay.style.backgroundColor = "";
+      const dy = currentY - startY;
+      content.style.transition = "transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)";
+      overlay.style.backgroundColor = "";
 
-        if (dy > 110) {
-          // Смахиваем шторку вниз до конца и закрываем
-          content.style.transform = "translateY(100%)";
-          setTimeout(() => {
-            closeModal(overlay.id);
-            content.style.transform = "";
-            content.style.transition = "";
-          }, 200);
-        } else {
-          // Возвращаем шторку на место
-          content.style.transform = "translateY(0)";
-          setTimeout(() => {
-            content.style.transform = "";
-            content.style.transition = "";
-          }, 220);
-        }
-      },
-      { passive: true },
-    );
+      if (dy > 110) {
+        // Смахиваем шторку вниз до конца и закрываем
+        content.style.transform = "translateY(100%)";
+        setTimeout(() => {
+          closeModal(overlay.id);
+          content.style.transform = "";
+          content.style.transition = "";
+        }, 200);
+      } else {
+        // Возвращаем шторку на место
+        content.style.transform = "translateY(0)";
+        setTimeout(() => {
+          content.style.transform = "";
+          content.style.transition = "";
+        }, 220);
+      }
+    };
+
+    content.addEventListener("touchend", finishDrag, { passive: true });
+    content.addEventListener("touchcancel", finishDrag, { passive: true });
   });
 }
 

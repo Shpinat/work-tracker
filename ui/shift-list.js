@@ -98,13 +98,13 @@ export function renderShiftList({
     article.setAttribute("tabindex", "0");
     article.innerHTML = `
       <div class="shift-list__left">
-        <div class="shift-list__date">${getShiftIconSvg(s.type)}<span>${s.day} ${MONTH_NAMES_GENITIVE[month]}</span></div>
+        <div class="shift-list__date">${getShiftIconSvg(s.type)}<span>${escapeHtml(String(s.day))} ${MONTH_NAMES_GENITIVE[month]}</span></div>
         <div class="shift-list__meta">${escapeHtml(s.start)} – ${escapeHtml(s.end)}${noteStr}</div>
         ${tagsHtml}
       </div>
       <div class="shift-list__right">
         <div class="shift-list__pay">+${Number(s.totalPay).toLocaleString("ru-RU")} ${currency}</div>
-        <div class="shift-list__hours">${s.hours} ч.</div>
+        <div class="shift-list__hours">${escapeHtml(String(s.hours))} ч.</div>
       </div>
     `;
 

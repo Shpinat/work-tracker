@@ -1,4 +1,4 @@
-const CACHE_NAME = 'shifts-v2';
+const CACHE_NAME = 'shifts-v2.1';
 
 // Относительные пути (корректно работают в GitHub Pages подкаталогах)
 const ASSETS_TO_CACHE = [
@@ -55,7 +55,18 @@ self.addEventListener('fetch', (event) => {
                 // Если сеть ответила нормально, обновляем кэш
                 if (networkResponse && networkResponse.status === 200) {
                     const resClone = networkResponse.clone();
-                    caches.open(CACHE_NAME).then((cache) => cache.put(event.request, resClone));
+                    // Защита от Captive Portals: не кэшируем HTML ответ вместо скриптов/стилей
+                    const reqDest = event.request.destination;
+                    const resType = resClone.headers.get('content-type') || '';
+                    const isHtml = resType.includes('text/html');
+
+                    if ((reqDest === 'script' || reqDest === 'style' || reqDest === 'image') && isHtml) {
+                         // Captive portal detected, don't put in cache
+                    } else if (networkResponse.redirected) {
+                         // Captive portal might redirect
+                    } else {
+                         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, resClone));
+                    }
                 }
                 return networkResponse;
             })

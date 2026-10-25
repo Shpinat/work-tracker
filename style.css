@@ -170,7 +170,8 @@
 }
 
 [data-theme="light"] .segmented-control {
-    background: rgba(0, 0, 0, 0.04);
+    background: rgba(90, 75, 55, 0.05);
+    border-color: var(--border);
 }
 
 [data-theme="light"] .segmented-control__btn {
@@ -178,14 +179,15 @@
 }
 
 [data-theme="light"] .segmented-control__btn:hover {
-    background: rgba(0, 0, 0, 0.04);
+    background: rgba(90, 75, 55, 0.06);
+    color: var(--text);
 }
 
 [data-theme="light"] .segmented-control__btn.is-active {
     background: #ffffff;
-    color: #000000;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-    border: 1px solid rgba(0, 0, 0, 0.08);
+    color: var(--text);
+    box-shadow: 0 2px 8px rgba(120, 105, 85, 0.12);
+    border: 1px solid rgba(90, 75, 55, 0.12);
 }
 
 html {
@@ -504,6 +506,7 @@ body.modal-open {
     position: relative;
     user-select: none;
     transition: all 0.2s ease;
+    container-type: inline-size;
 }
 
 .calendar__day-cell:hover {
@@ -558,6 +561,8 @@ body.modal-open {
     justify-content: space-between;
     align-items: center;
     line-height: 1;
+    overflow: hidden;
+    gap: 2px;
 }
 
 .calendar__day-number {
@@ -565,6 +570,7 @@ body.modal-open {
     font-weight: 600;
     line-height: 1;
     margin-left: 2px;
+    flex-shrink: 0;
 }
 
 .calendar__day-cell--weekend .calendar__day-number {
@@ -616,9 +622,25 @@ body.modal-open {
 }
 
 .calendar__shift-icon {
-    font-size: 0.78rem;
+    font-size: 0.75rem;
     line-height: 1;
-    margin-right: 2px;
+    margin-right: 1px;
+    flex-shrink: 0;
+    display: inline-block;
+}
+
+/* При нехватке ширины ячейки уменьшаем эмодзи, а если совсем мало места — скрываем */
+@container (max-width: 44px) {
+    .calendar__shift-icon {
+        font-size: 0.62rem;
+        margin-right: 0;
+    }
+}
+
+@container (max-width: 34px) {
+    .calendar__shift-icon {
+        display: none !important;
+    }
 }
 
 .calendar__day-cell--night .calendar__shift-badge {
@@ -1008,6 +1030,8 @@ body.modal-open {
     padding: 4px;
     gap: 4px;
     user-select: none;
+    min-height: 48px;
+    box-sizing: border-box;
 }
 
 .segmented-control__btn {
@@ -1015,8 +1039,8 @@ body.modal-open {
     background: transparent;
     border: none;
     color: var(--text-muted);
-    padding: 10px 8px;
-    font-size: 0.88rem;
+    padding: 8px 6px;
+    font-size: 0.84rem;
     font-weight: 500;
     border-radius: 10px;
     cursor: pointer;
@@ -1024,7 +1048,7 @@ body.modal-open {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: 5px;
     white-space: nowrap;
 }
 
@@ -1144,6 +1168,31 @@ body.modal-open {
         font-size: 0.95rem;
     }
 
+    .calendar__day-cell {
+        padding: 4px 2px;
+    }
+
+    .calendar__day-number {
+        font-size: 0.8rem;
+        margin-left: 1px;
+    }
+
+    .calendar__shift-icon {
+        font-size: 0.62rem;
+        margin-right: 0;
+    }
+
+    .calendar__shift-badge {
+        font-size: 0.62rem;
+        padding: 1px 2px;
+    }
+
+    .segmented-control__btn {
+        padding: 8px 4px;
+        font-size: 0.8rem;
+        gap: 3px;
+    }
+
     .modal-overlay {
         align-items: flex-end;
         padding: 0;
@@ -1194,5 +1243,26 @@ body.modal-open {
     .modal__actions {
         flex-direction: column;
         gap: 8px;
+    }
+}
+
+@media (max-width: 360px) {
+    .calendar__shift-icon {
+        display: none !important;
+    }
+
+    .calendar__day-number {
+        font-size: 0.75rem;
+    }
+
+    .calendar__shift-badge {
+        font-size: 0.58rem;
+        padding: 1px 1px;
+    }
+
+    .segmented-control__btn {
+        font-size: 0.75rem;
+        padding: 6px 2px;
+        gap: 2px;
     }
 }

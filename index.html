@@ -202,12 +202,19 @@
           <input type="hidden" id="shiftDate" />
 
           <div class="form__group">
-            <label class="form__label" for="shiftType">Тип смены</label>
-            <select class="form__control form__select" id="shiftType">
-              <option value="day">☀️ Дневная смена</option>
-              <option value="night">🌙 Ночная смена</option>
-              <option value="extra">🔥 Подработка / Выходной</option>
-            </select>
+            <label class="form__label">Тип смены</label>
+            <div class="segmented-control" role="radiogroup" aria-label="Тип смены" id="shiftTypeSegmented">
+              <button type="button" class="segmented-control__btn is-active" data-value="day">
+                ☀️ День
+              </button>
+              <button type="button" class="segmented-control__btn" data-value="night">
+                🌙 Ночь
+              </button>
+              <button type="button" class="segmented-control__btn" data-value="extra">
+                🔥 Подработка
+              </button>
+            </div>
+            <input type="hidden" id="shiftType" value="day" />
           </div>
 
           <div class="form__row">
@@ -257,11 +264,16 @@
 
           <div class="form__row">
             <div class="form__group">
-              <label class="form__label" for="payMode">Вид оплаты</label>
-              <select class="form__control form__select" id="payMode">
-                <option value="hourly">Почасовая</option>
-                <option value="fixed">Фикс за смену</option>
-              </select>
+              <label class="form__label">Вид оплаты</label>
+              <div class="segmented-control" role="radiogroup" aria-label="Вид оплаты" id="payModeSegmented">
+                <button type="button" class="segmented-control__btn is-active" data-value="hourly">
+                  ⏱️ Почасовая
+                </button>
+                <button type="button" class="segmented-control__btn" data-value="fixed">
+                  🏷️ Фикс
+                </button>
+              </div>
+              <input type="hidden" id="payMode" value="hourly" />
             </div>
             <div class="form__group">
               <label class="form__label" id="rateLabel" for="rate"
@@ -380,11 +392,16 @@
               />
             </div>
             <div class="form__group">
-              <label class="form__label" for="defPayMode">Вид оплаты</label>
-              <select class="form__control form__select" id="defPayMode">
-                <option value="hourly">Почасовая</option>
-                <option value="fixed">Фикс за смену</option>
-              </select>
+              <label class="form__label">Вид оплаты</label>
+              <div class="segmented-control" role="radiogroup" aria-label="Вид оплаты по умолчанию" id="defPayModeSegmented">
+                <button type="button" class="segmented-control__btn is-active" data-value="hourly">
+                  ⏱️ Почасовая
+                </button>
+                <button type="button" class="segmented-control__btn" data-value="fixed">
+                  🏷️ Фикс
+                </button>
+              </div>
+              <input type="hidden" id="defPayMode" value="hourly" />
             </div>
           </div>
           <div class="form__row">

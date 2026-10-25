@@ -1,3 +1,0 @@
-## 2026-10-23 - Keyboard Navigation & Focus Accessibility
-**Learning:** Vanilla JS apps often use `div` and `article` tags with click handlers for interactive UI components (like calendar cells and list items) but forget native keyboard accessibility. When adding `tabindex="0"` and `role="button"` to make them focusable, they also need explicit `:focus-visible` CSS rules for visual indication and custom `keydown` listeners on Enter/Space keys (with `e.preventDefault()` on Space to prevent page scrolling) to achieve parity with native `<button>` tags.
-**Action:** When working on interactive elements in vanilla codebases, always verify presence of `tabindex`, `role="button"`, `:focus-visible` styling, and Enter/Space event handlers if standard semantic tags aren't used.

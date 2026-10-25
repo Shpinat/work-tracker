@@ -1,4 +1,4 @@
-const CACHE_NAME = 'shifts-v2.1';
+const CACHE_NAME = 'shifts-v2.2';
 
 // Относительные пути (корректно работают в GitHub Pages подкаталогах)
 const ASSETS_TO_CACHE = [

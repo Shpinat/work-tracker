@@ -1,6 +1,6 @@
 {
-  "name": "Трекер Смен v2",
-  "short_name": "Смены v2",
+  "name": "WorkTrack",
+  "short_name": "WorkTrack",
   "description": "Удобный учет рабочих смен и доходов",
   "lang": "ru",
   "start_url": "./index.html",

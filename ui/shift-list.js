@@ -76,6 +76,8 @@ export function renderShiftList({
   // Безопасный reverse без мутации исходного массива
   [...filteredShifts].reverse().forEach((s) => {
     const noteStr = s.note ? ` • ${escapeHtml(s.note)}` : "";
+    const typeName = settings?.presets?.[s.type]?.name;
+    const typeBadge = typeName ? ` • ${escapeHtml(typeName)}` : "";
 
     const article = document.createElement("article");
     article.className = "shift-list__item";
@@ -84,7 +86,7 @@ export function renderShiftList({
     article.innerHTML = `
       <div class="shift-list__left">
         <div class="shift-list__date">${getShiftIconSvg(s.type)}<span>${escapeHtml(String(s.day))} ${MONTH_NAMES_GENITIVE[month]}</span></div>
-        <div class="shift-list__meta">${escapeHtml(s.start)} – ${escapeHtml(s.end)}${noteStr}</div>
+        <div class="shift-list__meta">${escapeHtml(s.start)} – ${escapeHtml(s.end)}${typeBadge}${noteStr}</div>
       </div>
       <div class="shift-list__right">
         <div class="shift-list__pay">+${Number(s.totalPay).toLocaleString("ru-RU")} ${currency}</div>

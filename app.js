@@ -1,6 +1,6 @@
 /**
  * app.js
- * Точка входа приложения Work Tracker (v2.0).
+ * Точка входа приложения WorkTrack.
  * Координация состояния, модулей Domain, Data и UI, и привязка событий.
  */
 
@@ -169,6 +169,9 @@ const elements = {
   shiftDate: document.getElementById("shiftDate"),
   shiftType: document.getElementById("shiftType"),
   shiftTypeSegmented: document.getElementById("shiftTypeSegmented"),
+  presetTitleDay: document.getElementById("presetTitleDay"),
+  presetTitleNight: document.getElementById("presetTitleNight"),
+  presetTitleExtra: document.getElementById("presetTitleExtra"),
   presetTimeDay: document.getElementById("presetTimeDay"),
   presetTimeNight: document.getElementById("presetTimeNight"),
   presetTimeExtra: document.getElementById("presetTimeExtra"),
@@ -190,7 +193,11 @@ const elements = {
   settingsModalCloseBtn: document.getElementById("settingsModalCloseBtn"),
   settingsForm: document.getElementById("settingsForm"),
   settingsPresetSegmented: document.getElementById("settingsPresetSegmented"),
+  settingsPresetLabelDay: document.getElementById("settingsPresetLabelDay"),
+  settingsPresetLabelNight: document.getElementById("settingsPresetLabelNight"),
+  settingsPresetLabelExtra: document.getElementById("settingsPresetLabelExtra"),
   settingsActivePreset: document.getElementById("settingsActivePreset"),
+  defPresetName: document.getElementById("defPresetName"),
   defStart: document.getElementById("defStart"),
   defEnd: document.getElementById("defEnd"),
   defBreak: document.getElementById("defBreak"),
@@ -218,6 +225,9 @@ const elements = {
   customPatternBuilder: document.getElementById("customPatternBuilder"),
   customPatternLabel: document.getElementById("customPatternLabel"),
   customResetBtn: document.getElementById("customResetBtn"),
+  customAddDayBtn: document.getElementById("customAddDayBtn"),
+  customAddNightBtn: document.getElementById("customAddNightBtn"),
+  customAddExtraBtn: document.getElementById("customAddExtraBtn"),
   scheduleDurationSegmented: document.getElementById("scheduleDurationSegmented"),
   scheduleDuration: document.getElementById("scheduleDuration"),
   scheduleSkipExisting: document.getElementById("scheduleSkipExisting"),
@@ -259,10 +269,13 @@ const elements = {
   longestShiftDate: document.getElementById("longestShiftDate"),
   maxStreakValue: document.getElementById("maxStreakValue"),
   maxStreakSub: document.getElementById("maxStreakSub"),
+  breakdownDayLabel: document.getElementById("breakdownDayLabel"),
   breakdownDayText: document.getElementById("breakdownDayText"),
   breakdownDayFill: document.getElementById("breakdownDayFill"),
+  breakdownNightLabel: document.getElementById("breakdownNightLabel"),
   breakdownNightText: document.getElementById("breakdownNightText"),
   breakdownNightFill: document.getElementById("breakdownNightFill"),
+  breakdownExtraLabel: document.getElementById("breakdownExtraLabel"),
   breakdownExtraText: document.getElementById("breakdownExtraText"),
   breakdownExtraFill: document.getElementById("breakdownExtraFill"),
 };
@@ -291,15 +304,30 @@ function setSegmentedValue(containerId, inputId, value, triggerChange = false) {
 
 function updatePresetTimesUI() {
   const p = settings.presets || DEFAULT_PRESETS;
-  if (elements.presetTimeDay) {
-    elements.presetTimeDay.textContent = `${p.day.start}–${p.day.end}`;
-  }
-  if (elements.presetTimeNight) {
-    elements.presetTimeNight.textContent = `${p.night.start}–${p.night.end}`;
-  }
-  if (elements.presetTimeExtra) {
-    elements.presetTimeExtra.textContent = `${p.extra.start}–${p.extra.end}`;
-  }
+  const dayName = p.day?.name || "День";
+  const nightName = p.night?.name || "Ночь";
+  const extraName = p.extra?.name || "Подработка";
+
+  if (elements.presetTitleDay) elements.presetTitleDay.textContent = dayName;
+  if (elements.presetTimeDay) elements.presetTimeDay.textContent = `${p.day.start}–${p.day.end}`;
+
+  if (elements.presetTitleNight) elements.presetTitleNight.textContent = nightName;
+  if (elements.presetTimeNight) elements.presetTimeNight.textContent = `${p.night.start}–${p.night.end}`;
+
+  if (elements.presetTitleExtra) elements.presetTitleExtra.textContent = extraName;
+  if (elements.presetTimeExtra) elements.presetTimeExtra.textContent = `${p.extra.start}–${p.extra.end}`;
+
+  if (elements.settingsPresetLabelDay) elements.settingsPresetLabelDay.textContent = dayName;
+  if (elements.settingsPresetLabelNight) elements.settingsPresetLabelNight.textContent = nightName;
+  if (elements.settingsPresetLabelExtra) elements.settingsPresetLabelExtra.textContent = extraName;
+
+  if (elements.breakdownDayLabel) elements.breakdownDayLabel.textContent = dayName;
+  if (elements.breakdownNightLabel) elements.breakdownNightLabel.textContent = nightName;
+  if (elements.breakdownExtraLabel) elements.breakdownExtraLabel.textContent = extraName;
+
+  if (elements.customAddDayBtn) elements.customAddDayBtn.textContent = `+ ${dayName}`;
+  if (elements.customAddNightBtn) elements.customAddNightBtn.textContent = `+ ${nightName}`;
+  if (elements.customAddExtraBtn) elements.customAddExtraBtn.textContent = `+ ${extraName}`;
 }
 
 function applyPresetToModal(type) {
@@ -594,7 +622,8 @@ function quickAddDefaultShift(dateKey) {
   const [y, m, d] = dateKey.split("-");
   const monthName = MONTH_NAMES_GENITIVE[parseInt(m, 10) - 1];
   const preset = settings.presets?.day || DEFAULT_PRESETS.day;
-  showToast(`Смена добавлена: ${parseInt(d, 10)} ${monthName} (${preset.start}–${preset.end})`, "success");
+  const shiftTitle = preset.name || "Смена";
+  showToast(`${shiftTitle} добавлена: ${parseInt(d, 10)} ${monthName} (${preset.start}–${preset.end})`, "success");
 }
 
 // ============================================================
@@ -605,6 +634,11 @@ function openSettings() {
   tempPresets = JSON.parse(JSON.stringify(settings.presets || DEFAULT_PRESETS));
   currentSettingsPreset = "day";
   setSegmentedValue("settingsPresetSegmented", "settingsActivePreset", "day");
+
+  if (elements.settingsPresetLabelDay) elements.settingsPresetLabelDay.textContent = tempPresets.day?.name || "День";
+  if (elements.settingsPresetLabelNight) elements.settingsPresetLabelNight.textContent = tempPresets.night?.name || "Ночь";
+  if (elements.settingsPresetLabelExtra) elements.settingsPresetLabelExtra.textContent = tempPresets.extra?.name || "Подработка";
+
   loadPresetIntoSettingsInputs("day");
 
   setSegmentedValue("defPayModeSegmented", "defPayMode", settings.payMode || "hourly");
@@ -621,6 +655,10 @@ function openSettings() {
 
 function loadPresetIntoSettingsInputs(type) {
   const p = tempPresets[type] || DEFAULT_PRESETS[type];
+  const fallback = type === "day" ? "День" : type === "night" ? "Ночь" : "Подработка";
+  if (elements.defPresetName) {
+    elements.defPresetName.value = p.name || fallback;
+  }
   elements.defStart.value = p.start;
   elements.defEnd.value = p.end;
   elements.defBreak.value = p.breakMins;
@@ -630,9 +668,21 @@ function saveCurrentSettingsInputsToTemp() {
   if (!tempPresets[currentSettingsPreset]) {
     tempPresets[currentSettingsPreset] = { ...DEFAULT_PRESETS[currentSettingsPreset] };
   }
+  const fallback = currentSettingsPreset === "day" ? "День" : currentSettingsPreset === "night" ? "Ночь" : "Подработка";
+  const customName = elements.defPresetName ? elements.defPresetName.value.trim() : "";
+  tempPresets[currentSettingsPreset].name = customName || tempPresets[currentSettingsPreset].name || fallback;
   tempPresets[currentSettingsPreset].start = elements.defStart.value || DEFAULT_PRESETS[currentSettingsPreset].start;
   tempPresets[currentSettingsPreset].end = elements.defEnd.value || DEFAULT_PRESETS[currentSettingsPreset].end;
   tempPresets[currentSettingsPreset].breakMins = Number(elements.defBreak.value) || 0;
+
+  const labelEl = currentSettingsPreset === "day"
+    ? elements.settingsPresetLabelDay
+    : currentSettingsPreset === "night"
+    ? elements.settingsPresetLabelNight
+    : elements.settingsPresetLabelExtra;
+  if (labelEl) {
+    labelEl.textContent = tempPresets[currentSettingsPreset].name;
+  }
 }
 
 function saveSettingsFromModal(e) {
@@ -809,21 +859,21 @@ function updateAnalyticsData() {
   // Текущий стрик / отдых
   if (data.currentStreak.status === "today") {
     if (elements.analyticsStreakCard) elements.analyticsStreakCard.classList.remove("analytics-streak--rest");
-    if (elements.analyticsStreakIcon) elements.analyticsStreakIcon.innerHTML = STREAK_ICONS.fire;
+    if (elements.analyticsStreakIcon) elements.analyticsStreakIcon.innerHTML = STREAK_ICONS.today || STREAK_ICONS.fire;
     if (elements.analyticsStreakTitle) elements.analyticsStreakTitle.textContent = "Текущий стрик смен";
     if (elements.analyticsStreakDesc) {
       elements.analyticsStreakDesc.textContent = `${data.currentStreak.days} ${getRussianDeclension(data.currentStreak.days, ["смена подряд", "смены подряд", "смен подряд"])} (включая сегодня)`;
     }
   } else if (data.currentStreak.status === "yesterday") {
     if (elements.analyticsStreakCard) elements.analyticsStreakCard.classList.remove("analytics-streak--rest");
-    if (elements.analyticsStreakIcon) elements.analyticsStreakIcon.innerHTML = STREAK_ICONS.flash;
+    if (elements.analyticsStreakIcon) elements.analyticsStreakIcon.innerHTML = STREAK_ICONS.yesterday || STREAK_ICONS.flash;
     if (elements.analyticsStreakTitle) elements.analyticsStreakTitle.textContent = "Последний стрик";
     if (elements.analyticsStreakDesc) {
       elements.analyticsStreakDesc.textContent = `${data.currentStreak.days} ${getRussianDeclension(data.currentStreak.days, ["смена подряд", "смены подряд", "смен подряд"])} (вчера была смена)`;
     }
   } else {
     if (elements.analyticsStreakCard) elements.analyticsStreakCard.classList.add("analytics-streak--rest");
-    if (elements.analyticsStreakIcon) elements.analyticsStreakIcon.innerHTML = STREAK_ICONS.coffee;
+    if (elements.analyticsStreakIcon) elements.analyticsStreakIcon.innerHTML = STREAK_ICONS.rest || STREAK_ICONS.coffee;
     if (elements.analyticsStreakTitle) elements.analyticsStreakTitle.textContent = "Текущий статус";
     if (elements.analyticsStreakDesc) {
       elements.analyticsStreakDesc.textContent = `Отдых: ${data.currentStreak.days} ${getRussianDeclension(data.currentStreak.days, ["день", "дня", "дней"])} без смен`;
@@ -831,6 +881,11 @@ function updateAnalyticsData() {
   }
 
   // Структура работы (Breakdown)
+  const p = settings.presets || DEFAULT_PRESETS;
+  if (elements.breakdownDayLabel) elements.breakdownDayLabel.textContent = p.day?.name || "Дневные";
+  if (elements.breakdownNightLabel) elements.breakdownNightLabel.textContent = p.night?.name || "Ночные";
+  if (elements.breakdownExtraLabel) elements.breakdownExtraLabel.textContent = p.extra?.name || "Подработки";
+
   if (elements.breakdownDayText) elements.breakdownDayText.textContent = `${data.dayShiftsCount} см (${data.dayPct}%)`;
   if (elements.breakdownDayFill) elements.breakdownDayFill.style.width = `${data.dayPct}%`;
 
@@ -884,10 +939,13 @@ function updateCustomPatternBuilderUI() {
     let title = "Вых";
     if (type === "day") {
       iconSvg = '<svg class="tag-svg-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>';
-      title = "День";
+      title = settings.presets?.day?.name || "День";
     } else if (type === "night") {
       iconSvg = '<svg class="tag-svg-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>';
-      title = "Ночь";
+      title = settings.presets?.night?.name || "Ночь";
+    } else if (type === "extra") {
+      iconSvg = '<svg class="tag-svg-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>';
+      title = settings.presets?.extra?.name || "Подработка";
     }
 
     chip.innerHTML = `${iconSvg} <span>${title}</span> <span style="font-size: 0.7rem; opacity: 0.6; margin-left: 2px;">✕</span>`;
@@ -1099,20 +1157,7 @@ function updateGoalTrackerUI(totalIncome, totalShifts) {
   const goal = settings.monthlyGoal || 0;
   const curr = settings.currency || "₽";
 
-  let avgShiftPay = 0;
-  if (totalShifts > 0 && totalIncome > 0) {
-    avgShiftPay = totalIncome / totalShifts;
-  } else {
-    if (settings.payMode === "hourly") {
-      const dayPreset = settings.presets?.day || DEFAULT_PRESETS.day;
-      const h = calcHoursDiff(dayPreset.start, dayPreset.end, dayPreset.breakMins) || 11;
-      avgShiftPay = h * (settings.rate || 300);
-    } else {
-      avgShiftPay = settings.rate || 3000;
-    }
-  }
-
-  const p = calcGoalProgress(totalIncome, goal, avgShiftPay);
+  const p = calcGoalProgress(totalIncome, goal, totalShifts, settings);
 
   if (p.isZeroGoal) {
     elements.goalTracker.classList.remove("goal-tracker--completed");
@@ -1567,6 +1612,20 @@ function bindEvents() {
   // Форма настроек
   elements.settingsForm.addEventListener("submit", saveSettingsFromModal);
   elements.settingsModalCloseBtn.addEventListener("click", () => closeModal("settingsModal"));
+  if (elements.defPresetName) {
+    elements.defPresetName.addEventListener("input", () => {
+      const val = elements.defPresetName.value.trim();
+      const fallback = currentSettingsPreset === "day" ? "День" : currentSettingsPreset === "night" ? "Ночь" : "Подработка";
+      const labelEl = currentSettingsPreset === "day"
+        ? elements.settingsPresetLabelDay
+        : currentSettingsPreset === "night"
+        ? elements.settingsPresetLabelNight
+        : elements.settingsPresetLabelExtra;
+      if (labelEl) {
+        labelEl.textContent = val || fallback;
+      }
+    });
+  }
   if (elements.recalcMonthRatesBtn) {
     elements.recalcMonthRatesBtn.addEventListener("click", recalcCurrentMonthRates);
   }

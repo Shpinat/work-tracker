@@ -1,4 +1,4 @@
-const CACHE_NAME = 'shifts-v18';
+const CACHE_NAME = 'shifts-v19';
 
 // Относительные пути (корректно работают в GitHub Pages подкаталогах)
 const ASSETS_TO_CACHE = [
@@ -9,8 +9,8 @@ const ASSETS_TO_CACHE = [
     './manifest.webmanifest',
     './icon-192x192.png',
     './icon-512x512.png',
-    './icon-192x192.png?v=2',
-    './icon-512x512.png?v=2'
+    './icon-192x192.png?v=3',
+    './icon-512x512.png?v=3'
 ];
 
 self.addEventListener('install', (event) => {

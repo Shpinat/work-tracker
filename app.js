@@ -30,6 +30,7 @@ const DEFAULT_SETTINGS = {
   payMode: "hourly",
   rate: 300,
   currency: "₽",
+  advanceCutoffDay: 15,
   presets: DEFAULT_PRESETS,
 };
 
@@ -102,6 +103,7 @@ function loadSettings() {
       payMode: ["hourly", "fixed"].includes(parsed.payMode) ? parsed.payMode : DEFAULT_SETTINGS.payMode,
       rate: typeof parsed.rate === "number" ? parsed.rate : DEFAULT_SETTINGS.rate,
       currency: typeof parsed.currency === "string" ? parsed.currency : DEFAULT_SETTINGS.currency,
+      advanceCutoffDay: typeof parsed.advanceCutoffDay === "number" ? parsed.advanceCutoffDay : DEFAULT_SETTINGS.advanceCutoffDay,
       presets,
     };
   } catch (_) {
@@ -136,6 +138,17 @@ const elements = {
   statHours: document.getElementById("statHours"),
   statIncome: document.getElementById("statIncome"),
 
+  // Выплаты: Аванс и Расчёт
+  payoutSplit: document.getElementById("payoutSplit"),
+  payoutAdvanceCard: document.getElementById("payoutAdvanceCard"),
+  payoutSalaryCard: document.getElementById("payoutSalaryCard"),
+  advanceLabel: document.getElementById("advanceLabel"),
+  salaryLabel: document.getElementById("salaryLabel"),
+  statAdvanceIncome: document.getElementById("statAdvanceIncome"),
+  statAdvanceMeta: document.getElementById("statAdvanceMeta"),
+  statSalaryIncome: document.getElementById("statSalaryIncome"),
+  statSalaryMeta: document.getElementById("statSalaryMeta"),
+
   // Календарь и триггер смен
   calendarGrid: document.getElementById("calendarGrid"),
   openShiftsBtn: document.getElementById("openShiftsBtn"),
@@ -146,6 +159,10 @@ const elements = {
   shiftsModalTitle: document.getElementById("shiftsModalTitle"),
   shiftsModalMonth: document.getElementById("shiftsModalMonth"),
   shiftsModalCloseBtn: document.getElementById("shiftsModalCloseBtn"),
+  shiftsFilterSegmented: document.getElementById("shiftsFilterSegmented"),
+  shiftsFilterInput: document.getElementById("shiftsFilterInput"),
+  filterAdvanceBtn: document.getElementById("filterAdvanceBtn"),
+  filterSalaryBtn: document.getElementById("filterSalaryBtn"),
   shiftList: document.getElementById("shiftList"),
 
   // Экспорт
@@ -189,6 +206,7 @@ const elements = {
   defPayModeSegmented: document.getElementById("defPayModeSegmented"),
   defRate: document.getElementById("defRate"),
   defCurrency: document.getElementById("defCurrency"),
+  defCutoffDay: document.getElementById("defCutoffDay"),
 
   // Бэкап
   backupDownloadBtn: document.getElementById("backupDownloadBtn"),
@@ -309,6 +327,9 @@ function updatePayModeLabels() {
   if (defFixedBtn) defFixedBtn.textContent = `${curr}/смена`;
 }
 
+let currentShiftsFilter = "all"; // "all" | "advance" | "salary"
+let currentMonthShiftsCache = [];
+
 function initSegmentedControls() {
   const configs = [
     {
@@ -323,6 +344,15 @@ function initSegmentedControls() {
       containerId: "payModeSegmented",
       inputId: "payMode",
       onChange: () => recalcModal(),
+    },
+    {
+      containerId: "shiftsFilterSegmented",
+      inputId: "shiftsFilterInput",
+      onChange: (val) => {
+        currentShiftsFilter = val;
+        renderShiftList(currentMonthShiftsCache, currentDate.getMonth());
+        triggerHaptic(10);
+      },
     },
     {
       containerId: "settingsPresetSegmented",
@@ -661,6 +691,7 @@ function openSettings() {
   setSegmentedValue("defPayModeSegmented", "defPayMode", settings.payMode || "hourly");
   elements.defRate.value = settings.rate;
   elements.defCurrency.value = settings.currency || "₽";
+  elements.defCutoffDay.value = settings.advanceCutoffDay || 15;
   openModal("settingsModal");
 }
 
@@ -691,6 +722,7 @@ function saveSettings(e) {
   settings.payMode = elements.defPayMode.value;
   settings.rate = parseFloat(elements.defRate.value) || 0;
   settings.currency = elements.defCurrency.value.trim() || "₽";
+  settings.advanceCutoffDay = Math.min(28, Math.max(1, parseInt(elements.defCutoffDay.value, 10) || 15));
 
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   updatePayModeLabels();
@@ -760,9 +792,19 @@ function render() {
     today.getDate(),
   );
 
+  const cutoffDay = settings.advanceCutoffDay || 15;
   let totalShifts = 0;
   let totalHours = 0;
   let totalIncome = 0;
+
+  let advanceShiftsCount = 0;
+  let advanceHours = 0;
+  let advanceIncome = 0;
+
+  let salaryShiftsCount = 0;
+  let salaryHours = 0;
+  let salaryIncome = 0;
+
   const monthShifts = [];
 
   // Собираем ячейки через DocumentFragment для одной вставки в DOM
@@ -927,9 +969,21 @@ function render() {
         isToday: dateKey === todayKey,
         onShift: (shift) => {
           totalShifts++;
-          totalHours += Number(shift.hours) || 0;
-          totalIncome += Number(shift.totalPay) || 0;
+          const h = Number(shift.hours) || 0;
+          const p = Number(shift.totalPay) || 0;
+          totalHours += h;
+          totalIncome += p;
           monthShifts.push({ dateKey, day, ...shift });
+
+          if (day <= cutoffDay) {
+            advanceShiftsCount++;
+            advanceHours += h;
+            advanceIncome += p;
+          } else {
+            salaryShiftsCount++;
+            salaryHours += h;
+            salaryIncome += p;
+          }
         },
       })
     );
@@ -968,6 +1022,35 @@ function render() {
   elements.statIncome.textContent = `${totalIncome.toLocaleString("ru-RU")} ${settings.currency}`;
   elements.statIncome.title = elements.statIncome.textContent;
 
+  // Обновление карточек выплат (Аванс и Расчёт)
+  const curr = settings.currency || "₽";
+  if (elements.advanceLabel) {
+    elements.advanceLabel.textContent = `Аванс (1–${cutoffDay})`;
+  }
+  if (elements.salaryLabel) {
+    elements.salaryLabel.textContent = `Расчёт (${cutoffDay + 1}–${daysInMonth})`;
+  }
+  if (elements.statAdvanceIncome) {
+    elements.statAdvanceIncome.textContent = `${advanceIncome.toLocaleString("ru-RU")} ${curr}`;
+    elements.statAdvanceIncome.title = elements.statAdvanceIncome.textContent;
+  }
+  if (elements.statAdvanceMeta) {
+    elements.statAdvanceMeta.textContent = `${advanceShiftsCount} см • ${Math.round(advanceHours * 10) / 10} ч`;
+  }
+  if (elements.statSalaryIncome) {
+    elements.statSalaryIncome.textContent = `${salaryIncome.toLocaleString("ru-RU")} ${curr}`;
+    elements.statSalaryIncome.title = elements.statSalaryIncome.textContent;
+  }
+  if (elements.statSalaryMeta) {
+    elements.statSalaryMeta.textContent = `${salaryShiftsCount} см • ${Math.round(salaryHours * 10) / 10} ч`;
+  }
+  if (elements.filterAdvanceBtn) {
+    elements.filterAdvanceBtn.textContent = `Аванс (1–${cutoffDay})`;
+  }
+  if (elements.filterSalaryBtn) {
+    elements.filterSalaryBtn.textContent = `Расчёт (${cutoffDay + 1}–${daysInMonth})`;
+  }
+
   if (elements.statShiftsBadge) {
     if (totalShifts > 0) {
       const avgPay = Math.round(totalIncome / totalShifts);
@@ -992,6 +1075,7 @@ function render() {
       : `Вернуться к ${MONTH_NAMES[today.getMonth()]} ${today.getFullYear()}`;
   }
 
+  currentMonthShiftsCache = monthShifts;
   renderShiftList(monthShifts, month);
 }
 
@@ -999,9 +1083,24 @@ function renderShiftList(monthShifts, month) {
   const listEl = elements.shiftList;
   if (!listEl) return;
 
-  if (monthShifts.length === 0) {
-    listEl.innerHTML =
-      '<div class="shift-list__empty">Нажми на любой день в календаре, чтобы добавить смену</div>';
+  const cutoffDay = settings.advanceCutoffDay || 15;
+  const daysInMonth = new Date(currentDate.getFullYear(), month + 1, 0).getDate();
+
+  let filteredShifts = monthShifts;
+  if (currentShiftsFilter === "advance") {
+    filteredShifts = monthShifts.filter((s) => s.day <= cutoffDay);
+  } else if (currentShiftsFilter === "salary") {
+    filteredShifts = monthShifts.filter((s) => s.day > cutoffDay);
+  }
+
+  if (filteredShifts.length === 0) {
+    let emptyMsg = "Нажми на любой день в календаре, чтобы добавить смену";
+    if (currentShiftsFilter === "advance") {
+      emptyMsg = `В периоде аванса (1–${cutoffDay} ${MONTH_NAMES_GENITIVE[month]}) пока нет смен`;
+    } else if (currentShiftsFilter === "salary") {
+      emptyMsg = `В периоде расчёта (${cutoffDay + 1}–${daysInMonth} ${MONTH_NAMES_GENITIVE[month]}) пока нет смен`;
+    }
+    listEl.innerHTML = `<div class="shift-list__empty">${emptyMsg}</div>`;
     return;
   }
 
@@ -1009,7 +1108,7 @@ function renderShiftList(monthShifts, month) {
   const currency = escapeHtml(settings.currency);
 
   // Безопасный reverse без мутации исходного массива
-  [...monthShifts].reverse().forEach((s) => {
+  [...filteredShifts].reverse().forEach((s) => {
     const noteStr = s.note ? ` • ${escapeHtml(s.note)}` : "";
 
     const article = document.createElement("article");
@@ -1041,9 +1140,9 @@ function renderShiftList(monthShifts, month) {
 }
 
 // ============================================================
-// Экспорт CSV
+// Экспорт CSV (с поддержкой Web Share API)
 // ============================================================
-function exportCSV(allTime = false) {
+async function exportCSV(allTime = false) {
   const year = currentDate.getFullYear();
   const month = String(currentDate.getMonth() + 1).padStart(2, "0");
   const monthPrefix = `${year}-${month}`;
@@ -1063,11 +1162,13 @@ function exportCSV(allTime = false) {
     ],
   ];
 
+  let count = 0;
   Object.keys(shifts)
     .sort()
     .forEach((key) => {
       if (allTime || key.startsWith(datePrefix)) {
         const s = shifts[key];
+        count++;
         rows.push([
           key,
           s.type,
@@ -1082,10 +1183,39 @@ function exportCSV(allTime = false) {
       }
     });
 
+  if (count === 0) {
+    showToast("Нет смен для экспорта", "info");
+    return;
+  }
+
   const csvContent = "\uFEFF" + rows.map((e) => e.join(";")).join("\n");
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
   const filename = allTime ? "shifts_all.csv" : `shifts_${monthPrefix}.csv`;
+  const file = new File([csvContent], filename, { type: "text/csv;charset=utf-8" });
+
+  // Web Share API для удобной отправки напрямую в Telegram, WhatsApp и др.
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({
+        title: allTime ? "Все смены" : `Смены за ${MONTH_NAMES[currentDate.getMonth()]} ${year}`,
+        text: `Отчёт по сменам (${count} смен)`,
+        files: [file],
+      });
+      triggerHaptic(15);
+      showToast("Отчёт успешно отправлен!", "success");
+      return;
+    } catch (err) {
+      if (err.name === "AbortError") {
+        // Пользователь отменил шеринг сам
+        return;
+      }
+    }
+  }
+
+  // Фоллбэк: стандартное скачивание файла
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
   triggerDownload(blob, filename);
+  triggerHaptic(15);
+  showToast("Отчёт CSV скачан", "success");
 }
 
 // ============================================================
@@ -1152,6 +1282,7 @@ function restoreBackup(event) {
           payMode: ["hourly", "fixed"].includes(s.payMode) ? s.payMode : DEFAULT_SETTINGS.payMode,
           rate: typeof s.rate === "number" ? s.rate : DEFAULT_SETTINGS.rate,
           currency: typeof s.currency === "string" ? s.currency : DEFAULT_SETTINGS.currency,
+          advanceCutoffDay: typeof s.advanceCutoffDay === "number" ? s.advanceCutoffDay : DEFAULT_SETTINGS.advanceCutoffDay,
           presets,
         };
       }
@@ -1519,9 +1650,46 @@ function bindEvents() {
   elements.exportMonthBtn.addEventListener("click", () => exportCSV(false));
   elements.exportAllBtn.addEventListener("click", () => exportCSV(true));
 
-  // Модальное окно детализации смен
+  // Модальное окно детализации смен и карточки выплат
+  if (elements.payoutAdvanceCard) {
+    elements.payoutAdvanceCard.addEventListener("click", () => {
+      currentShiftsFilter = "advance";
+      setSegmentedValue("shiftsFilterSegmented", "shiftsFilterInput", "advance");
+      renderShiftList(currentMonthShiftsCache, currentDate.getMonth());
+      openModal("shiftsModal");
+      triggerHaptic(12);
+    });
+    elements.payoutAdvanceCard.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        elements.payoutAdvanceCard.click();
+      }
+    });
+  }
+
+  if (elements.payoutSalaryCard) {
+    elements.payoutSalaryCard.addEventListener("click", () => {
+      currentShiftsFilter = "salary";
+      setSegmentedValue("shiftsFilterSegmented", "shiftsFilterInput", "salary");
+      renderShiftList(currentMonthShiftsCache, currentDate.getMonth());
+      openModal("shiftsModal");
+      triggerHaptic(12);
+    });
+    elements.payoutSalaryCard.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        elements.payoutSalaryCard.click();
+      }
+    });
+  }
+
   if (elements.openShiftsBtn) {
-    elements.openShiftsBtn.addEventListener("click", () => openModal("shiftsModal"));
+    elements.openShiftsBtn.addEventListener("click", () => {
+      currentShiftsFilter = "all";
+      setSegmentedValue("shiftsFilterSegmented", "shiftsFilterInput", "all");
+      renderShiftList(currentMonthShiftsCache, currentDate.getMonth());
+      openModal("shiftsModal");
+    });
   }
   if (elements.shiftsModalCloseBtn) {
     elements.shiftsModalCloseBtn.addEventListener("click", () => closeModal("shiftsModal"));

@@ -94,6 +94,27 @@
         </article>
       </section>
 
+      <!-- Распределение выплат: Аванс и Зарплата -->
+      <section class="payout-split main__payout-split" id="payoutSplit" aria-label="Периоды выплат">
+        <article class="payout-split__card payout-split__card--advance" id="payoutAdvanceCard" role="button" tabindex="0" title="Нажмите, чтобы посмотреть смены аванса">
+          <div class="payout-split__header">
+            <span class="payout-split__dot payout-split__dot--advance"></span>
+            <span class="payout-split__label" id="advanceLabel">Аванс (1–15)</span>
+          </div>
+          <div class="payout-split__value" id="statAdvanceIncome">0 ₽</div>
+          <div class="payout-split__meta" id="statAdvanceMeta">0 см • 0 ч</div>
+        </article>
+
+        <article class="payout-split__card payout-split__card--salary" id="payoutSalaryCard" role="button" tabindex="0" title="Нажмите, чтобы посмотреть смены расчёта">
+          <div class="payout-split__header">
+            <span class="payout-split__dot payout-split__dot--salary"></span>
+            <span class="payout-split__label" id="salaryLabel">Расчёт (16–31)</span>
+          </div>
+          <div class="payout-split__value" id="statSalaryIncome">0 ₽</div>
+          <div class="payout-split__meta" id="statSalaryMeta">0 см • 0 ч</div>
+        </article>
+      </section>
+
       <!-- Календарь -->
       <section class="calendar main__calendar" aria-label="Календарь">
         <div class="calendar__weekdays">
@@ -163,6 +184,20 @@
             За всё время
           </button>
         </div>
+
+        <!-- Фильтр периодов выплат в детализации -->
+        <div class="segmented-control shifts-filter-segmented" role="radiogroup" aria-label="Фильтр периода выплат" id="shiftsFilterSegmented">
+          <button type="button" class="segmented-control__btn is-active" data-value="all">
+            Все смены
+          </button>
+          <button type="button" class="segmented-control__btn" data-value="advance" id="filterAdvanceBtn">
+            Аванс
+          </button>
+          <button type="button" class="segmented-control__btn" data-value="salary" id="filterSalaryBtn">
+            Расчёт
+          </button>
+        </div>
+        <input type="hidden" id="shiftsFilterInput" value="all" />
 
         <div class="shift-list" id="shiftList"></div>
       </div>
@@ -460,15 +495,30 @@
             </div>
           </div>
 
-          <div class="form__group">
-            <label class="form__label" for="defCurrency">Символ валюты</label>
-            <input
-              class="form__control form__input"
-              type="text"
-              id="defCurrency"
-              value="₽"
-              maxlength="5"
-            />
+          <div class="form__row">
+            <div class="form__group">
+              <label class="form__label" for="defCurrency">Валюта</label>
+              <input
+                class="form__control form__input"
+                type="text"
+                id="defCurrency"
+                value="₽"
+                maxlength="5"
+              />
+            </div>
+            <div class="form__group">
+              <label class="form__label" for="defCutoffDay" title="Число месяца, до которого смены идут в аванс">Отсечка аванса (день)</label>
+              <input
+                class="form__control form__input"
+                type="number"
+                id="defCutoffDay"
+                value="15"
+                min="1"
+                max="28"
+                step="1"
+                required
+              />
+            </div>
           </div>
 
           <button

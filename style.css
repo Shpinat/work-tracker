@@ -494,7 +494,7 @@ body.modal-open {
 /* Stats (Block) */
 .stats {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: 1fr 1fr 1.45fr;
     gap: 12px;
     margin-bottom: 20px;
 }
@@ -503,9 +503,10 @@ body.modal-open {
     background: var(--card-solid);
     border: 1px solid var(--border);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-    padding: 16px 12px;
+    padding: 16px 10px;
     border-radius: var(--radius);
     text-align: center;
+    min-width: 0;
 }
 
 .stats__value {
@@ -513,11 +514,15 @@ body.modal-open {
     font-weight: 600;
     color: var(--text);
     margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .stats__label {
     font-size: 0.75rem;
     color: var(--text-muted);
+    white-space: nowrap;
 }
 
 .stats__card--income .stats__value {
@@ -1308,7 +1313,7 @@ body.modal-open {
     }
 
     .stats__card {
-        padding: 12px 8px;
+        padding: 12px 6px;
     }
 
     .stats__value {
@@ -1451,6 +1456,22 @@ body.modal-open {
 }
 
 @media (max-width: 360px) {
+    .stats {
+        gap: 6px;
+    }
+
+    .stats__card {
+        padding: 10px 4px;
+    }
+
+    .stats__value {
+        font-size: 0.98rem;
+    }
+
+    .stats__label {
+        font-size: 0.65rem;
+    }
+
     .shifts-trigger__title {
         font-size: 0.82rem;
     }

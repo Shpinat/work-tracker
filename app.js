@@ -596,6 +596,7 @@ function render() {
   elements.statShifts.textContent = totalShifts;
   elements.statHours.textContent = Math.round(totalHours * 100) / 100;
   elements.statIncome.textContent = `${totalIncome.toLocaleString("ru-RU")} ${settings.currency}`;
+  elements.statIncome.title = elements.statIncome.textContent;
 
   if (elements.statShiftsBadge) {
     if (totalShifts > 0) {

@@ -572,6 +572,9 @@ body.modal-open {
     cursor: pointer;
     position: relative;
     user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    touch-action: manipulation;
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     container-type: inline-size;
 }
@@ -1363,6 +1366,121 @@ body.modal-open {
     stroke: #ff9f0a;
 }
 
+/* Быстрые шаблоны смен (Пресеты смен в окне смены) */
+.shift-presets {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    width: 100%;
+}
+
+.shift-preset-btn {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    color: var(--text-muted);
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.shift-preset-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.shift-preset-btn:active {
+    transform: scale(0.97);
+}
+
+.shift-preset-btn.is-active {
+    background: #2c2c2e;
+    color: #ffffff;
+    border-color: var(--primary);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+.shift-preset-btn__header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.shift-preset-btn__time {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    letter-spacing: -0.2px;
+    line-height: 1;
+}
+
+.shift-preset-btn.is-active .shift-preset-btn__time {
+    color: var(--text);
+    opacity: 0.9;
+}
+
+.shift-preset-btn .segmented-control__icon {
+    opacity: 0.7;
+}
+
+.shift-preset-btn.is-active .segmented-control__icon {
+    opacity: 1;
+}
+
+.shift-preset-btn.is-active .segmented-control__icon--sun {
+    stroke: #ffd60a;
+}
+
+.shift-preset-btn.is-active .segmented-control__icon--moon {
+    stroke: #bf5af2;
+}
+
+.shift-preset-btn.is-active .segmented-control__icon--flame {
+    stroke: #ff9f0a;
+}
+
+[data-theme="light"] .shift-preset-btn {
+    background: rgba(0, 0, 0, 0.03);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+}
+
+[data-theme="light"] .shift-preset-btn:hover {
+    background: rgba(0, 0, 0, 0.06);
+    color: var(--text);
+}
+
+[data-theme="light"] .shift-preset-btn.is-active {
+    background: #ffffff;
+    color: #1f1d1a;
+    border-color: var(--primary);
+    box-shadow: 0 4px 16px rgba(120, 105, 85, 0.15);
+}
+
+[data-theme="light"] .shift-preset-btn.is-active .segmented-control__icon--sun {
+    stroke: #d97706;
+}
+
+[data-theme="light"] .shift-preset-btn.is-active .segmented-control__icon--moon {
+    stroke: #9333ea;
+}
+
+[data-theme="light"] .shift-preset-btn.is-active .segmented-control__icon--flame {
+    stroke: #ea580c;
+}
+
 /* Общие контурные векторные иконки для типов смен (Календарь и Список смен) */
 .shift-svg-icon {
     width: 14px;
@@ -1599,6 +1717,19 @@ body.modal-open {
     .segmented-control--suffix .segmented-control__btn {
         padding: 4px 8px;
         font-size: 0.74rem;
+    }
+
+    .shift-preset-btn {
+        padding: 8px 4px;
+    }
+
+    .shift-preset-btn__header {
+        font-size: 0.8rem;
+        gap: 4px;
+    }
+
+    .shift-preset-btn__time {
+        font-size: 0.68rem;
     }
 
     .modal-overlay {

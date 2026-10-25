@@ -5,6 +5,24 @@ const STORAGE_KEY = "my_work_shifts_v1";
 const SETTINGS_KEY = "my_work_settings_v1";
 const THEME_KEY = "my_work_theme_v1";
 
+const DEFAULT_PRESETS = {
+  day: {
+    start: "09:00",
+    end: "21:00",
+    breakMins: 60,
+  },
+  night: {
+    start: "21:00",
+    end: "09:00",
+    breakMins: 60,
+  },
+  extra: {
+    start: "10:00",
+    end: "16:00",
+    breakMins: 0,
+  },
+};
+
 const DEFAULT_SETTINGS = {
   start: "09:00",
   end: "21:00",
@@ -12,6 +30,7 @@ const DEFAULT_SETTINGS = {
   payMode: "hourly",
   rate: 300,
   currency: "₽",
+  presets: DEFAULT_PRESETS,
 };
 
 const MONTH_NAMES = [
@@ -54,14 +73,48 @@ function getShiftIconSvg(type) {
   return SHIFT_ICONS[type] || SHIFT_ICONS.day;
 }
 
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+    const parsed = JSON.parse(raw);
+    const presets = {
+      day: {
+        start: parsed.presets?.day?.start || parsed.start || DEFAULT_PRESETS.day.start,
+        end: parsed.presets?.day?.end || parsed.end || DEFAULT_PRESETS.day.end,
+        breakMins: parsed.presets?.day?.breakMins ?? parsed.breakMins ?? DEFAULT_PRESETS.day.breakMins,
+      },
+      night: {
+        start: parsed.presets?.night?.start || DEFAULT_PRESETS.night.start,
+        end: parsed.presets?.night?.end || DEFAULT_PRESETS.night.end,
+        breakMins: parsed.presets?.night?.breakMins ?? DEFAULT_PRESETS.night.breakMins,
+      },
+      extra: {
+        start: parsed.presets?.extra?.start || DEFAULT_PRESETS.extra.start,
+        end: parsed.presets?.extra?.end || DEFAULT_PRESETS.extra.end,
+        breakMins: parsed.presets?.extra?.breakMins ?? DEFAULT_PRESETS.extra.breakMins,
+      },
+    };
+    return {
+      start: presets.day.start,
+      end: presets.day.end,
+      breakMins: presets.day.breakMins,
+      payMode: ["hourly", "fixed"].includes(parsed.payMode) ? parsed.payMode : DEFAULT_SETTINGS.payMode,
+      rate: typeof parsed.rate === "number" ? parsed.rate : DEFAULT_SETTINGS.rate,
+      currency: typeof parsed.currency === "string" ? parsed.currency : DEFAULT_SETTINGS.currency,
+      presets,
+    };
+  } catch (_) {
+    return JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+  }
+}
+
 // ============================================================
 // Состояние
 // ============================================================
 let currentDate = new Date();
 let shifts = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-let settings = JSON.parse(
-  localStorage.getItem(SETTINGS_KEY) || JSON.stringify(DEFAULT_SETTINGS),
-);
+let settings = loadSettings();
 let currentTheme = localStorage.getItem(THEME_KEY) || "dark";
 
 // ============================================================
@@ -107,6 +160,9 @@ const elements = {
   shiftDate: document.getElementById("shiftDate"),
   shiftType: document.getElementById("shiftType"),
   shiftTypeSegmented: document.getElementById("shiftTypeSegmented"),
+  presetTimeDay: document.getElementById("presetTimeDay"),
+  presetTimeNight: document.getElementById("presetTimeNight"),
+  presetTimeExtra: document.getElementById("presetTimeExtra"),
   startTime: document.getElementById("startTime"),
   endTime: document.getElementById("endTime"),
   breakMins: document.getElementById("breakMins"),
@@ -124,6 +180,8 @@ const elements = {
   settingsModal: document.getElementById("settingsModal"),
   settingsModalCloseBtn: document.getElementById("settingsModalCloseBtn"),
   settingsForm: document.getElementById("settingsForm"),
+  settingsPresetSegmented: document.getElementById("settingsPresetSegmented"),
+  settingsActivePreset: document.getElementById("settingsActivePreset"),
   defStart: document.getElementById("defStart"),
   defEnd: document.getElementById("defEnd"),
   defBreak: document.getElementById("defBreak"),
@@ -186,12 +244,21 @@ function triggerDownload(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
+/** Тактильный виброотклик (Haptic Feedback) для PWA */
+function triggerHaptic(pattern = 10) {
+  if ("vibrate" in navigator) {
+    try {
+      navigator.vibrate(pattern);
+    } catch (_) {}
+  }
+}
+
 // ============================================================
 // Сегментированные переключатели (Pill Switchers)
 // ============================================================
 function updateSegmentedUI(container, value) {
   if (!container) return;
-  container.querySelectorAll(".segmented-control__btn").forEach((btn) => {
+  container.querySelectorAll(".segmented-control__btn, .shift-preset-btn").forEach((btn) => {
     const isActive = btn.dataset.value === value;
     btn.classList.toggle("is-active", isActive);
     btn.setAttribute("aria-checked", isActive ? "true" : "false");
@@ -206,6 +273,27 @@ function setSegmentedValue(containerId, inputId, value, triggerChange = false) {
   if (triggerChange && input) {
     input.dispatchEvent(new Event("change"));
   }
+}
+
+function updatePresetTimesUI() {
+  const p = settings.presets || DEFAULT_PRESETS;
+  if (elements.presetTimeDay) {
+    elements.presetTimeDay.textContent = `${p.day.start}–${p.day.end}`;
+  }
+  if (elements.presetTimeNight) {
+    elements.presetTimeNight.textContent = `${p.night.start}–${p.night.end}`;
+  }
+  if (elements.presetTimeExtra) {
+    elements.presetTimeExtra.textContent = `${p.extra.start}–${p.extra.end}`;
+  }
+}
+
+function applyPresetToModal(type) {
+  const p = settings.presets?.[type] || DEFAULT_PRESETS[type] || DEFAULT_PRESETS.day;
+  elements.startTime.value = p.start;
+  elements.endTime.value = p.end;
+  elements.breakMins.value = p.breakMins;
+  recalcModal();
 }
 
 function updatePayModeLabels() {
@@ -226,12 +314,25 @@ function initSegmentedControls() {
     {
       containerId: "shiftTypeSegmented",
       inputId: "shiftType",
-      onChange: null,
+      onChange: (val) => {
+        applyPresetToModal(val);
+        triggerHaptic(12);
+      },
     },
     {
       containerId: "payModeSegmented",
       inputId: "payMode",
       onChange: () => recalcModal(),
+    },
+    {
+      containerId: "settingsPresetSegmented",
+      inputId: "settingsActivePreset",
+      onChange: (newPreset) => {
+        saveCurrentSettingsInputsToTemp();
+        currentSettingsPreset = newPreset;
+        loadPresetIntoSettingsInputs(newPreset);
+        triggerHaptic(12);
+      },
     },
     {
       containerId: "defPayModeSegmented",
@@ -245,7 +346,7 @@ function initSegmentedControls() {
     const input = document.getElementById(inputId);
     if (!container || !input) return;
 
-    container.querySelectorAll(".segmented-control__btn").forEach((btn) => {
+    container.querySelectorAll(".segmented-control__btn, .shift-preset-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
         const val = btn.dataset.value;
         input.value = val;
@@ -256,6 +357,7 @@ function initSegmentedControls() {
   });
 
   updatePayModeLabels();
+  updatePresetTimesUI();
 }
 
 // ============================================================
@@ -467,6 +569,7 @@ function showConfirm({
 function openShiftModal(dateKey) {
   closeModal("shiftsModal");
   updatePayModeLabels();
+  updatePresetTimesUI();
   const existing = shifts[dateKey];
   const [y, m, d] = dateKey.split("-");
   elements.shiftModalTitle.textContent = `Смена ${d}.${m}.${y}`;
@@ -487,9 +590,10 @@ function openShiftModal(dateKey) {
     recalcModal();
   } else {
     setSegmentedValue("shiftTypeSegmented", "shiftType", "day");
-    elements.startTime.value = settings.start;
-    elements.endTime.value = settings.end;
-    elements.breakMins.value = settings.breakMins;
+    const p = settings.presets?.day || DEFAULT_PRESETS.day;
+    elements.startTime.value = p.start;
+    elements.endTime.value = p.end;
+    elements.breakMins.value = p.breakMins;
     setSegmentedValue("payModeSegmented", "payMode", settings.payMode);
     elements.rate.value = settings.rate;
     elements.bonus.value = 0;
@@ -519,6 +623,8 @@ function saveShift(e) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(shifts));
   closeModal("shiftModal");
   render();
+  triggerHaptic(15);
+  showToast("Смена сохранена", "success");
 }
 
 async function deleteShift() {
@@ -535,37 +641,101 @@ async function deleteShift() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(shifts));
   closeModal("shiftModal");
   render();
+  triggerHaptic(20);
   showToast("Смена удалена", "info");
 }
 
 // ============================================================
 // Настройки
 // ============================================================
+let currentSettingsPreset = "day";
+let tempPresets = {};
+
 function openSettings() {
   updatePayModeLabels();
-  elements.defStart.value = settings.start;
-  elements.defEnd.value = settings.end;
-  elements.defBreak.value = settings.breakMins;
+  tempPresets = JSON.parse(JSON.stringify(settings.presets || DEFAULT_PRESETS));
+  currentSettingsPreset = "day";
+  setSegmentedValue("settingsPresetSegmented", "settingsActivePreset", "day");
+  loadPresetIntoSettingsInputs("day");
+
   setSegmentedValue("defPayModeSegmented", "defPayMode", settings.payMode || "hourly");
   elements.defRate.value = settings.rate;
   elements.defCurrency.value = settings.currency || "₽";
   openModal("settingsModal");
 }
 
+function loadPresetIntoSettingsInputs(type) {
+  const p = tempPresets[type] || DEFAULT_PRESETS[type];
+  elements.defStart.value = p.start;
+  elements.defEnd.value = p.end;
+  elements.defBreak.value = p.breakMins;
+}
+
+function saveCurrentSettingsInputsToTemp() {
+  if (!tempPresets[currentSettingsPreset]) {
+    tempPresets[currentSettingsPreset] = { ...DEFAULT_PRESETS[currentSettingsPreset] };
+  }
+  tempPresets[currentSettingsPreset].start = elements.defStart.value || DEFAULT_PRESETS[currentSettingsPreset].start;
+  tempPresets[currentSettingsPreset].end = elements.defEnd.value || DEFAULT_PRESETS[currentSettingsPreset].end;
+  tempPresets[currentSettingsPreset].breakMins = Number(elements.defBreak.value) || 0;
+}
+
 function saveSettings(e) {
   e.preventDefault();
-  settings = {
-    start: elements.defStart.value || "09:00",
-    end: elements.defEnd.value || "21:00",
-    breakMins: Number(elements.defBreak.value) || 0,
-    payMode: elements.defPayMode.value,
-    rate: parseFloat(elements.defRate.value) || 0,
-    currency: elements.defCurrency.value.trim() || "₽",
-  };
+  saveCurrentSettingsInputsToTemp();
+
+  settings.presets = tempPresets;
+  settings.start = tempPresets.day.start;
+  settings.end = tempPresets.day.end;
+  settings.breakMins = tempPresets.day.breakMins;
+  settings.payMode = elements.defPayMode.value;
+  settings.rate = parseFloat(elements.defRate.value) || 0;
+  settings.currency = elements.defCurrency.value.trim() || "₽";
+
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   updatePayModeLabels();
+  updatePresetTimesUI();
   closeModal("settingsModal");
   render();
+  triggerHaptic(15);
+  showToast("Настройки и шаблоны сохранены", "success");
+}
+
+function quickAddDefaultShift(dateKey) {
+  if (shifts[dateKey]) return;
+
+  const preset = settings.presets?.day || DEFAULT_PRESETS.day;
+  const hours = calcHoursDiff(preset.start, preset.end, preset.breakMins);
+  const rate = parseFloat(settings.rate) || 0;
+  const basePay = settings.payMode === "hourly" ? hours * rate : rate;
+
+  shifts[dateKey] = {
+    type: "day",
+    start: preset.start,
+    end: preset.end,
+    breakMins: preset.breakMins,
+    hours: hours,
+    payMode: settings.payMode || "hourly",
+    rate: rate,
+    bonus: 0,
+    totalPay: Math.round(basePay),
+    note: "",
+  };
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(shifts));
+  triggerHaptic([30, 40, 30]);
+  render();
+
+  setTimeout(() => {
+    const updatedCell = document.querySelector(`.calendar__day-cell[data-date-key="${dateKey}"]`);
+    if (updatedCell) {
+      updatedCell.classList.add("calendar__day-cell--pulse");
+    }
+  }, 40);
+
+  const [y, m, d] = dateKey.split("-");
+  const monthName = MONTH_NAMES_GENITIVE[parseInt(m, 10) - 1];
+  showToast(`Смена добавлена: ${parseInt(d, 10)} ${monthName} (${preset.start}–${preset.end})`, "success");
 }
 
 // ============================================================
@@ -610,6 +780,7 @@ function render() {
     const shift = shifts[dateKey];
     const cell = document.createElement("div");
     cell.className = "calendar__day-cell";
+    cell.dataset.dateKey = dateKey;
     if (isOtherMonth) cell.classList.add("calendar__day-cell--other-month");
     if (isToday) cell.classList.add("calendar__day-cell--today");
     if (isWeekend) cell.classList.add("calendar__day-cell--weekend");
@@ -652,7 +823,61 @@ function render() {
     cell.setAttribute("tabindex", "0");
     if (ariaLabel) cell.setAttribute("aria-label", ariaLabel);
 
-    cell.addEventListener("click", () => openShiftModal(dateKey));
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let longPressTimeout = null;
+    let isLongPressTriggered = false;
+
+    const startLongPress = (e) => {
+      if (shifts[dateKey]) return;
+      isLongPressTriggered = false;
+      const touch = e.touches ? e.touches[0] : e;
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+
+      longPressTimeout = setTimeout(() => {
+        isLongPressTriggered = true;
+        quickAddDefaultShift(dateKey);
+      }, 420);
+    };
+
+    const cancelLongPress = () => {
+      if (longPressTimeout) {
+        clearTimeout(longPressTimeout);
+        longPressTimeout = null;
+      }
+    };
+
+    const moveLongPress = (e) => {
+      if (!longPressTimeout) return;
+      const touch = e.touches ? e.touches[0] : e;
+      const dx = Math.abs(touch.clientX - touchStartX);
+      const dy = Math.abs(touch.clientY - touchStartY);
+      if (dx > 10 || dy > 10) {
+        cancelLongPress();
+      }
+    };
+
+    cell.addEventListener("touchstart", startLongPress, { passive: true });
+    cell.addEventListener("touchmove", moveLongPress, { passive: true });
+    cell.addEventListener("touchend", cancelLongPress, { passive: true });
+    cell.addEventListener("touchcancel", cancelLongPress, { passive: true });
+
+    cell.addEventListener("contextmenu", (e) => {
+      if (!shifts[dateKey]) {
+        e.preventDefault();
+        quickAddDefaultShift(dateKey);
+      }
+    });
+
+    cell.addEventListener("click", () => {
+      if (isLongPressTriggered) {
+        isLongPressTriggered = false;
+        return;
+      }
+      openShiftModal(dateKey);
+    });
+
     cell.addEventListener("keydown", (e) => {
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
@@ -894,23 +1119,40 @@ function restoreBackup(event) {
 
       if (parsed.settings && typeof parsed.settings === "object") {
         const s = parsed.settings;
+        const presets = s.presets && typeof s.presets === "object" ? {
+          day: {
+            start: s.presets.day?.start || s.start || DEFAULT_PRESETS.day.start,
+            end: s.presets.day?.end || s.end || DEFAULT_PRESETS.day.end,
+            breakMins: s.presets.day?.breakMins ?? s.breakMins ?? DEFAULT_PRESETS.day.breakMins,
+          },
+          night: {
+            start: s.presets.night?.start || DEFAULT_PRESETS.night.start,
+            end: s.presets.night?.end || DEFAULT_PRESETS.night.end,
+            breakMins: s.presets.night?.breakMins ?? DEFAULT_PRESETS.night.breakMins,
+          },
+          extra: {
+            start: s.presets.extra?.start || DEFAULT_PRESETS.extra.start,
+            end: s.presets.extra?.end || DEFAULT_PRESETS.extra.end,
+            breakMins: s.presets.extra?.breakMins ?? DEFAULT_PRESETS.extra.breakMins,
+          },
+        } : {
+          day: {
+            start: s.start || DEFAULT_PRESETS.day.start,
+            end: s.end || DEFAULT_PRESETS.day.end,
+            breakMins: s.breakMins ?? DEFAULT_PRESETS.day.breakMins,
+          },
+          night: { ...DEFAULT_PRESETS.night },
+          extra: { ...DEFAULT_PRESETS.extra },
+        };
+
         settings = {
-          start:
-            typeof s.start === "string" ? s.start : DEFAULT_SETTINGS.start,
-          end: typeof s.end === "string" ? s.end : DEFAULT_SETTINGS.end,
-          breakMins:
-            typeof s.breakMins === "number"
-              ? s.breakMins
-              : DEFAULT_SETTINGS.breakMins,
-          payMode: ["hourly", "fixed"].includes(s.payMode)
-            ? s.payMode
-            : DEFAULT_SETTINGS.payMode,
-          rate:
-            typeof s.rate === "number" ? s.rate : DEFAULT_SETTINGS.rate,
-          currency:
-            typeof s.currency === "string"
-              ? s.currency
-              : DEFAULT_SETTINGS.currency,
+          start: presets.day.start,
+          end: presets.day.end,
+          breakMins: presets.day.breakMins,
+          payMode: ["hourly", "fixed"].includes(s.payMode) ? s.payMode : DEFAULT_SETTINGS.payMode,
+          rate: typeof s.rate === "number" ? s.rate : DEFAULT_SETTINGS.rate,
+          currency: typeof s.currency === "string" ? s.currency : DEFAULT_SETTINGS.currency,
+          presets,
         };
       }
 

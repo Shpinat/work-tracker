@@ -770,7 +770,7 @@ function applyTheme(theme) {
   if (metaThemeColor) {
     metaThemeColor.setAttribute(
       "content",
-      theme === "light" ? "#f3f4f6" : "#131535",
+      theme === "light" ? "#f7f4ec" : "#131535",
     );
   }
 

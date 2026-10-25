@@ -120,12 +120,17 @@
       <section class="shifts-trigger main__shifts-trigger" aria-label="Детализация смен">
         <button id="openShiftsBtn" class="shifts-trigger__btn" type="button" aria-haspopup="dialog" aria-expanded="false">
           <div class="shifts-trigger__left">
-            <span class="shifts-trigger__icon" aria-hidden="true">📋</span>
+            <svg class="shifts-trigger__icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+              <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+              <path d="M9 12h6"></path>
+              <path d="M9 16h6"></path>
+            </svg>
             <span class="shifts-trigger__title">Детализация за месяц</span>
           </div>
           <div class="shifts-trigger__right">
-            <span class="shifts-trigger__badge" id="statShiftsBadge">0 смен</span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <span class="shifts-trigger__badge" id="statShiftsBadge"></span>
+            <svg class="shifts-trigger__chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="9 18 15 12 9 6"></polyline>
             </svg>
           </div>

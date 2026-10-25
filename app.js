@@ -598,7 +598,13 @@ function render() {
   elements.statIncome.textContent = `${totalIncome.toLocaleString("ru-RU")} ${settings.currency}`;
 
   if (elements.statShiftsBadge) {
-    elements.statShiftsBadge.textContent = `${totalShifts} ${getShiftsWord(totalShifts)}`;
+    if (totalShifts > 0) {
+      const avgPay = Math.round(totalIncome / totalShifts);
+      elements.statShiftsBadge.textContent = `~${avgPay.toLocaleString("ru-RU")} ${settings.currency} / смена`;
+      elements.statShiftsBadge.style.display = "inline-flex";
+    } else {
+      elements.statShiftsBadge.style.display = "none";
+    }
   }
   if (elements.shiftsModalMonth) {
     elements.shiftsModalMonth.textContent = `${MONTH_NAMES[month]} ${year}`;

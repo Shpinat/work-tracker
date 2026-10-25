@@ -741,13 +741,15 @@ body.modal-open {
     align-items: center;
     background: var(--card);
     backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 16px 20px;
+    border-radius: var(--radius-sm);
+    padding: 13px 16px;
     color: var(--text);
     cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    box-sizing: border-box;
 }
 
 .shifts-trigger__btn:hover {
@@ -757,23 +759,31 @@ body.modal-open {
 }
 
 .shifts-trigger__btn:active {
-    transform: scale(0.98);
+    transform: scale(0.99);
 }
 
 .shifts-trigger__left {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
+    min-width: 0;
+    text-align: left;
 }
 
 .shifts-trigger__icon {
-    font-size: 1.2rem;
-    line-height: 1;
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    opacity: 0.85;
+    flex-shrink: 0;
 }
 
 .shifts-trigger__title {
     font-size: 0.95rem;
     font-weight: 600;
+    white-space: nowrap;
+    text-align: left;
+    color: var(--text);
 }
 
 .shifts-trigger__right {
@@ -781,6 +791,8 @@ body.modal-open {
     align-items: center;
     gap: 8px;
     color: var(--text-muted);
+    flex-shrink: 0;
+    margin-left: 8px;
 }
 
 .shifts-trigger__badge {
@@ -790,6 +802,23 @@ body.modal-open {
     font-size: 0.78rem;
     font-weight: 600;
     color: var(--text);
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+}
+
+.shifts-trigger__chevron {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    opacity: 0.6;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+    flex-shrink: 0;
+}
+
+.shifts-trigger__btn:hover .shifts-trigger__chevron {
+    opacity: 1;
+    transform: translateX(2px);
 }
 
 /* Shifts (Block) */
@@ -1321,6 +1350,19 @@ body.modal-open {
         font-size: 0.95rem;
     }
 
+    .shifts-trigger__btn {
+        padding: 10px 14px;
+    }
+
+    .shifts-trigger__title {
+        font-size: 0.88rem;
+    }
+
+    .shifts-trigger__badge {
+        font-size: 0.72rem;
+        padding: 3px 8px;
+    }
+
     .calendar__day-cell {
         padding: 4px 2px;
     }
@@ -1409,6 +1451,15 @@ body.modal-open {
 }
 
 @media (max-width: 360px) {
+    .shifts-trigger__title {
+        font-size: 0.82rem;
+    }
+
+    .shifts-trigger__badge {
+        font-size: 0.68rem;
+        padding: 2px 6px;
+    }
+
     .calendar__shift-icon {
         display: none !important;
     }

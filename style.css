@@ -2899,6 +2899,12 @@ body.modal-open {
         margin-right: -4px;
     }
 
+    .modal--analytics,
+    .modal--schedule {
+        max-height: 85vh;
+        overflow-y: auto;
+    }
+
     .modal-overlay--dialog {
         align-items: center;
         justify-content: center;

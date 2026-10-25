@@ -2203,7 +2203,9 @@ function initBottomSheetSwipe() {
     elements.shiftModal,
     elements.settingsModal,
     elements.shiftsModal,
-  ];
+    elements.scheduleModal,
+    elements.analyticsModal,
+  ].filter(Boolean);
 
   modalOverlays.forEach((overlay) => {
     if (!overlay) return;
@@ -2580,8 +2582,13 @@ function bindEvents() {
   elements.importFile.addEventListener("change", restoreBackup);
 
   // Закрытие модалок по клику на оверлей или по Escape
-  [elements.shiftModal, elements.settingsModal, elements.shiftsModal, elements.scheduleModal].forEach((overlay) => {
-    if (!overlay) return;
+  [
+    elements.shiftModal,
+    elements.settingsModal,
+    elements.shiftsModal,
+    elements.scheduleModal,
+    elements.analyticsModal,
+  ].filter(Boolean).forEach((overlay) => {
     overlay.addEventListener("click", (e) => {
       if (e.target === overlay) closeModal(overlay.id);
     });
@@ -2593,6 +2600,7 @@ function bindEvents() {
       closeModal("settingsModal");
       closeModal("shiftsModal");
       closeModal("scheduleModal");
+      closeModal("analyticsModal");
     }
   });
 }

@@ -695,18 +695,24 @@ body.modal-open {
 }
 
 .calendar__shift-icon {
-    font-size: 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     line-height: 1;
     margin-right: 1px;
     flex-shrink: 0;
-    display: inline-block;
 }
 
-/* При нехватке ширины ячейки уменьшаем эмодзи, а если совсем мало места — скрываем */
+.calendar__shift-icon .shift-svg-icon {
+    width: 12px;
+    height: 12px;
+}
+
+/* При нехватке ширины ячейки уменьшаем векторную иконку, а если совсем мало места — скрываем */
 @container (max-width: 44px) {
-    .calendar__shift-icon {
-        font-size: 0.62rem;
-        margin-right: 0;
+    .calendar__shift-icon .shift-svg-icon {
+        width: 10px;
+        height: 10px;
     }
 }
 
@@ -916,6 +922,14 @@ body.modal-open {
 .shift-list__date {
     font-weight: 500;
     font-size: 0.95rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.shift-list__date .shift-svg-icon {
+    width: 16px;
+    height: 16px;
 }
 
 .shift-list__meta {
@@ -1202,6 +1216,42 @@ body.modal-open {
     stroke: #ff9f0a;
 }
 
+/* Общие контурные векторные иконки для типов смен (Календарь и Список смен) */
+.shift-svg-icon {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+    flex-shrink: 0;
+    display: inline-block;
+}
+
+.shift-svg-icon--day {
+    stroke: #ffd60a;
+}
+
+.shift-svg-icon--night {
+    stroke: #bf5af2;
+}
+
+.shift-svg-icon--extra {
+    stroke: #ff9f0a;
+}
+
+[data-theme="light"] .shift-svg-icon--day,
+[data-theme="light"] .segmented-control__btn.is-active .segmented-control__icon--sun {
+    stroke: #d97706;
+}
+
+[data-theme="light"] .shift-svg-icon--night,
+[data-theme="light"] .segmented-control__btn.is-active .segmented-control__icon--moon {
+    stroke: #9333ea;
+}
+
+[data-theme="light"] .shift-svg-icon--extra,
+[data-theme="light"] .segmented-control__btn.is-active .segmented-control__icon--flame {
+    stroke: #ea580c;
+}
+
 /* Интегрированный переключатель ставки (Суффикс) */
 .input-with-segmented {
     position: relative;
@@ -1378,8 +1428,12 @@ body.modal-open {
     }
 
     .calendar__shift-icon {
-        font-size: 0.62rem;
         margin-right: 0;
+    }
+
+    .calendar__shift-icon .shift-svg-icon {
+        width: 10px;
+        height: 10px;
     }
 
     .calendar__shift-badge {

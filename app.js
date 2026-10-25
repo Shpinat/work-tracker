@@ -53,6 +53,16 @@ function getShiftsWord(count) {
   return "смен";
 }
 
+const SHIFT_ICONS = {
+  day: '<svg class="shift-svg-icon shift-svg-icon--day" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>',
+  night: '<svg class="shift-svg-icon shift-svg-icon--night" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>',
+  extra: '<svg class="shift-svg-icon shift-svg-icon--extra" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>',
+};
+
+function getShiftIconSvg(type) {
+  return SHIFT_ICONS[type] || SHIFT_ICONS.day;
+}
+
 // ============================================================
 // Состояние
 // ============================================================
@@ -529,12 +539,10 @@ function render() {
       if (shift.type === "extra")
         cell.classList.add("calendar__day-cell--extra");
 
-      const icon =
-        shift.type === "night" ? "🌙" : shift.type === "extra" ? "🔥" : "☀️";
       const iconSpan = document.createElement("span");
       iconSpan.className = "calendar__shift-icon";
       iconSpan.setAttribute("aria-hidden", "true");
-      iconSpan.textContent = icon;
+      iconSpan.innerHTML = getShiftIconSvg(shift.type);
       dayHeader.appendChild(iconSpan);
 
       const badge = document.createElement("div");
@@ -640,8 +648,6 @@ function renderShiftList(monthShifts, month) {
 
   // Безопасный reverse без мутации исходного массива
   [...monthShifts].reverse().forEach((s) => {
-    const icon =
-      s.type === "night" ? "🌙" : s.type === "extra" ? "🔥" : "☀️";
     const noteStr = s.note ? ` • ${escapeHtml(s.note)}` : "";
 
     const article = document.createElement("article");
@@ -650,7 +656,7 @@ function renderShiftList(monthShifts, month) {
     article.setAttribute("tabindex", "0");
     article.innerHTML = `
       <div class="shift-list__left">
-        <div class="shift-list__date">${icon} ${s.day} ${MONTH_NAMES_GENITIVE[month]}</div>
+        <div class="shift-list__date">${getShiftIconSvg(s.type)}<span>${s.day} ${MONTH_NAMES_GENITIVE[month]}</span></div>
         <div class="shift-list__meta">${escapeHtml(s.start)} – ${escapeHtml(s.end)}${noteStr}</div>
       </div>
       <div class="shift-list__right">

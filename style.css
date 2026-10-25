@@ -2257,6 +2257,286 @@ body.modal-open {
     line-height: 1.4;
 }
 
+/* ============================================================
+   Модальное окно аналитики и рекордов (Modal Analytics)
+   ============================================================ */
+.modal--analytics {
+    max-width: 480px;
+}
+
+.modal__title-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.modal__title-icon {
+    font-size: 1.15rem;
+    line-height: 1;
+}
+
+.analytics-content {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Hero Cards */
+.analytics-hero {
+    display: grid;
+    grid-template-columns: 1.35fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.analytics-hero__card {
+    background: var(--card-solid);
+    border: 1px solid var(--border);
+    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    flex-direction: column;
+}
+
+.analytics-hero__card--income {
+    border-color: rgba(48, 209, 88, 0.35);
+    background: linear-gradient(135deg, rgba(48, 209, 88, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
+}
+
+.analytics-hero__label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.analytics-hero__value {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.2;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.analytics-hero__card--income .analytics-hero__value {
+    color: #30d158;
+}
+
+.analytics-hero__sub {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+/* Streak Card */
+.analytics-streak {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: linear-gradient(135deg, rgba(255, 159, 10, 0.12) 0%, rgba(255, 159, 10, 0.03) 100%);
+    border: 1px solid rgba(255, 159, 10, 0.3);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    margin-bottom: 16px;
+}
+
+.analytics-streak__icon {
+    font-size: 1.5rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.analytics-streak__title {
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+}
+
+.analytics-streak__desc {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #ff9f0a;
+}
+
+.analytics-streak--rest {
+    background: linear-gradient(135deg, rgba(100, 210, 255, 0.12) 0%, rgba(100, 210, 255, 0.03) 100%);
+    border-color: rgba(100, 210, 255, 0.3);
+}
+
+.analytics-streak--rest .analytics-streak__desc {
+    color: #64d2ff;
+}
+
+/* Personal Best Records */
+.analytics-records {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.analytics-record-card {
+    background: var(--card-solid);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    position: relative;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.analytics-record-card--interactive {
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.analytics-record-card--interactive:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.25);
+    transform: translateY(-1px);
+}
+
+.analytics-record-card--interactive:active {
+    transform: scale(0.98);
+}
+
+.analytics-record-card__header {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 4px;
+}
+
+.analytics-record-card__icon {
+    font-size: 0.85rem;
+    line-height: 1;
+}
+
+.analytics-record-card__title {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.analytics-record-card__value {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.2;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.analytics-record-card__sub {
+    font-size: 0.68rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Breakdown Bars */
+.analytics-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.analytics-breakdown__item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.analytics-breakdown__label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.analytics-breakdown__track {
+    width: 100%;
+    height: 7px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.analytics-breakdown__fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.analytics-breakdown__fill--day {
+    background: linear-gradient(90deg, #ff9f0a 0%, #ffd60a 100%);
+    box-shadow: 0 0 8px rgba(255, 214, 10, 0.4);
+}
+
+.analytics-breakdown__fill--night {
+    background: linear-gradient(90deg, #5e5ce6 0%, #bf5af2 100%);
+    box-shadow: 0 0 8px rgba(191, 90, 242, 0.4);
+}
+
+.analytics-breakdown__fill--extra {
+    background: linear-gradient(90deg, #ff453a 0%, #ff9f0a 100%);
+    box-shadow: 0 0 8px rgba(255, 69, 58, 0.4);
+}
+
+/* Light Theme for Analytics */
+[data-theme="light"] .analytics-hero__card {
+    background: var(--card-solid);
+    box-shadow: 0 4px 12px rgba(120, 105, 85, 0.06);
+}
+
+[data-theme="light"] .analytics-hero__card--income {
+    border-color: rgba(40, 167, 69, 0.35);
+    background: linear-gradient(135deg, rgba(40, 167, 69, 0.08) 0%, #ffffff 100%);
+}
+
+[data-theme="light"] .analytics-hero__card--income .analytics-hero__value {
+    color: #28a745;
+}
+
+[data-theme="light"] .analytics-streak {
+    background: linear-gradient(135deg, rgba(255, 149, 0, 0.1) 0%, #ffffff 100%);
+    border-color: rgba(255, 149, 0, 0.35);
+}
+
+[data-theme="light"] .analytics-streak--rest {
+    background: linear-gradient(135deg, rgba(0, 122, 255, 0.1) 0%, #ffffff 100%);
+    border-color: rgba(0, 122, 255, 0.35);
+}
+
+[data-theme="light"] .analytics-record-card {
+    background: var(--card-solid);
+    box-shadow: 0 4px 12px rgba(120, 105, 85, 0.06);
+}
+
+[data-theme="light"] .analytics-record-card--interactive:hover {
+    background: #ffffff;
+    border-color: rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] .analytics-breakdown__track {
+    background: rgba(0, 0, 0, 0.08);
+}
+
 /* Общие контурные векторные иконки для типов смен (Календарь и Список смен) */
 .shift-svg-icon {
     width: 14px;
@@ -2725,5 +3005,30 @@ body.modal-open {
         font-size: 0.75rem;
         padding: 6px 2px;
         gap: 2px;
+    }
+}
+
+@media (max-width: 480px) {
+    .header__actions {
+        gap: 4px;
+    }
+    .btn--icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+    }
+    .month-selector {
+        height: 36px;
+    }
+    .month-selector__btn {
+        width: 28px;
+        height: 28px;
+    }
+    .month-selector__title {
+        font-size: 0.85rem;
+        min-width: 95px;
+    }
+    .analytics-hero {
+        grid-template-columns: 1fr;
     }
 }

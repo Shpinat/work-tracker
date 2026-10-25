@@ -142,6 +142,7 @@ const elements = {
   nextMonthBtn: document.getElementById("nextMonthBtn"),
   todayBtn: document.getElementById("todayBtn"),
   autoScheduleBtn: document.getElementById("autoScheduleBtn"),
+  statsOverviewBtn: document.getElementById("statsOverviewBtn"),
   themeToggleBtn: document.getElementById("themeToggleBtn"),
   themeIcon: document.getElementById("themeIcon"),
   settingsBtn: document.getElementById("settingsBtn"),
@@ -263,6 +264,34 @@ const elements = {
   confirmOkBtn: document.getElementById("confirmOkBtn"),
   confirmCancelBtn: document.getElementById("confirmCancelBtn"),
   appToast: document.getElementById("appToast"),
+
+  // Модальное окно аналитики и рекордов
+  analyticsModal: document.getElementById("analyticsModal"),
+  analyticsModalCloseBtn: document.getElementById("analyticsModalCloseBtn"),
+  allTimeIncome: document.getElementById("allTimeIncome"),
+  allTimeAvgMonth: document.getElementById("allTimeAvgMonth"),
+  allTimeShifts: document.getElementById("allTimeShifts"),
+  allTimeHours: document.getElementById("allTimeHours"),
+  analyticsStreakCard: document.getElementById("analyticsStreakCard"),
+  analyticsStreakIcon: document.getElementById("analyticsStreakIcon"),
+  analyticsStreakTitle: document.getElementById("analyticsStreakTitle"),
+  analyticsStreakDesc: document.getElementById("analyticsStreakDesc"),
+  bestMonthCard: document.getElementById("bestMonthCard"),
+  bestMonthValue: document.getElementById("bestMonthValue"),
+  bestMonthDate: document.getElementById("bestMonthDate"),
+  bestShiftCard: document.getElementById("bestShiftCard"),
+  bestShiftValue: document.getElementById("bestShiftValue"),
+  bestShiftDate: document.getElementById("bestShiftDate"),
+  longestShiftValue: document.getElementById("longestShiftValue"),
+  longestShiftDate: document.getElementById("longestShiftDate"),
+  maxStreakValue: document.getElementById("maxStreakValue"),
+  maxStreakSub: document.getElementById("maxStreakSub"),
+  breakdownDayText: document.getElementById("breakdownDayText"),
+  breakdownDayFill: document.getElementById("breakdownDayFill"),
+  breakdownNightText: document.getElementById("breakdownNightText"),
+  breakdownNightFill: document.getElementById("breakdownNightFill"),
+  breakdownExtraText: document.getElementById("breakdownExtraText"),
+  breakdownExtraFill: document.getElementById("breakdownExtraFill"),
 };
 
 // ============================================================
@@ -825,6 +854,241 @@ function saveSettings(e) {
   render();
   triggerHaptic(15);
   showToast("Настройки и шаблоны сохранены", "success");
+}
+
+// ============================================================
+// Рекорды и общая аналитика
+// ============================================================
+let bestMonthNavTarget = null;
+let bestShiftNavTarget = null;
+
+function dateKeyToEpochDays(key) {
+  const [y, m, d] = key.split("-").map(Number);
+  return Math.round(Date.UTC(y, m - 1, d) / 86400000);
+}
+
+function openAnalyticsModal() {
+  updateAnalyticsData();
+  openModal("analyticsModal");
+  triggerHaptic(12);
+}
+
+function updateAnalyticsData() {
+  const curr = settings.currency || "₽";
+  const keys = Object.keys(shifts).sort();
+
+  if (keys.length === 0) {
+    if (elements.allTimeIncome) elements.allTimeIncome.textContent = `0 ${curr}`;
+    if (elements.allTimeAvgMonth) elements.allTimeAvgMonth.textContent = `~0 ${curr} / месяц`;
+    if (elements.allTimeShifts) elements.allTimeShifts.textContent = "0 см";
+    if (elements.allTimeHours) elements.allTimeHours.textContent = "0 ч всего";
+
+    if (elements.analyticsStreakTitle) elements.analyticsStreakTitle.textContent = "Текущий статус";
+    if (elements.analyticsStreakDesc) elements.analyticsStreakDesc.textContent = "Смен пока нет";
+    if (elements.analyticsStreakIcon) elements.analyticsStreakIcon.textContent = "🌱";
+
+    if (elements.bestMonthValue) elements.bestMonthValue.textContent = "—";
+    if (elements.bestMonthDate) elements.bestMonthDate.textContent = "Нет смен";
+    if (elements.bestShiftValue) elements.bestShiftValue.textContent = "—";
+    if (elements.bestShiftDate) elements.bestShiftDate.textContent = "Нет смен";
+    if (elements.longestShiftValue) elements.longestShiftValue.textContent = "—";
+    if (elements.longestShiftDate) elements.longestShiftDate.textContent = "Нет смен";
+    if (elements.maxStreakValue) elements.maxStreakValue.textContent = "0";
+
+    if (elements.breakdownDayText) elements.breakdownDayText.textContent = "0 см (0%)";
+    if (elements.breakdownDayFill) elements.breakdownDayFill.style.width = "0%";
+    if (elements.breakdownNightText) elements.breakdownNightText.textContent = "0 см (0%)";
+    if (elements.breakdownNightFill) elements.breakdownNightFill.style.width = "0%";
+    if (elements.breakdownExtraText) elements.breakdownExtraText.textContent = "0 см (0%)";
+    if (elements.breakdownExtraFill) elements.breakdownExtraFill.style.width = "0%";
+
+    bestMonthNavTarget = null;
+    bestShiftNavTarget = null;
+    return;
+  }
+
+  let totalIncome = 0;
+  let totalHours = 0;
+  const totalShifts = keys.length;
+
+  let dayShiftsCount = 0;
+  let nightShiftsCount = 0;
+  let extraShiftsCount = 0;
+
+  const monthTotals = {};
+
+  let bestShiftKey = null;
+  let bestShiftPay = -1;
+
+  let longestShiftKey = null;
+  let longestShiftHours = -1;
+
+  keys.forEach((key) => {
+    const s = shifts[key];
+    const pay = Number(s.totalPay) || 0;
+    const hours = Number(s.hours) || 0;
+
+    totalIncome += pay;
+    totalHours += hours;
+
+    if (s.type === "night") nightShiftsCount++;
+    else if (s.type === "extra") extraShiftsCount++;
+    else dayShiftsCount++;
+
+    const mKey = key.slice(0, 7);
+    if (!monthTotals[mKey]) {
+      monthTotals[mKey] = { income: 0, shifts: 0 };
+    }
+    monthTotals[mKey].income += pay;
+    monthTotals[mKey].shifts++;
+
+    if (pay > bestShiftPay) {
+      bestShiftPay = pay;
+      bestShiftKey = key;
+    }
+
+    if (hours > longestShiftHours) {
+      longestShiftHours = hours;
+      longestShiftKey = key;
+    }
+  });
+
+  const distinctMonths = Object.keys(monthTotals).length;
+  const avgMonthlyIncome = Math.round(totalIncome / Math.max(1, distinctMonths));
+
+  if (elements.allTimeIncome) {
+    elements.allTimeIncome.textContent = `${totalIncome.toLocaleString("ru-RU")} ${curr}`;
+  }
+  if (elements.allTimeAvgMonth) {
+    elements.allTimeAvgMonth.textContent = `~${avgMonthlyIncome.toLocaleString("ru-RU")} ${curr} / месяц`;
+  }
+  if (elements.allTimeShifts) {
+    elements.allTimeShifts.textContent = `${totalShifts} см`;
+  }
+  if (elements.allTimeHours) {
+    elements.allTimeHours.textContent = `${Math.round(totalHours * 10) / 10} ч всего`;
+  }
+
+  // Рекордный месяц
+  let bestMKey = null;
+  let maxMonthIncome = -1;
+  Object.entries(monthTotals).forEach(([mKey, data]) => {
+    if (data.income > maxMonthIncome) {
+      maxMonthIncome = data.income;
+      bestMKey = mKey;
+    }
+  });
+
+  if (bestMKey) {
+    const [by, bm] = bestMKey.split("-").map(Number);
+    bestMonthNavTarget = { year: by, month: bm - 1 };
+    if (elements.bestMonthValue) {
+      elements.bestMonthValue.textContent = `${maxMonthIncome.toLocaleString("ru-RU")} ${curr}`;
+    }
+    if (elements.bestMonthDate) {
+      elements.bestMonthDate.textContent = `${MONTH_NAMES[bm - 1]} ${by} ↗`;
+    }
+  }
+
+  // Лучшая смена
+  if (bestShiftKey) {
+    bestShiftNavTarget = bestShiftKey;
+    const [sy, sm, sd] = bestShiftKey.split("-").map(Number);
+    if (elements.bestShiftValue) {
+      elements.bestShiftValue.textContent = `${bestShiftPay.toLocaleString("ru-RU")} ${curr}`;
+    }
+    if (elements.bestShiftDate) {
+      elements.bestShiftDate.textContent = `${sd} ${MONTH_NAMES_GENITIVE[sm - 1]} ${sy} ↗`;
+    }
+  }
+
+  // Длинная смена
+  if (longestShiftKey) {
+    const [ly, lm, ld] = longestShiftKey.split("-").map(Number);
+    if (elements.longestShiftValue) {
+      elements.longestShiftValue.textContent = `${longestShiftHours} ч`;
+    }
+    if (elements.longestShiftDate) {
+      elements.longestShiftDate.textContent = `${ld} ${MONTH_NAMES_GENITIVE[lm - 1]} ${ly}`;
+    }
+  }
+
+  // Стрики (последовательные дни)
+  const epochDays = keys.map(dateKeyToEpochDays).filter((val, idx, arr) => arr.indexOf(val) === idx);
+  let maxStreak = 1;
+  let currRun = 1;
+
+  for (let i = 1; i < epochDays.length; i++) {
+    if (epochDays[i] === epochDays[i - 1] + 1) {
+      currRun++;
+      if (currRun > maxStreak) maxStreak = currRun;
+    } else {
+      currRun = 1;
+    }
+  }
+
+  if (elements.maxStreakValue) {
+    elements.maxStreakValue.textContent = maxStreak;
+  }
+  if (elements.maxStreakSub) {
+    elements.maxStreakSub.textContent = getRussianDeclension(maxStreak, ["смена подряд", "смены подряд", "смен подряд"]);
+  }
+
+  // Текущий стрик
+  const today = new Date();
+  const todayEpoch = Math.round(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()) / 86400000);
+  const epochSet = new Set(epochDays);
+
+  let activeStreak = 0;
+  let checkEpoch = todayEpoch;
+
+  if (epochSet.has(todayEpoch)) {
+    while (epochSet.has(checkEpoch)) {
+      activeStreak++;
+      checkEpoch--;
+    }
+    if (elements.analyticsStreakCard) elements.analyticsStreakCard.classList.remove("analytics-streak--rest");
+    if (elements.analyticsStreakIcon) elements.analyticsStreakIcon.textContent = "🔥";
+    if (elements.analyticsStreakTitle) elements.analyticsStreakTitle.textContent = "Текущий стрик смен";
+    if (elements.analyticsStreakDesc) {
+      elements.analyticsStreakDesc.textContent = `${activeStreak} ${getRussianDeclension(activeStreak, ["смена подряд", "смены подряд", "смен подряд"])} (включая сегодня)`;
+    }
+  } else if (epochSet.has(todayEpoch - 1)) {
+    checkEpoch = todayEpoch - 1;
+    while (epochSet.has(checkEpoch)) {
+      activeStreak++;
+      checkEpoch--;
+    }
+    if (elements.analyticsStreakCard) elements.analyticsStreakCard.classList.remove("analytics-streak--rest");
+    if (elements.analyticsStreakIcon) elements.analyticsStreakIcon.textContent = "⚡";
+    if (elements.analyticsStreakTitle) elements.analyticsStreakTitle.textContent = "Последний стрик";
+    if (elements.analyticsStreakDesc) {
+      elements.analyticsStreakDesc.textContent = `${activeStreak} ${getRussianDeclension(activeStreak, ["смена подряд", "смены подряд", "смен подряд"])} (вчера была смена)`;
+    }
+  } else {
+    const lastDay = epochDays[epochDays.length - 1];
+    const restDays = Math.max(1, todayEpoch - lastDay);
+    if (elements.analyticsStreakCard) elements.analyticsStreakCard.classList.add("analytics-streak--rest");
+    if (elements.analyticsStreakIcon) elements.analyticsStreakIcon.textContent = "🌴";
+    if (elements.analyticsStreakTitle) elements.analyticsStreakTitle.textContent = "Текущий статус";
+    if (elements.analyticsStreakDesc) {
+      elements.analyticsStreakDesc.textContent = `Отдых: ${restDays} ${getRussianDeclension(restDays, ["день", "дня", "дней"])} без смен`;
+    }
+  }
+
+  // Структура работы (Breakdown)
+  const dayPct = Math.round((dayShiftsCount / totalShifts) * 100);
+  const nightPct = Math.round((nightShiftsCount / totalShifts) * 100);
+  const extraPct = Math.round((extraShiftsCount / totalShifts) * 100);
+
+  if (elements.breakdownDayText) elements.breakdownDayText.textContent = `${dayShiftsCount} см (${dayPct}%)`;
+  if (elements.breakdownDayFill) elements.breakdownDayFill.style.width = `${dayPct}%`;
+
+  if (elements.breakdownNightText) elements.breakdownNightText.textContent = `${nightShiftsCount} см (${nightPct}%)`;
+  if (elements.breakdownNightFill) elements.breakdownNightFill.style.width = `${nightPct}%`;
+
+  if (elements.breakdownExtraText) elements.breakdownExtraText.textContent = `${extraShiftsCount} см (${extraPct}%)`;
+  if (elements.breakdownExtraFill) elements.breakdownExtraFill.style.width = `${extraPct}%`;
 }
 
 // ============================================================
@@ -2102,6 +2366,51 @@ function bindEvents() {
   // Тема и настройки
   elements.themeToggleBtn.addEventListener("click", toggleTheme);
   elements.settingsBtn.addEventListener("click", openSettings);
+
+  // Рекорды и общая аналитика
+  if (elements.statsOverviewBtn) {
+    elements.statsOverviewBtn.addEventListener("click", openAnalyticsModal);
+  }
+  if (elements.analyticsModalCloseBtn) {
+    elements.analyticsModalCloseBtn.addEventListener("click", () => closeModal("analyticsModal"));
+  }
+  if (elements.bestMonthCard) {
+    elements.bestMonthCard.addEventListener("click", () => {
+      if (bestMonthNavTarget) {
+        currentDate = new Date(bestMonthNavTarget.year, bestMonthNavTarget.month, 1);
+        closeModal("analyticsModal");
+        render();
+        triggerHaptic(12);
+        showToast(`Перешли к месяцу: ${MONTH_NAMES[bestMonthNavTarget.month]} ${bestMonthNavTarget.year}`, "info");
+      }
+    });
+    elements.bestMonthCard.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        elements.bestMonthCard.click();
+      }
+    });
+  }
+  if (elements.bestShiftCard) {
+    elements.bestShiftCard.addEventListener("click", () => {
+      if (bestShiftNavTarget) {
+        const [y, m] = bestShiftNavTarget.split("-").map(Number);
+        currentDate = new Date(y, m - 1, 1);
+        closeModal("analyticsModal");
+        render();
+        setTimeout(() => {
+          openShiftModal(bestShiftNavTarget);
+        }, 120);
+        triggerHaptic(12);
+      }
+    });
+    elements.bestShiftCard.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        elements.bestShiftCard.click();
+      }
+    });
+  }
 
   // Экспорт
   elements.exportMonthBtn.addEventListener("click", () => exportCSV(false));

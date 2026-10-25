@@ -205,13 +205,30 @@
             <label class="form__label">Тип смены</label>
             <div class="segmented-control" role="radiogroup" aria-label="Тип смены" id="shiftTypeSegmented">
               <button type="button" class="segmented-control__btn is-active" data-value="day">
-                ☀️ День
+                <svg class="segmented-control__icon segmented-control__icon--sun" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="4"></circle>
+                  <path d="M12 2v2"></path>
+                  <path d="M12 20v2"></path>
+                  <path d="m4.93 4.93 1.41 1.41"></path>
+                  <path d="m17.66 17.66 1.41 1.41"></path>
+                  <path d="M2 12h2"></path>
+                  <path d="M20 12h2"></path>
+                  <path d="m6.34 17.66-1.41 1.41"></path>
+                  <path d="m19.07 4.93-1.41 1.41"></path>
+                </svg>
+                День
               </button>
               <button type="button" class="segmented-control__btn" data-value="night">
-                🌙 Ночь
+                <svg class="segmented-control__icon segmented-control__icon--moon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+                </svg>
+                Ночь
               </button>
               <button type="button" class="segmented-control__btn" data-value="extra">
-                🔥 Подработка
+                <svg class="segmented-control__icon segmented-control__icon--flame" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>
+                </svg>
+                Подработка
               </button>
             </div>
             <input type="hidden" id="shiftType" value="day" />
@@ -262,30 +279,26 @@
             </div>
           </div>
 
-          <div class="form__row">
-            <div class="form__group">
-              <label class="form__label">Вид оплаты</label>
-              <div class="segmented-control" role="radiogroup" aria-label="Вид оплаты" id="payModeSegmented">
-                <button type="button" class="segmented-control__btn is-active" data-value="hourly">
-                  Почасовая
-                </button>
-                <button type="button" class="segmented-control__btn" data-value="fixed">
-                  Фикс
-                </button>
-              </div>
-              <input type="hidden" id="payMode" value="hourly" />
-            </div>
-            <div class="form__group">
-              <label class="form__label" id="rateLabel" for="rate"
-                >Ставка в час (₽)</label
-              >
+          <div class="form__group">
+            <label class="form__label" id="rateLabel" for="rate">Ставка</label>
+            <div class="input-with-segmented">
               <input
-                class="form__control form__input"
+                class="form__control form__input input-with-segmented__input"
                 type="number"
                 id="rate"
                 step="any"
+                placeholder="0"
                 required
               />
+              <div class="segmented-control segmented-control--suffix" role="radiogroup" aria-label="Вид оплаты" id="payModeSegmented">
+                <button type="button" class="segmented-control__btn is-active" data-value="hourly" id="payModeHourlyBtn">
+                  ₽/час
+                </button>
+                <button type="button" class="segmented-control__btn" data-value="fixed" id="payModeFixedBtn">
+                  ₽/смена
+                </button>
+              </div>
+              <input type="hidden" id="payMode" value="hourly" />
             </div>
           </div>
 
@@ -392,28 +405,6 @@
               />
             </div>
             <div class="form__group">
-              <label class="form__label">Вид оплаты</label>
-              <div class="segmented-control" role="radiogroup" aria-label="Вид оплаты по умолчанию" id="defPayModeSegmented">
-                <button type="button" class="segmented-control__btn is-active" data-value="hourly">
-                  Почасовая
-                </button>
-                <button type="button" class="segmented-control__btn" data-value="fixed">
-                  Фикс
-                </button>
-              </div>
-              <input type="hidden" id="defPayMode" value="hourly" />
-            </div>
-          </div>
-          <div class="form__row">
-            <div class="form__group">
-              <label class="form__label" for="defRate">Базовая ставка</label>
-              <input
-                class="form__control form__input"
-                type="number"
-                id="defRate"
-              />
-            </div>
-            <div class="form__group">
               <label class="form__label" for="defCurrency">Валюта</label>
               <input
                 class="form__control form__input"
@@ -421,6 +412,27 @@
                 id="defCurrency"
                 value="₽"
               />
+            </div>
+          </div>
+          <div class="form__group">
+            <label class="form__label" for="defRate">Базовая ставка</label>
+            <div class="input-with-segmented">
+              <input
+                class="form__control form__input input-with-segmented__input"
+                type="number"
+                id="defRate"
+                step="any"
+                placeholder="0"
+              />
+              <div class="segmented-control segmented-control--suffix" role="radiogroup" aria-label="Вид оплаты по умолчанию" id="defPayModeSegmented">
+                <button type="button" class="segmented-control__btn is-active" data-value="hourly" id="defPayModeHourlyBtn">
+                  ₽/час
+                </button>
+                <button type="button" class="segmented-control__btn" data-value="fixed" id="defPayModeFixedBtn">
+                  ₽/смена
+                </button>
+              </div>
+              <input type="hidden" id="defPayMode" value="hourly" />
             </div>
           </div>
           <button

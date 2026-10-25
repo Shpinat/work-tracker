@@ -170,8 +170,12 @@
 }
 
 [data-theme="light"] .segmented-control {
-    background: rgba(90, 75, 55, 0.05);
-    border-color: var(--border);
+    background: rgba(90, 75, 55, 0.08);
+    border: none;
+}
+
+[data-theme="light"] .segmented-control--suffix {
+    background: rgba(90, 75, 55, 0.09);
 }
 
 [data-theme="light"] .segmented-control__btn {
@@ -186,8 +190,8 @@
 [data-theme="light"] .segmented-control__btn.is-active {
     background: #ffffff;
     color: var(--text);
-    box-shadow: 0 2px 8px rgba(120, 105, 85, 0.12);
-    border: 1px solid rgba(90, 75, 55, 0.12);
+    box-shadow: 0 2px 8px rgba(120, 105, 85, 0.16);
+    border: none;
 }
 
 html {
@@ -1024,13 +1028,13 @@ body.modal-open {
 /* Segmented Control (Pill Switcher) */
 .segmented-control {
     display: flex;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid var(--border);
+    background: #141416;
+    border: none;
     border-radius: var(--radius-sm);
-    padding: 4px;
-    gap: 4px;
+    padding: 3px;
+    gap: 3px;
     user-select: none;
-    min-height: 48px;
+    min-height: 44px;
     box-sizing: border-box;
 }
 
@@ -1039,34 +1043,100 @@ body.modal-open {
     background: transparent;
     border: none;
     color: var(--text-muted);
-    padding: 8px 6px;
-    font-size: 0.84rem;
+    padding: 8px 10px;
+    font-size: 0.85rem;
     font-weight: 500;
-    border-radius: 10px;
+    border-radius: 11px;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 5px;
+    gap: 6px;
     white-space: nowrap;
 }
 
 .segmented-control__btn:hover {
     color: var(--text);
-    background: rgba(255, 255, 255, 0.04);
+    background: rgba(255, 255, 255, 0.05);
 }
 
 .segmented-control__btn:active {
-    transform: scale(0.97);
+    transform: scale(0.98);
 }
 
+/* Активный таб: заметная заливка БЕЗ обводки */
 .segmented-control__btn.is-active {
-    background: var(--card-solid);
-    color: var(--text);
+    background: #2c2c2e;
+    color: #ffffff;
     font-weight: 600;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+    border: none;
+}
+
+/* Контурные векторные иконки для переключателя смен */
+.segmented-control__icon {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    opacity: 0.55;
+    transition: stroke 0.2s ease, opacity 0.2s ease;
+    flex-shrink: 0;
+}
+
+.segmented-control__btn:hover .segmented-control__icon {
+    opacity: 0.85;
+}
+
+.segmented-control__btn.is-active .segmented-control__icon {
+    opacity: 1;
+}
+
+.segmented-control__btn.is-active .segmented-control__icon--sun {
+    stroke: #ffd60a;
+}
+
+.segmented-control__btn.is-active .segmented-control__icon--moon {
+    stroke: #bf5af2;
+}
+
+.segmented-control__btn.is-active .segmented-control__icon--flame {
+    stroke: #ff9f0a;
+}
+
+/* Интегрированный переключатель ставки (Суффикс) */
+.input-with-segmented {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.input-with-segmented__input {
+    width: 100%;
+    padding-right: 180px;
+}
+
+.segmented-control--suffix {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    min-height: 38px;
+    height: 38px;
+    padding: 2px;
+    gap: 2px;
+    z-index: 2;
+    background: #141416;
+    border-radius: 11px;
+}
+
+.segmented-control--suffix .segmented-control__btn {
+    padding: 4px 12px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    height: 34px;
+    border-radius: 9px;
 }
 
 .form__input[type="time"]::-webkit-calendar-picker-indicator {
@@ -1191,6 +1261,15 @@ body.modal-open {
         padding: 8px 4px;
         font-size: 0.8rem;
         gap: 3px;
+    }
+
+    .input-with-segmented__input {
+        padding-right: 155px;
+    }
+
+    .segmented-control--suffix .segmented-control__btn {
+        padding: 4px 8px;
+        font-size: 0.74rem;
     }
 
     .modal-overlay {

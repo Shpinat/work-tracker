@@ -202,6 +202,19 @@ function setSegmentedValue(containerId, inputId, value, triggerChange = false) {
   }
 }
 
+function updatePayModeLabels() {
+  const curr = settings.currency || "₽";
+  const hourlyBtn = document.getElementById("payModeHourlyBtn");
+  const fixedBtn = document.getElementById("payModeFixedBtn");
+  if (hourlyBtn) hourlyBtn.textContent = `${curr}/час`;
+  if (fixedBtn) fixedBtn.textContent = `${curr}/смена`;
+
+  const defHourlyBtn = document.getElementById("defPayModeHourlyBtn");
+  const defFixedBtn = document.getElementById("defPayModeFixedBtn");
+  if (defHourlyBtn) defHourlyBtn.textContent = `${curr}/час`;
+  if (defFixedBtn) defFixedBtn.textContent = `${curr}/смена`;
+}
+
 function initSegmentedControls() {
   const configs = [
     {
@@ -235,6 +248,8 @@ function initSegmentedControls() {
       });
     });
   });
+
+  updatePayModeLabels();
 }
 
 // ============================================================
@@ -335,6 +350,7 @@ function closeModal(id) {
 
 function openShiftModal(dateKey) {
   closeModal("shiftsModal");
+  updatePayModeLabels();
   const existing = shifts[dateKey];
   const [y, m, d] = dateKey.split("-");
   elements.shiftModalTitle.textContent = `Смена ${d}.${m}.${y}`;
@@ -402,6 +418,7 @@ function deleteShift() {
 // Настройки
 // ============================================================
 function openSettings() {
+  updatePayModeLabels();
   elements.defStart.value = settings.start;
   elements.defEnd.value = settings.end;
   elements.defBreak.value = settings.breakMins;
@@ -422,6 +439,7 @@ function saveSettings(e) {
     currency: elements.defCurrency.value.trim() || "₽",
   };
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  updatePayModeLabels();
   closeModal("settingsModal");
   render();
 }

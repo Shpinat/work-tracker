@@ -948,7 +948,7 @@ function updateCustomPatternBuilderUI() {
       title = settings.presets?.extra?.name || "Подработка";
     }
 
-    chip.innerHTML = `${iconSvg} <span>${title}</span> <span style="font-size: 0.7rem; opacity: 0.6; margin-left: 2px;">✕</span>`;
+    chip.innerHTML = `${iconSvg} <span>${escapeHtml(title)}</span> <span style="font-size: 0.7rem; opacity: 0.6; margin-left: 2px;">✕</span>`;
     chip.title = "Нажмите, чтобы удалить день из цикла";
     chip.addEventListener("click", () => {
       customCycle.splice(idx, 1);
@@ -998,7 +998,9 @@ function updateSchedulePreview() {
   if (dayCount > 0) breakdown.push(`${dayCount} дневных`);
   if (nightCount > 0) breakdown.push(`${nightCount} ночных`);
 
-  previewEl.innerHTML = `Будет добавлено <strong>${planned.length} смен</strong> (${breakdown.join(", ")}) на <strong>${durationStr}</strong>.<br>Прогнозируемый доход: ~<strong>${estTotal.toLocaleString("ru-RU")} ${settings.currency}</strong>.`;
+  const currencyStr = escapeHtml(settings.currency || "₽");
+
+  previewEl.innerHTML = `Будет добавлено <strong>${planned.length} смен</strong> (${breakdown.join(", ")}) на <strong>${durationStr}</strong>.<br>Прогнозируемый доход: ~<strong>${estTotal.toLocaleString("ru-RU")} ${currencyStr}</strong>.`;
 }
 
 function applySchedule(e) {

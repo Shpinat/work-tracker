@@ -19,6 +19,15 @@ export function openModal(id, onOpen) {
     modal.style.backgroundColor = "";
     modal.classList.add("active");
     document.body.classList.add("modal-open");
+
+    // Обновляем aria-expanded для связанных кнопок-триггеров
+    if (id === "shiftsModal") {
+      const openShiftsBtn = document.getElementById("openShiftsBtn");
+      if (openShiftsBtn) {
+        openShiftsBtn.setAttribute("aria-expanded", "true");
+      }
+    }
+
     if (typeof onOpen === "function") {
       requestAnimationFrame(onOpen);
     }
@@ -39,6 +48,14 @@ export function closeModal(id) {
     }
     modal.style.backgroundColor = "";
     modal.classList.remove("active");
+
+    // Обновляем aria-expanded для связанных кнопок-триггеров
+    if (id === "shiftsModal") {
+      const openShiftsBtn = document.getElementById("openShiftsBtn");
+      if (openShiftsBtn) {
+        openShiftsBtn.setAttribute("aria-expanded", "false");
+      }
+    }
   }
   const hasActiveModal = document.querySelector(".modal-overlay.active");
   if (!hasActiveModal) {

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'shifts-v30';
+const CACHE_NAME = 'shifts-v2';
 
 // Относительные пути (корректно работают в GitHub Pages подкаталогах)
 const ASSETS_TO_CACHE = [
@@ -6,6 +6,16 @@ const ASSETS_TO_CACHE = [
     './index.html',
     './style.css',
     './app.js',
+    './data/storage.js',
+    './data/backup.js',
+    './domain/payroll.js',
+    './domain/analytics.js',
+    './domain/schedule.js',
+    './ui/icons.js',
+    './ui/toast.js',
+    './ui/modals.js',
+    './ui/shift-list.js',
+    './ui/calendar.js',
     './manifest.webmanifest',
     './icon-192x192.png',
     './icon-512x512.png',

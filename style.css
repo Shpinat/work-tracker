@@ -1679,13 +1679,91 @@ body.modal-open {
     margin-bottom: 16px;
 }
 
+/* Контейнер списка смен с эффектом плавного затухания и размытия */
+.shift-list-wrapper {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Размытие и градиентное затухание по верхнему и нижнему краю */
+.shift-list-wrapper::before,
+.shift-list-wrapper::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 32px;
+    pointer-events: none;
+    z-index: 5;
+    opacity: 0;
+    transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.shift-list-wrapper::before {
+    top: 0;
+    background: linear-gradient(to bottom, var(--card-solid) 15%, transparent 100%);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    mask-image: linear-gradient(to bottom, black 30%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 30%, transparent 100%);
+}
+
+[data-theme="light"] .shift-list-wrapper::before {
+    background: linear-gradient(to bottom, var(--card-solid) 15%, transparent 100%);
+}
+
+.shift-list-wrapper::after {
+    bottom: 0;
+    background: linear-gradient(to top, var(--card-solid) 15%, transparent 100%);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    mask-image: linear-gradient(to top, black 30%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to top, black 30%, transparent 100%);
+}
+
+[data-theme="light"] .shift-list-wrapper::after {
+    background: linear-gradient(to top, var(--card-solid) 15%, transparent 100%);
+}
+
+.shift-list-wrapper.can-scroll-up::before {
+    opacity: 1;
+}
+
+.shift-list-wrapper.can-scroll-down::after {
+    opacity: 1;
+}
+
 .modal--shifts .shift-list {
     flex: 1;
     overflow-y: auto;
     overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
+    padding-top: 4px;
+    padding-bottom: 20px;
     padding-right: 6px;
     margin-right: -4px;
+    mask-image: linear-gradient(to bottom, black 0%, black 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 0%, black 100%);
+    transition: -webkit-mask-image 0.2s ease, mask-image 0.2s ease;
+}
+
+.shift-list-wrapper.can-scroll-up:not(.can-scroll-down) .shift-list {
+    mask-image: linear-gradient(to bottom, transparent 0px, black 30px, black 100%);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0px, black 30px, black 100%);
+}
+
+.shift-list-wrapper.can-scroll-down:not(.can-scroll-up) .shift-list {
+    mask-image: linear-gradient(to bottom, black 0%, black calc(100% - 30px), transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 0%, black calc(100% - 30px), transparent 100%);
+}
+
+.shift-list-wrapper.can-scroll-up.can-scroll-down .shift-list {
+    mask-image: linear-gradient(to bottom, transparent 0px, black 30px, black calc(100% - 30px), transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0px, black 30px, black calc(100% - 30px), transparent 100%);
 }
 
 .modal__header {
@@ -3153,5 +3231,118 @@ body.modal-open {
     }
     .analytics-hero {
         grid-template-columns: 1fr;
+    }
+}
+
+/* ============================================================
+   Иконки меток и аналитики (SVG)
+   ============================================================ */
+.tag-svg-icon {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.shift-tag-badge .tag-svg-icon {
+    width: 11px;
+    height: 11px;
+}
+
+.breakdown-svg-icon {
+    display: inline-block;
+    vertical-align: -2px;
+    margin-right: 5px;
+    stroke: currentColor;
+    stroke-width: 2;
+}
+
+.breakdown-svg-icon--day {
+    color: #ffd60a;
+}
+
+.breakdown-svg-icon--night {
+    color: #bf5af2;
+}
+
+.breakdown-svg-icon--extra {
+    color: #ff9f0a;
+}
+
+.analytics-breakdown__type {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Кнопка пересчета смен текущего месяца */
+.form__btn--recalc {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    margin-top: 8px;
+    padding: 10px 14px;
+    font-size: 0.84rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.form__btn--recalc:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.form__btn--recalc:active {
+    transform: scale(0.98);
+}
+
+[data-theme="light"] .form__btn--recalc {
+    background: rgba(0, 0, 0, 0.02);
+    border-color: rgba(0, 0, 0, 0.15);
+    color: var(--text-secondary);
+}
+
+[data-theme="light"] .form__btn--recalc:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--text-primary);
+    border-color: rgba(0, 0, 0, 0.25);
+}
+
+.settings-app-version {
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    margin-top: 16px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    user-select: none;
+}
+
+/* ============================================================
+   Скрытие скроллбаров на мобильных устройствах
+   ============================================================ */
+@media (max-width: 600px) {
+    html, body, .modal, .shift-list, .analytics-content, .custom-pattern-builder, .shift-tags-picker {
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
+    }
+
+    ::-webkit-scrollbar {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
     }
 }

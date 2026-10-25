@@ -1136,6 +1136,126 @@ body.modal-open {
     gap: 8px;
 }
 
+/* Custom Confirmation Dialog */
+.modal-overlay--dialog {
+    z-index: 300;
+}
+
+.modal--dialog {
+    max-width: 320px;
+    padding: 24px 20px;
+    text-align: center;
+    border-radius: 24px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+}
+
+.modal__dialog-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    margin: 0 auto 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.modal__dialog-icon--danger {
+    background: rgba(255, 69, 58, 0.15);
+    color: var(--danger);
+}
+
+.modal__dialog-icon--info {
+    background: rgba(10, 132, 255, 0.15);
+    color: var(--primary);
+}
+
+.modal__dialog-title {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+}
+
+.modal__dialog-message {
+    font-size: 0.88rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+    margin-bottom: 20px;
+}
+
+.modal__dialog-actions {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+}
+
+.modal__dialog-btn {
+    flex: 1;
+    padding: 10px 14px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    justify-content: center;
+}
+
+/* App Toast (Floating Notification) */
+.app-toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-30px) scale(0.95);
+    background: var(--card-solid);
+    border: 1px solid var(--border);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+    border-radius: var(--radius-pill);
+    padding: 10px 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text);
+    font-size: 0.88rem;
+    font-weight: 500;
+    z-index: 400;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.app-toast.active {
+    transform: translateX(-50%) translateY(0) scale(1);
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.app-toast__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.app-toast--success .app-toast__icon {
+    color: var(--success);
+}
+
+.app-toast--error .app-toast__icon {
+    color: var(--danger);
+}
+
+.app-toast--info .app-toast__icon {
+    color: var(--primary);
+}
+
+[data-theme="light"] .modal--dialog,
+[data-theme="light"] .app-toast {
+    box-shadow: 0 12px 32px rgba(120, 105, 85, 0.15);
+}
+
 /* Form (Block) */
 .form__group {
     margin-bottom: 16px;
@@ -1544,6 +1664,32 @@ body.modal-open {
     .modal--shifts .shift-list {
         padding-right: 4px;
         margin-right: -4px;
+    }
+
+    .modal-overlay--dialog {
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+
+    .modal-overlay--dialog .modal-overlay__content {
+        transform: translateY(0) scale(0.95);
+        border-radius: 24px;
+        width: 100%;
+        max-width: 320px;
+    }
+
+    .modal-overlay--dialog.active .modal-overlay__content {
+        transform: translateY(0) scale(1);
+    }
+
+    .modal--dialog {
+        border-radius: 24px;
+        padding: 24px 20px;
+    }
+
+    .modal--dialog::before {
+        display: none !important;
     }
 
     .modal__close-btn {

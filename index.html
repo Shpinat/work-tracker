@@ -466,6 +466,29 @@
       </div>
     </div>
 
+    <!-- Кастомное диалоговое окно подтверждения -->
+    <div class="modal-overlay modal-overlay--dialog" id="confirmModal">
+      <div class="modal modal--dialog modal-overlay__content" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+        <div class="modal__dialog-icon" id="confirmIcon"></div>
+        <h3 class="modal__dialog-title" id="confirmTitle">Подтверждение</h3>
+        <p class="modal__dialog-message" id="confirmMessage">Вы уверены?</p>
+        <div class="modal__dialog-actions">
+          <button type="button" class="btn btn--secondary modal__dialog-btn" id="confirmCancelBtn">
+            Отмена
+          </button>
+          <button type="button" class="btn btn--danger modal__dialog-btn" id="confirmOkBtn">
+            Удалить
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Всплывающий тост для уведомлений -->
+    <div id="appToast" class="app-toast" role="status" aria-live="polite">
+      <span class="app-toast__icon" aria-hidden="true"></span>
+      <span class="app-toast__message"></span>
+    </div>
+
     <script type="module" src="app.js"></script>
   </body>
 </html>

@@ -140,6 +140,15 @@ const elements = {
   // PWA тост
   updateToast: document.getElementById("updateToast"),
   updateReloadBtn: document.getElementById("updateReloadBtn"),
+
+  // Кастомный диалог подтверждения и тосты
+  confirmModal: document.getElementById("confirmModal"),
+  confirmTitle: document.getElementById("confirmTitle"),
+  confirmMessage: document.getElementById("confirmMessage"),
+  confirmIcon: document.getElementById("confirmIcon"),
+  confirmOkBtn: document.getElementById("confirmOkBtn"),
+  confirmCancelBtn: document.getElementById("confirmCancelBtn"),
+  appToast: document.getElementById("appToast"),
 };
 
 // ============================================================
@@ -349,6 +358,116 @@ function closeModal(id) {
   }
 }
 
+// ============================================================
+// Всплывающие уведомления (Тосты) и диалог подтверждения
+// ============================================================
+let toastTimer = null;
+
+function showToast(message, type = "info") {
+  const toast = elements.appToast;
+  if (!toast) return;
+
+  const iconEl = toast.querySelector(".app-toast__icon");
+  const msgEl = toast.querySelector(".app-toast__message");
+
+  msgEl.textContent = message;
+  toast.className = `app-toast app-toast--${type} active`;
+
+  if (type === "success") {
+    iconEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+  } else if (type === "error") {
+    iconEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`;
+  } else {
+    iconEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
+  }
+
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toast.classList.remove("active");
+  }, 3000);
+}
+
+function showConfirm({
+  title = "Подтверждение",
+  message = "Вы уверены?",
+  confirmText = "Подтвердить",
+  cancelText = "Отмена",
+  type = "danger",
+} = {}) {
+  return new Promise((resolve) => {
+    const overlay = elements.confirmModal;
+    const titleEl = elements.confirmTitle;
+    const messageEl = elements.confirmMessage;
+    const iconEl = elements.confirmIcon;
+    const okBtn = elements.confirmOkBtn;
+    const cancelBtn = elements.confirmCancelBtn;
+
+    titleEl.textContent = title;
+    messageEl.textContent = message;
+    okBtn.textContent = confirmText;
+    cancelBtn.textContent = cancelText;
+
+    okBtn.className = `btn modal__dialog-btn ${type === "danger" ? "btn--danger" : "btn--primary"}`;
+
+    if (type === "danger") {
+      iconEl.className = "modal__dialog-icon modal__dialog-icon--danger";
+      iconEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
+    } else {
+      iconEl.className = "modal__dialog-icon modal__dialog-icon--info";
+      iconEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
+    }
+
+    const cleanup = () => {
+      overlay.classList.remove("active");
+      const hasOtherModal = document.querySelector(".modal-overlay.active:not(#confirmModal)");
+      if (!hasOtherModal) {
+        document.body.classList.remove("modal-open");
+      }
+      okBtn.removeEventListener("click", onOk);
+      cancelBtn.removeEventListener("click", onCancel);
+      overlay.removeEventListener("click", onOverlay);
+      document.removeEventListener("keydown", onKeyDown, true);
+    };
+
+    const onOk = () => {
+      cleanup();
+      resolve(true);
+    };
+
+    const onCancel = () => {
+      cleanup();
+      resolve(false);
+    };
+
+    const onOverlay = (e) => {
+      if (e.target === overlay) {
+        onCancel();
+      }
+    };
+
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        onCancel();
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        e.stopPropagation();
+        onOk();
+      }
+    };
+
+    okBtn.addEventListener("click", onOk);
+    cancelBtn.addEventListener("click", onCancel);
+    overlay.addEventListener("click", onOverlay);
+    document.addEventListener("keydown", onKeyDown, true);
+
+    document.body.classList.add("modal-open");
+    overlay.classList.add("active");
+    cancelBtn.focus();
+  });
+}
+
 function openShiftModal(dateKey) {
   closeModal("shiftsModal");
   updatePayModeLabels();
@@ -406,13 +525,21 @@ function saveShift(e) {
   render();
 }
 
-function deleteShift() {
-  if (!confirm("Удалить эту смену?")) return;
+async function deleteShift() {
+  const confirmed = await showConfirm({
+    title: "Удалить смену?",
+    message: "Смена будет удалена без возможности восстановления.",
+    confirmText: "Удалить",
+    cancelText: "Отмена",
+    type: "danger",
+  });
+  if (!confirmed) return;
   const dateKey = elements.shiftDate.value;
   delete shifts[dateKey];
   localStorage.setItem(STORAGE_KEY, JSON.stringify(shifts));
   closeModal("shiftModal");
   render();
+  showToast("Смена удалена", "info");
 }
 
 // ============================================================
@@ -795,9 +922,9 @@ function restoreBackup(event) {
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
       closeModal("settingsModal");
       render();
-      alert("Данные успешно восстановлены!");
+      showToast("Данные успешно восстановлены!", "success");
     } catch (err) {
-      alert("Ошибка чтения файла бэкапа");
+      showToast("Ошибка чтения файла бэкапа", "error");
     }
     // Сбрасываем input, чтобы повторная загрузка того же файла сработала
     event.target.value = "";

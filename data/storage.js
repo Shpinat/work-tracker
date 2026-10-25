@@ -10,16 +10,19 @@ export const APP_VERSION = "2.0";
 
 export const DEFAULT_PRESETS = {
   day: {
+    name: "День",
     start: "09:00",
     end: "21:00",
     breakMins: 60,
   },
   night: {
+    name: "Ночь",
     start: "21:00",
     end: "09:00",
     breakMins: 60,
   },
   extra: {
+    name: "Подработка",
     start: "10:00",
     end: "16:00",
     breakMins: 0,
@@ -52,22 +55,26 @@ export function sanitizeSettings(raw) {
 
   const presets = raw.presets && typeof raw.presets === "object" ? {
     day: {
+      name: typeof raw.presets.day?.name === "string" && raw.presets.day.name.trim() ? raw.presets.day.name.trim() : DEFAULT_PRESETS.day.name,
       start: raw.presets.day?.start || raw.start || DEFAULT_PRESETS.day.start,
       end: raw.presets.day?.end || raw.end || DEFAULT_PRESETS.day.end,
       breakMins: raw.presets.day?.breakMins ?? raw.breakMins ?? DEFAULT_PRESETS.day.breakMins,
     },
     night: {
+      name: typeof raw.presets.night?.name === "string" && raw.presets.night.name.trim() ? raw.presets.night.name.trim() : DEFAULT_PRESETS.night.name,
       start: raw.presets.night?.start || DEFAULT_PRESETS.night.start,
       end: raw.presets.night?.end || DEFAULT_PRESETS.night.end,
       breakMins: raw.presets.night?.breakMins ?? DEFAULT_PRESETS.night.breakMins,
     },
     extra: {
+      name: typeof raw.presets.extra?.name === "string" && raw.presets.extra.name.trim() ? raw.presets.extra.name.trim() : DEFAULT_PRESETS.extra.name,
       start: raw.presets.extra?.start || DEFAULT_PRESETS.extra.start,
       end: raw.presets.extra?.end || DEFAULT_PRESETS.extra.end,
       breakMins: raw.presets.extra?.breakMins ?? DEFAULT_PRESETS.extra.breakMins,
     },
   } : {
     day: {
+      name: DEFAULT_PRESETS.day.name,
       start: raw.start || DEFAULT_PRESETS.day.start,
       end: raw.end || DEFAULT_PRESETS.day.end,
       breakMins: raw.breakMins ?? DEFAULT_PRESETS.day.breakMins,

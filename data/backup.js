@@ -26,7 +26,7 @@ export function triggerDownload(blob, filename) {
  */
 export function downloadBackup(shifts, settings) {
   const payload = {
-    app: "work-tracker",
+    app: "WorkTrack",
     version: APP_VERSION,
     exportedAt: new Date().toISOString(),
     shifts,
@@ -130,9 +130,10 @@ export async function exportCSV({
           noteStr = "'" + noteStr;
         }
 
+        const typeLabel = settings?.presets?.[s.type]?.name || (s.type === "night" ? "Ночь" : s.type === "extra" ? "Подработка" : "День");
         rows.push([
           key,
-          s.type || "day",
+          typeLabel,
           s.start || "",
           s.end || "",
           s.breakMins ?? 0,

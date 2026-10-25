@@ -205,7 +205,7 @@ export function initBottomSheetSwipe(modalIds = [
         const isNearTop = touch.clientY - rect.top < 65;
         isTopDrag = isHeader || isNearTop;
 
-        const scrollable = content.querySelector(".shift-list") || content;
+        const scrollable = content.querySelector(".shift-list") || content.querySelector(".modal__body") || content;
 
         // Разрешаем смахивание, если шторка прокручена к самому верху или тап по шапке/ручке
         if (scrollable.scrollTop <= 0 || isTopDrag) {
@@ -226,7 +226,7 @@ export function initBottomSheetSwipe(modalIds = [
         currentY = touch.clientY;
         const dy = currentY - startY;
 
-        const scrollable = content.querySelector(".shift-list") || content;
+        const scrollable = content.querySelector(".shift-list") || content.querySelector(".modal__body") || content;
 
         // Если тянем вниз от верха шторки или за шапку — отменяем нативный жест (pull-to-refresh)
         if (dy > 0 && (scrollable.scrollTop <= 0 || isTopDrag)) {

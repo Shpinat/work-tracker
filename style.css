@@ -1387,58 +1387,90 @@ body.modal-open {
     border-radius: 28px;
     width: 100%;
     max-width: 420px;
-    padding: 24px;
     max-height: 90vh;
-    overflow-y: auto;
-    overscroll-behavior-y: contain;
-    -webkit-overflow-scrolling: touch;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
     color: var(--text);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }
 
-/* Кастомный тонкий скроллбар для всех модальных окон */
-.modal,
+/* Полное скрытие стрелок кнопок скроллбара (▲ и ▼) во всех браузерах */
+::-webkit-scrollbar-button,
+*::-webkit-scrollbar-button {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
+}
+
+::-webkit-scrollbar-corner,
+*::-webkit-scrollbar-corner {
+    display: none !important;
+    background: transparent !important;
+}
+
+/* Кастомный деликатный скроллбар для модальных окон и списков */
+.modal__body,
 .shift-list {
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+    scrollbar-color: rgba(255, 255, 255, 0.26) transparent;
 }
 
-[data-theme="light"] .modal,
+[data-theme="light"] .modal__body,
 [data-theme="light"] .shift-list {
-    scrollbar-color: rgba(65, 58, 48, 0.22) transparent;
+    scrollbar-color: rgba(65, 58, 48, 0.28) transparent;
 }
 
-.modal::-webkit-scrollbar,
+.modal__body::-webkit-scrollbar,
 .shift-list::-webkit-scrollbar {
-    width: 6px;
+    width: 8px;
 }
 
-.modal::-webkit-scrollbar-track,
+/* Отступ трека модального окна */
+.modal__body::-webkit-scrollbar-track {
+    background: transparent;
+    margin: 4px 0 16px 0;
+}
+
+/* Трек списка смен с аккуратными внутренними отступами */
 .shift-list::-webkit-scrollbar-track {
     background: transparent;
-    margin: 16px 0;
+    margin: 8px 0;
 }
 
-.modal::-webkit-scrollbar-thumb,
+.modal__body::-webkit-scrollbar-thumb,
 .shift-list::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.22);
+    background-color: rgba(255, 255, 255, 0.24);
     border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
     transition: background-color 0.2s ease;
 }
 
-.modal::-webkit-scrollbar-thumb:hover,
+.modal__body::-webkit-scrollbar-thumb:hover,
 .shift-list::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.4);
+    background-color: rgba(255, 255, 255, 0.45);
 }
 
-[data-theme="light"] .modal::-webkit-scrollbar-thumb,
+.modal__body::-webkit-scrollbar-thumb:active,
+.shift-list::-webkit-scrollbar-thumb:active {
+    background-color: rgba(255, 255, 255, 0.65);
+}
+
+[data-theme="light"] .modal__body::-webkit-scrollbar-thumb,
 [data-theme="light"] .shift-list::-webkit-scrollbar-thumb {
-    background: rgba(65, 58, 48, 0.22);
+    background-color: rgba(65, 58, 48, 0.26);
 }
 
-[data-theme="light"] .modal::-webkit-scrollbar-thumb:hover,
+[data-theme="light"] .modal__body::-webkit-scrollbar-thumb:hover,
 [data-theme="light"] .shift-list::-webkit-scrollbar-thumb:hover {
-    background: rgba(65, 58, 48, 0.4);
+    background-color: rgba(65, 58, 48, 0.48);
+}
+
+[data-theme="light"] .modal__body::-webkit-scrollbar-thumb:active,
+[data-theme="light"] .shift-list::-webkit-scrollbar-thumb:active {
+    background-color: rgba(65, 58, 48, 0.68);
 }
 
 /* Модальное окно детализации смен — фиксированная шапка и встроенный скролл списка */
@@ -1446,11 +1478,13 @@ body.modal-open {
     display: flex;
     flex-direction: column;
     max-height: 85vh;
+    padding: 24px;
     overflow: hidden;
 }
 
 .modal--shifts .modal__header {
     flex-shrink: 0;
+    padding: 0;
     margin-bottom: 16px;
 }
 
@@ -1469,13 +1503,13 @@ body.modal-open {
     overflow: hidden;
 }
 
-/* Размытие и градиентное затухание по верхнему и нижнему краю */
+/* Размытие и градиентное затухание по верхнему и нижнему краю (с зазором 10px под скроллбар) */
 .shift-list-wrapper::before,
 .shift-list-wrapper::after {
     content: "";
     position: absolute;
     left: 0;
-    right: 0;
+    right: 10px;
     height: 32px;
     pointer-events: none;
     z-index: 5;
@@ -1524,33 +1558,26 @@ body.modal-open {
     -webkit-overflow-scrolling: touch;
     padding-top: 4px;
     padding-bottom: 20px;
-    padding-right: 6px;
-    margin-right: -4px;
-    mask-image: linear-gradient(to bottom, black 0%, black 100%);
-    -webkit-mask-image: linear-gradient(to bottom, black 0%, black 100%);
-    transition: -webkit-mask-image 0.2s ease, mask-image 0.2s ease;
-}
-
-.shift-list-wrapper.can-scroll-up:not(.can-scroll-down) .shift-list {
-    mask-image: linear-gradient(to bottom, transparent 0px, black 30px, black 100%);
-    -webkit-mask-image: linear-gradient(to bottom, transparent 0px, black 30px, black 100%);
-}
-
-.shift-list-wrapper.can-scroll-down:not(.can-scroll-up) .shift-list {
-    mask-image: linear-gradient(to bottom, black 0%, black calc(100% - 30px), transparent 100%);
-    -webkit-mask-image: linear-gradient(to bottom, black 0%, black calc(100% - 30px), transparent 100%);
-}
-
-.shift-list-wrapper.can-scroll-up.can-scroll-down .shift-list {
-    mask-image: linear-gradient(to bottom, transparent 0px, black 30px, black calc(100% - 30px), transparent 100%);
-    -webkit-mask-image: linear-gradient(to bottom, transparent 0px, black 30px, black calc(100% - 30px), transparent 100%);
+    padding-right: 10px;
+    margin-right: 0;
 }
 
 .modal__header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 24px;
+    padding: 24px 24px 16px 24px;
+    margin-bottom: 0;
+    flex-shrink: 0;
+}
+
+.modal__body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 24px 24px 24px;
 }
 
 .modal__title {
@@ -2123,6 +2150,12 @@ body.modal-open {
     border-color: rgba(191, 90, 242, 0.4);
     background: rgba(191, 90, 242, 0.12);
     color: #bf5af2;
+}
+
+.custom-pattern-chip--extra {
+    border-color: rgba(255, 159, 10, 0.4);
+    background: rgba(255, 159, 10, 0.12);
+    color: #ff9f0a;
 }
 
 .custom-pattern-chip--off {
@@ -2837,9 +2870,19 @@ body.modal-open {
         border-top-left-radius: 28px;
         border-top-right-radius: 28px;
         max-height: 85vh;
-        padding: 12px 18px 32px 18px;
+        padding: 10px 0 0 0;
         touch-action: pan-y;
         overscroll-behavior-y: contain;
+        overflow: hidden;
+    }
+
+    .modal__header {
+        padding: 4px 20px 12px 20px;
+    }
+
+    .modal__body {
+        padding: 0 20px 32px 20px;
+        overflow-y: auto;
         -webkit-overflow-scrolling: touch;
     }
 
@@ -2848,18 +2891,30 @@ body.modal-open {
         overflow: hidden;
         display: flex;
         flex-direction: column;
-        padding-bottom: 24px;
+        padding: 10px 20px 24px 20px;
+    }
+
+    .modal--shifts .modal__header {
+        padding: 4px 0 12px 0;
+        margin-bottom: 0;
+    }
+
+    .modal--shifts .shifts__export-group {
+        margin-bottom: 12px;
+    }
+
+    .modal--shifts .shifts-filter-segmented {
+        margin-bottom: 12px;
     }
 
     .modal--shifts .shift-list {
-        padding-right: 4px;
-        margin-right: -4px;
+        padding-right: 0;
+        margin-right: 0;
     }
 
-    .modal--analytics,
-    .modal--schedule {
-        max-height: 85vh;
-        overflow-y: auto;
+    .shift-list-wrapper::before,
+    .shift-list-wrapper::after {
+        right: 0;
     }
 
     .modal-overlay--dialog {
@@ -2899,10 +2954,11 @@ body.modal-open {
         height: 5px;
         border-radius: 3px;
         background: var(--border);
-        margin: 0 auto 16px;
+        margin: 2px auto 10px;
         opacity: 0.8;
         cursor: grab;
         touch-action: none;
+        flex-shrink: 0;
     }
 
     .modal__actions {
@@ -3096,21 +3152,11 @@ body.modal-open {
     border-color: rgba(0, 0, 0, 0.25);
 }
 
-.settings-app-version {
-    text-align: center;
-    font-size: 0.75rem;
-    color: var(--text-tertiary);
-    margin-top: 16px;
-    font-weight: 500;
-    letter-spacing: 0.04em;
-    user-select: none;
-}
-
 /* ============================================================
    Скрытие скроллбаров на мобильных устройствах
    ============================================================ */
 @media (max-width: 600px) {
-    html, body, .modal, .shift-list, .analytics-content, .custom-pattern-builder {
+    html, body, .modal, .modal__body, .shift-list, .analytics-content, .custom-pattern-builder {
         scrollbar-width: none !important;
         -ms-overflow-style: none !important;
     }

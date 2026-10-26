@@ -60,8 +60,6 @@ export function calcShiftPay(hours, rate, payMode = "hourly", bonus = 0) {
  * @returns {Object}
  */
 export function calcMonthSummary(shifts, year, month, cutoffDay = 15) {
-  const monthPrefix = `${year}-${String(month + 1).padStart(2, "0")}-`;
-
   let totalShifts = 0;
   let totalHours = 0;
   let totalIncome = 0;
@@ -76,31 +74,32 @@ export function calcMonthSummary(shifts, year, month, cutoffDay = 15) {
 
   const monthShifts = [];
 
-  Object.keys(shifts)
-    .sort()
-    .forEach((dateKey) => {
-      if (dateKey.startsWith(monthPrefix)) {
-        const shift = shifts[dateKey];
-        const day = parseInt(dateKey.slice(8, 10), 10);
-        const h = Number(shift.hours) || 0;
-        const p = Number(shift.totalPay) || 0;
+  // Bolt Оптимизация: Прямая выборка из хэш-мапы (Object lookup)
+  // Вместо Object.keys(shifts).sort() за O(N log N) мы итерируемся только по дням месяца O(1) (максимум 31 день).
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateKey = formatDateKey(year, month, day);
+    const shift = shifts[dateKey];
+    if (shift) {
+      const h = Number(shift.hours) || 0;
+      const p = Number(shift.totalPay) || 0;
 
-        totalShifts++;
-        totalHours += h;
-        totalIncome += p;
-        monthShifts.push({ dateKey, day, ...shift });
+      totalShifts++;
+      totalHours += h;
+      totalIncome += p;
+      monthShifts.push({ dateKey, day, ...shift });
 
-        if (day <= cutoffDay) {
-          advanceShiftsCount++;
-          advanceHours += h;
-          advanceIncome += p;
-        } else {
-          salaryShiftsCount++;
-          salaryHours += h;
-          salaryIncome += p;
-        }
+      if (day <= cutoffDay) {
+        advanceShiftsCount++;
+        advanceHours += h;
+        advanceIncome += p;
+      } else {
+        salaryShiftsCount++;
+        salaryHours += h;
+        salaryIncome += p;
       }
-    });
+    }
+  }
 
   return {
     totalShifts,
@@ -126,12 +125,14 @@ export function calcMonthSummary(shifts, year, month, cutoffDay = 15) {
  * @returns {{ count: number, updatedShifts: Record<string, any> }}
  */
 export function recalcMonthShifts(shifts, year, month, newRate, newPayMode) {
-  const monthPrefix = `${year}-${String(month + 1).padStart(2, "0")}-`;
   const updatedShifts = { ...shifts };
   let count = 0;
 
-  Object.keys(updatedShifts).forEach((key) => {
-    if (key.startsWith(monthPrefix)) {
+  // Bolt Оптимизация: Прямая выборка из хэш-мапы по дням месяца (О(1)) вместо полного обхода ключей (O(N))
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  for (let day = 1; day <= daysInMonth; day++) {
+    const key = formatDateKey(year, month, day);
+    if (updatedShifts[key]) {
       const s = { ...updatedShifts[key] };
       s.rate = newRate;
       s.payMode = newPayMode;
@@ -142,7 +143,7 @@ export function recalcMonthShifts(shifts, year, month, newRate, newPayMode) {
       updatedShifts[key] = s;
       count++;
     }
-  });
+  }
 
   return { count, updatedShifts };
 }

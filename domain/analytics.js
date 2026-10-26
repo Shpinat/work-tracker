@@ -4,6 +4,8 @@
  * Чистые функции без привязки к DOM.
  */
 
+import { formatDateKey } from "./payroll.js";
+
 /**
  * Преобразование даты YYYY-MM-DD в целое количество дней с начала эпохи Unix
  * @param {string} key
@@ -203,20 +205,23 @@ export function calcMomTrends(year, month, shifts, currentShifts, currentHours, 
   const prevDate = new Date(year, month - 1, 1);
   const prevYear = prevDate.getFullYear();
   const prevMonth = prevDate.getMonth();
-  const prevPrefix = `${prevYear}-${String(prevMonth + 1).padStart(2, "0")}-`;
 
   let prevShiftsCount = 0;
   let prevHours = 0;
   let prevIncome = 0;
 
-  Object.keys(shifts).forEach((key) => {
-    if (key.startsWith(prevPrefix)) {
-      const s = shifts[key];
+  // Bolt Оптимизация: Прямая выборка из хэш-мапы по дням предыдущего месяца O(1)
+  // вместо полного перебора всех смен за все годы O(N)
+  const daysInPrevMonth = new Date(prevYear, prevMonth + 1, 0).getDate();
+  for (let day = 1; day <= daysInPrevMonth; day++) {
+    const key = formatDateKey(prevYear, prevMonth, day);
+    const s = shifts[key];
+    if (s) {
       prevShiftsCount++;
       prevHours += Number(s.hours) || 0;
       prevIncome += Number(s.totalPay) || 0;
     }
-  });
+  }
 
   if (prevShiftsCount === 0) {
     return null; // Нет данных за прошлый месяц для сравнения

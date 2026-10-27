@@ -6,7 +6,9 @@
 export const STORAGE_KEY = "my_work_shifts_v1";
 export const SETTINGS_KEY = "my_work_settings_v1";
 export const THEME_KEY = "my_work_theme_v1";
+export const TIMER_STORAGE_KEY = "my_work_timer_v1";
 export const APP_VERSION = "2.0";
+export const SCHEMA_VERSION = 2;
 
 export const DEFAULT_PRESETS = {
   day: {
@@ -36,10 +38,6 @@ export const DEFAULT_SETTINGS = {
   payMode: "hourly",
   rate: 300,
   currency: "₽",
-  advanceCutoffDay: 15,
-  payoutSplitEnabled: false,
-  monthlyGoal: 0,
-  monthlyGoalEnabled: false,
   presets: DEFAULT_PRESETS,
 };
 
@@ -90,10 +88,6 @@ export function sanitizeSettings(raw) {
     payMode: ["hourly", "fixed"].includes(raw.payMode) ? raw.payMode : DEFAULT_SETTINGS.payMode,
     rate: typeof raw.rate === "number" ? Math.max(0, raw.rate) : DEFAULT_SETTINGS.rate,
     currency: typeof raw.currency === "string" ? raw.currency : DEFAULT_SETTINGS.currency,
-    advanceCutoffDay: typeof raw.advanceCutoffDay === "number" ? Math.min(28, Math.max(1, raw.advanceCutoffDay)) : DEFAULT_SETTINGS.advanceCutoffDay,
-    payoutSplitEnabled: typeof raw.payoutSplitEnabled === "boolean" ? raw.payoutSplitEnabled : false,
-    monthlyGoal: typeof raw.monthlyGoal === "number" ? Math.max(0, raw.monthlyGoal) : DEFAULT_SETTINGS.monthlyGoal,
-    monthlyGoalEnabled: typeof raw.monthlyGoalEnabled === "boolean" ? raw.monthlyGoalEnabled : false,
     presets,
   };
 }
@@ -177,4 +171,60 @@ export function saveTheme(theme) {
   try {
     localStorage.setItem(THEME_KEY, theme);
   } catch (_) {}
+}
+
+/**
+ * Чтение сохраненного состояния таймера смены
+ * @returns {Object|null}
+ */
+export function loadShiftTimer() {
+  try {
+    const raw = localStorage.getItem(TIMER_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+/**
+ * Сохранение состояния таймера смены
+ * @param {Object} timerState
+ */
+export function saveShiftTimer(timerState) {
+  try {
+    if (!timerState) {
+      localStorage.removeItem(TIMER_STORAGE_KEY);
+    } else {
+      localStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(timerState));
+    }
+  } catch (_) {}
+}
+
+/**
+ * Очистка сохраненного таймера
+ */
+export function clearShiftTimer() {
+  try {
+    localStorage.removeItem(TIMER_STORAGE_KEY);
+  } catch (_) {}
+}
+
+/**
+ * Аккуратный запрос постоянного хранения данных у браузера (Storage Persistence)
+ * Защищает от сброса кэша Safari на iOS и экономии памяти
+ * @returns {Promise<boolean>}
+ */
+export async function requestPersistentStorage() {
+  if (navigator.storage && navigator.storage.persist) {
+    try {
+      const isPersisted = await navigator.storage.persisted();
+      if (!isPersisted) {
+        return await navigator.storage.persist();
+      }
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+  return false;
 }

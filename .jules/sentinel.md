@@ -1,0 +1,4 @@
+## 2024-10-25 - [HIGH] XSS Vulnerability in UI Components
+**Vulnerability:** Unsanitized user inputs (`settings.presets.*.name` and `settings.currency`) were directly injected into the DOM via `innerHTML` in `app.js` when generating custom pattern builder chips and schedule preview text.
+**Learning:** Even in entirely local PWA applications (where data is stored only in localStorage), Self-XSS and XSS via imported backup files remain significant vectors for attacks. This codebase uses a custom `escapeHtml` function located in `./ui/toast.js` which must be consistently utilized when working with `innerHTML` to prevent script injection.
+**Prevention:** Always wrap variables containing user-controlled text in the `escapeHtml` function before interpolating them into HTML strings that will be inserted into the DOM. For dynamic text content, prefer `textContent` over `innerHTML`.

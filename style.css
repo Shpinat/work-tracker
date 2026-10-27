@@ -1337,13 +1337,30 @@ body.modal-open {
 }
 
 .shift-list__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     text-align: center;
-    padding: 40px 20px;
+    padding: 50px 20px;
+    background: transparent;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    animation: fadeIn 0.3s ease-out;
+}
+
+.shift-list__empty-icon {
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    opacity: 0.5;
+}
+
+.shift-list__empty-text {
     color: var(--text-muted);
     font-size: 0.95rem;
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
+    line-height: 1.4;
+    max-width: 260px;
+    margin: 0;
 }
 
 /* Modal Overlay & Modal (Block) — анимация через visibility/opacity */
@@ -2989,6 +3006,42 @@ body.modal-open {
     .stats {
         gap: 6px;
     }
+
+    .header {
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: center;
+    }
+
+    .header__actions {
+        gap: 4px;
+        width: 100%;
+        justify-content: center;
+    }
+
+    .btn--icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+    }
+
+    .month-selector {
+        height: 32px;
+        flex: 1;
+        justify-content: space-between;
+        max-width: 200px;
+    }
+
+    .month-selector__btn {
+        width: 26px;
+        height: 26px;
+        border-radius: 6px;
+    }
+
+    .month-selector__title {
+        font-size: 0.8rem;
+    }
+
 
     .stats__card {
         padding: 10px 4px;

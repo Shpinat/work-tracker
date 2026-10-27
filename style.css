@@ -313,7 +313,11 @@ body.modal-open {
 .calendar__day-cell:focus-visible,
 .shift-list__item:focus-visible,
 .shifts-trigger__btn:focus-visible,
-.segmented-control__btn:focus-visible {
+.segmented-control__btn:focus-visible,
+.stats__card[role="button"]:focus-visible,
+.goal-tracker[role="button"]:focus-visible,
+.payout-split__card[role="button"]:focus-visible,
+.analytics-record-card[role="button"]:focus-visible {
     outline: 2px solid var(--primary);
     outline-offset: 2px;
 }
@@ -1337,13 +1341,30 @@ body.modal-open {
 }
 
 .shift-list__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     text-align: center;
-    padding: 40px 20px;
+    padding: 50px 20px;
+    background: transparent;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    animation: fadeIn 0.3s ease-out;
+}
+
+.shift-list__empty-icon {
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    opacity: 0.5;
+}
+
+.shift-list__empty-text {
     color: var(--text-muted);
     font-size: 0.95rem;
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
+    line-height: 1.4;
+    max-width: 260px;
+    margin: 0;
 }
 
 /* Modal Overlay & Modal (Block) — анимация через visibility/opacity */
@@ -2989,6 +3010,42 @@ body.modal-open {
     .stats {
         gap: 6px;
     }
+
+    .header {
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: center;
+    }
+
+    .header__actions {
+        gap: 4px;
+        width: 100%;
+        justify-content: center;
+    }
+
+    .btn--icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+    }
+
+    .month-selector {
+        height: 32px;
+        flex: 1;
+        justify-content: space-between;
+        max-width: 200px;
+    }
+
+    .month-selector__btn {
+        width: 26px;
+        height: 26px;
+        border-radius: 6px;
+    }
+
+    .month-selector__title {
+        font-size: 0.8rem;
+    }
+
 
     .stats__card {
         padding: 10px 4px;

@@ -61,6 +61,21 @@
           </svg>
         </button>
 
+        <!-- Кнопка детализации смен за месяц -->
+        <button
+          id="openShiftsBtn"
+          class="btn btn--icon header__shifts-btn"
+          title="Детализация смен за месяц"
+          aria-label="Детализация смен за месяц"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+            <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+            <path d="M9 12h6"></path>
+            <path d="M9 16h6"></path>
+          </svg>
+        </button>
+
         <!-- Кнопка автозаполнения графика -->
         <button
           id="autoScheduleBtn"
@@ -73,23 +88,6 @@
             <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
             <polyline points="7 23 3 19 7 15"></polyline>
             <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
-          </svg>
-        </button>
-
-        <!-- Кнопка рекордов и аналитики -->
-        <button
-          id="statsOverviewBtn"
-          class="btn btn--icon header__stats-btn"
-          title="Рекорды и аналитика"
-          aria-label="Рекорды и аналитика"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
-            <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
-            <path d="M4 22h16"></path>
-            <path d="M10 14.66V17c0 .55-.45 1-1 1H7c-.55 0-1-.45-1-1v-2.34"></path>
-            <path d="M14 14.66V17c0 .55.45 1 1 1h2c.55 0 1-.45 1-1v-2.34"></path>
-            <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
           </svg>
         </button>
 
@@ -121,56 +119,12 @@
         <article class="stats__card" id="statHoursCard" role="button" tabindex="0" title="Нажмите для сравнения с прошлым месяцем">
           <div class="stats__value" id="statHours">0</div>
           <div class="stats__label">Часов</div>
+          <div class="stats__sub" id="statHoursRate" style="display: none;"></div>
         </article>
         <article class="stats__card stats__card--income" id="statIncomeCard" role="button" tabindex="0" title="Нажмите для сравнения с прошлым месяцем">
           <div class="stats__value" id="statIncome">0 ₽</div>
           <div class="stats__label">Доход</div>
-        </article>
-      </section>
-
-      <!-- Финансовая цель на месяц ("Копилка") -->
-      <section class="goal-tracker main__goal-tracker" id="goalTracker" role="button" tabindex="0" title="Нажмите, чтобы изменить цель в настройках" aria-label="Финансовая цель на месяц" style="display: none;">
-        <div class="goal-tracker__header">
-          <div class="goal-tracker__title-group">
-            <svg class="goal-tracker__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="10"></circle>
-              <circle cx="12" cy="12" r="6"></circle>
-              <circle cx="12" cy="12" r="2"></circle>
-            </svg>
-            <span class="goal-tracker__title">Цель на месяц</span>
-          </div>
-          <div class="goal-tracker__figures">
-            <span class="goal-tracker__progress-text" id="goalProgressText">0 / 0 ₽</span>
-            <span class="goal-tracker__percentage" id="goalPercentage">0%</span>
-          </div>
-        </div>
-        <div class="goal-tracker__bar-wrapper">
-          <div class="goal-tracker__bar" id="goalProgressBar" style="width: 0%;"></div>
-        </div>
-        <div class="goal-tracker__footer">
-          <span class="goal-tracker__status-text" id="goalStatusText">Поставьте цель в настройках</span>
-          <span class="goal-tracker__action-hint" id="goalActionHint">Настроить</span>
-        </div>
-      </section>
-
-      <!-- Распределение выплат: Аванс и Зарплата -->
-      <section class="payout-split main__payout-split" id="payoutSplit" aria-label="Периоды выплат" style="display: none;">
-        <article class="payout-split__card payout-split__card--advance" id="payoutAdvanceCard" role="button" tabindex="0" title="Нажмите, чтобы посмотреть смены аванса">
-          <div class="payout-split__header">
-            <span class="payout-split__dot payout-split__dot--advance"></span>
-            <span class="payout-split__label" id="advanceLabel">Аванс (1–15)</span>
-          </div>
-          <div class="payout-split__value" id="statAdvanceIncome">0 ₽</div>
-          <div class="payout-split__meta" id="statAdvanceMeta">0 см • 0 ч</div>
-        </article>
-
-        <article class="payout-split__card payout-split__card--salary" id="payoutSalaryCard" role="button" tabindex="0" title="Нажмите, чтобы посмотреть смены расчёта">
-          <div class="payout-split__header">
-            <span class="payout-split__dot payout-split__dot--salary"></span>
-            <span class="payout-split__label" id="salaryLabel">Расчёт (16–31)</span>
-          </div>
-          <div class="payout-split__value" id="statSalaryIncome">0 ₽</div>
-          <div class="payout-split__meta" id="statSalaryMeta">0 см • 0 ч</div>
+          <div class="stats__sub" id="statIncomeBreakdown" style="display: none;"></div>
         </article>
       </section>
 
@@ -188,25 +142,62 @@
         <div class="calendar__grid" id="calendarGrid"></div>
       </section>
 
-      <!-- Кнопка вызова детализации смен -->
-      <section class="shifts-trigger main__shifts-trigger" aria-label="Детализация смен">
-        <button id="openShiftsBtn" class="shifts-trigger__btn" type="button" aria-haspopup="dialog" aria-expanded="false">
-          <div class="shifts-trigger__left">
-            <svg class="shifts-trigger__icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
-              <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
-              <path d="M9 12h6"></path>
-              <path d="M9 16h6"></path>
-            </svg>
-            <span class="shifts-trigger__title">Детализация за месяц</span>
+      <!-- Автономный секундомер смены ("Приход / Уход") под календарем -->
+      <section class="shift-timer main__shift-timer" id="shiftTimerWidget" aria-label="Таймер текущей смены">
+        <div class="shift-timer__idle" id="shiftTimerIdle">
+          <div class="shift-timer__preset-tabs" id="shiftTimerPresetTabs" role="tablist" aria-label="Выбор типа смены">
+            <button type="button" class="shift-timer__tab is-active" data-type="day" role="tab" aria-selected="true" id="timerTabDay" title="Выбрать дневную смену">
+              <span class="shift-timer__tab-dot shift-timer__tab-dot--day"></span>
+              <span class="shift-timer__tab-name" id="timerTabNameDay">День</span>
+            </button>
+            <button type="button" class="shift-timer__tab" data-type="night" role="tab" aria-selected="false" id="timerTabNight" title="Выбрать ночную смену">
+              <span class="shift-timer__tab-dot shift-timer__tab-dot--night"></span>
+              <span class="shift-timer__tab-name" id="timerTabNameNight">Ночь</span>
+            </button>
+            <button type="button" class="shift-timer__tab" data-type="extra" role="tab" aria-selected="false" id="timerTabExtra" title="Выбрать подработку">
+              <span class="shift-timer__tab-dot shift-timer__tab-dot--extra"></span>
+              <span class="shift-timer__tab-name" id="timerTabNameExtra">Подработка</span>
+            </button>
           </div>
-          <div class="shifts-trigger__right">
-            <span class="shifts-trigger__badge" id="statShiftsBadge"></span>
-            <svg class="shifts-trigger__chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="9 18 15 12 9 6"></polyline>
+          <button type="button" class="btn btn--timer-start" id="shiftTimerStartBtn" title="Начать отсчет рабочей смены">
+            <svg class="shift-timer__btn-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
             </svg>
+            <span>Начать смену</span>
+          </button>
+        </div>
+
+        <div class="shift-timer__active" id="shiftTimerActive" style="display: none;">
+          <div class="shift-timer__header">
+            <div class="shift-timer__status-line">
+              <span class="shift-timer__pulse-dot" id="shiftTimerPulseDot"></span>
+              <span class="shift-timer__status-text" id="shiftTimerStatusText">Смена идёт</span>
+              <span class="shift-timer__type-badge" id="shiftTimerActiveTypeBadge">День</span>
+            </div>
+            <button type="button" class="btn btn--icon btn--sm shift-timer__cancel-btn" id="shiftTimerCancelBtn" title="Отменить таймер без сохранения" aria-label="Сбросить таймер">
+              ✕
+            </button>
           </div>
-        </button>
+          <div class="shift-timer__figures">
+            <span class="shift-timer__digits" id="shiftTimerDigits">00:00:00</span>
+            <span class="shift-timer__pay" id="shiftTimerPay">~ 0 ₽</span>
+          </div>
+          <div class="shift-timer__controls">
+            <button type="button" class="btn btn--secondary shift-timer__btn" id="shiftTimerPauseBtn" title="Поставить на паузу / перерыв">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
+                <rect x="6" y="4" width="4" height="16" rx="1"></rect>
+                <rect x="14" y="4" width="4" height="16" rx="1"></rect>
+              </svg>
+              <span>Пауза</span>
+            </button>
+            <button type="button" class="btn btn--primary shift-timer__btn" id="shiftTimerFinishBtn" title="Завершить смену и внести в календарь">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <span>Завершить</span>
+            </button>
+          </div>
+        </div>
       </section>
     </main>
 
@@ -215,7 +206,10 @@
       <div class="modal modal--shifts modal-overlay__content" role="dialog" aria-modal="true" aria-labelledby="shiftsModalTitle">
         <header class="modal__header">
           <div>
-            <h3 class="modal__title" id="shiftsModalTitle">Детализация смен</h3>
+            <div class="modal__title-row">
+              <h3 class="modal__title" id="shiftsModalTitle">Детализация смен</h3>
+              <span class="shifts-modal__badge" id="statShiftsBadge" style="display: none;"></span>
+            </div>
             <div class="modal__subtitle" id="shiftsModalMonth">Октябрь 2026</div>
           </div>
           <button
@@ -244,19 +238,35 @@
           </button>
         </div>
 
-        <!-- Фильтр периодов выплат в детализации -->
-        <div class="segmented-control shifts-filter-segmented" role="radiogroup" aria-label="Фильтр периода выплат" id="shiftsFilterSegmented">
-          <button type="button" class="segmented-control__btn is-active" role="radio" aria-checked="true" data-value="all">
-            Все смены
+          <!-- Блок сверки с расчетным листком (Payslip Audit) -->
+          <div class="payslip-audit" id="payslipAuditSection">
+          <button type="button" class="payslip-audit__toggle-btn" id="payslipToggleBtn" aria-expanded="false" aria-controls="payslipAuditBody">
+            <svg class="payslip-audit__icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+            <span>Сверить с расчётным листком</span>
+            <span class="payslip-audit__arrow" id="payslipToggleArrow">▾</span>
           </button>
-          <button type="button" class="segmented-control__btn" role="radio" aria-checked="false" data-value="advance" id="filterAdvanceBtn">
-            Аванс
-          </button>
-          <button type="button" class="segmented-control__btn" role="radio" aria-checked="false" data-value="salary" id="filterSalaryBtn">
-            Расчёт
-          </button>
+          <div class="payslip-audit__body" id="payslipAuditBody" style="display: none;">
+            <div class="payslip-audit__input-row">
+              <input
+                type="number"
+                class="form__control form__input payslip-audit__input"
+                id="payslipActualInput"
+                placeholder="Сумма к начислению из листка"
+                min="0"
+                step="any"
+              />
+              <button type="button" class="btn btn--secondary btn--sm" id="payslipCalcBtn">
+                Сверить
+              </button>
+            </div>
+            <div class="payslip-audit__result" id="payslipAuditResult" style="display: none;"></div>
+          </div>
         </div>
-        <input type="hidden" id="shiftsFilterInput" value="all" />
 
         <div class="shift-list-wrapper" id="shiftListWrapper">
           <div class="shift-list" id="shiftList"></div>
@@ -590,54 +600,6 @@
             />
           </div>
 
-          <div class="form__group">
-            <label class="form__label" for="defCutoffDay" title="Число месяца, до которого смены идут в аванс">Отсечка аванса (день)</label>
-            <div class="input-with-segmented">
-              <input
-                class="form__control form__input input-with-segmented__input"
-                type="number"
-                id="defCutoffDay"
-                value="15"
-                min="1"
-                max="28"
-                step="1"
-                required
-              />
-              <div class="segmented-control segmented-control--suffix" role="radiogroup" aria-label="Включение аванса и расчета" id="defPayoutModeSegmented">
-                <button type="button" class="segmented-control__btn is-active" role="radio" aria-checked="true" data-value="off" id="defPayoutModeOffBtn">
-                  Выкл
-                </button>
-                <button type="button" class="segmented-control__btn" role="radio" aria-checked="false" data-value="on" id="defPayoutModeOnBtn">
-                  Вкл
-                </button>
-              </div>
-              <input type="hidden" id="defPayoutMode" value="off" />
-            </div>
-          </div>
-
-          <div class="form__group">
-            <label class="form__label" for="defMonthlyGoal">Цель на месяц</label>
-            <div class="input-with-segmented">
-              <input
-                class="form__control form__input input-with-segmented__input"
-                type="number"
-                id="defMonthlyGoal"
-                placeholder="0"
-                min="0"
-                step="any"
-              />
-              <div class="segmented-control segmented-control--suffix" role="radiogroup" aria-label="Включение цели на месяц" id="defGoalModeSegmented">
-                <button type="button" class="segmented-control__btn is-active" role="radio" aria-checked="true" data-value="off" id="defGoalModeOffBtn">
-                  Выкл
-                </button>
-                <button type="button" class="segmented-control__btn" role="radio" aria-checked="false" data-value="on" id="defGoalModeOnBtn">
-                  Вкл
-                </button>
-              </div>
-              <input type="hidden" id="defGoalMode" value="off" />
-            </div>
-          </div>
-
           <button
             type="submit"
             class="btn btn--primary form__btn form__btn--full"
@@ -647,29 +609,32 @@
         </form>
 
         <hr class="modal__divider" />
-        <h4 class="modal__subtitle">Резервная копия данных</h4>
+        <h4 class="modal__subtitle">Данные и резервные копии</h4>
+        <p class="modal__desc" style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px; line-height: 1.4;">
+          Все смены и настройки хранятся только в браузере вашего устройства. Регулярно сохраняйте резервную копию для переноса.
+        </p>
         <div class="modal__actions">
-          <button id="backupDownloadBtn" class="btn btn--secondary modal__action-btn" title="Сохранить резервную копию данных (JSON)">
+          <button id="backupDownloadBtn" class="btn btn--secondary modal__action-btn" title="Сохранить или отправить резервную копию (JSON)">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-              <polyline points="17 21 17 13 7 13 7 21"></polyline>
-              <polyline points="7 3 7 8 15 8"></polyline>
+              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+              <polyline points="16 6 12 2 8 6"></polyline>
+              <line x1="12" y1="2" x2="12" y2="15"></line>
             </svg>
-            Скачать бэкап
+            Создать копию
           </button>
-          <button id="backupRestoreBtn" class="btn btn--secondary modal__action-btn" title="Загрузить резервную копию данных (JSON)">
+          <button id="backupRestoreBtn" class="btn btn--secondary modal__action-btn" title="Восстановить смены из резервной копии (JSON)">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="17 8 12 3 7 8"></polyline>
-              <line x1="12" y1="3" x2="12" y2="15"></line>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
             </svg>
-            Загрузить
+            Восстановить
           </button>
           <input
             type="file"
             id="importFile"
             style="display: none"
-            accept=".json"
+            accept=".json,application/json"
           />
         </div>
         </div>
@@ -722,6 +687,18 @@
               <button type="button" class="schedule-pattern-btn" data-pattern="3-3-day">
                 <span class="schedule-pattern-btn__title">3/3 День</span>
                 <span class="schedule-pattern-btn__badge">3 дня • 3 вых</span>
+              </button>
+              <button type="button" class="schedule-pattern-btn" data-pattern="1-3-day">
+                <span class="schedule-pattern-btn__title">Сутки/трое (1/3)</span>
+                <span class="schedule-pattern-btn__badge">1 смена • 3 вых</span>
+              </button>
+              <button type="button" class="schedule-pattern-btn" data-pattern="4-4-day">
+                <span class="schedule-pattern-btn__title">4/4 День</span>
+                <span class="schedule-pattern-btn__badge">4 дня • 4 вых</span>
+              </button>
+              <button type="button" class="schedule-pattern-btn" data-pattern="2-2-3-pitman">
+                <span class="schedule-pattern-btn__title">2-2-3 Питман</span>
+                <span class="schedule-pattern-btn__badge">Цикл 14 дней</span>
               </button>
               <button type="button" class="schedule-pattern-btn" data-pattern="1-3-mixed">
                 <span class="schedule-pattern-btn__title">День-Ночь-48</span>
@@ -812,148 +789,6 @@
       </div>
     </div>
 
-    <!-- Модальное окно аналитики и рекордов -->
-    <div class="modal-overlay" id="analyticsModal">
-      <div class="modal modal-overlay__content modal--analytics" role="dialog" aria-modal="true" aria-labelledby="analyticsModalTitle">
-        <header class="modal__header">
-          <div class="modal__title-group">
-            <svg class="modal__title-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
-              <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
-              <path d="M4 22h16"></path>
-              <path d="M10 14.66V17c0 .55-.45 1-1 1H7c-.55 0-1-.45-1-1v-2.34"></path>
-              <path d="M14 14.66V17c0 .55.45 1 1 1h2c.55 0 1-.45 1-1v-2.34"></path>
-              <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
-            </svg>
-            <h3 class="modal__title" id="analyticsModalTitle">Рекорды и аналитика</h3>
-          </div>
-          <button
-            class="btn btn--icon modal__close-btn"
-            id="analyticsModalCloseBtn"
-            aria-label="Закрыть"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
-        </header>
-
-        <div class="modal__body">
-          <div class="analytics-content" id="analyticsContent">
-          <!-- За всё время (Hero Cards) -->
-          <div class="analytics-hero">
-            <div class="analytics-hero__card analytics-hero__card--income">
-              <span class="analytics-hero__label">За всё время</span>
-              <span class="analytics-hero__value" id="allTimeIncome">0 ₽</span>
-              <span class="analytics-hero__sub" id="allTimeAvgMonth">~0 ₽ / месяц</span>
-            </div>
-            <div class="analytics-hero__card">
-              <span class="analytics-hero__label">Отработано</span>
-              <span class="analytics-hero__value" id="allTimeShifts">0 см</span>
-              <span class="analytics-hero__sub" id="allTimeHours">0 ч всего</span>
-            </div>
-          </div>
-
-          <!-- Стрик (Серия) -->
-          <div class="analytics-streak" id="analyticsStreakCard">
-            <div class="analytics-streak__icon" id="analyticsStreakIcon">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>
-              </svg>
-            </div>
-            <div class="analytics-streak__body">
-              <div class="analytics-streak__title" id="analyticsStreakTitle">Текущий стрик</div>
-              <div class="analytics-streak__desc" id="analyticsStreakDesc">0 смен подряд</div>
-            </div>
-          </div>
-
-          <!-- Личные рекорды (Personal Best) -->
-          <h4 class="modal__subtitle">Личные рекорды</h4>
-          <div class="analytics-records">
-            <div class="analytics-record-card analytics-record-card--interactive" id="bestMonthCard" role="button" tabindex="0" title="Нажмите, чтобы открыть этот месяц">
-              <div class="analytics-record-card__header">
-                <span class="analytics-record-card__icon">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="6"></circle><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"></path></svg>
-                </span>
-                <span class="analytics-record-card__title">Рекорд месяца</span>
-              </div>
-              <div class="analytics-record-card__value" id="bestMonthValue">—</div>
-              <div class="analytics-record-card__sub" id="bestMonthDate">Нет данных</div>
-            </div>
-
-            <div class="analytics-record-card analytics-record-card--interactive" id="bestShiftCard" role="button" tabindex="0" title="Нажмите, чтобы открыть эту смену">
-              <div class="analytics-record-card__header">
-                <span class="analytics-record-card__icon">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="6 3 18 3 22 9 12 22 2 9 6 3"></polygon></svg>
-                </span>
-                <span class="analytics-record-card__title">Лучшая смена</span>
-              </div>
-              <div class="analytics-record-card__value" id="bestShiftValue">—</div>
-              <div class="analytics-record-card__sub" id="bestShiftDate">Нет данных</div>
-            </div>
-
-            <div class="analytics-record-card">
-              <div class="analytics-record-card__header">
-                <span class="analytics-record-card__icon">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14"></path><path d="M5 2h14"></path><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"></path><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"></path></svg>
-                </span>
-                <span class="analytics-record-card__title">Длинная смена</span>
-              </div>
-              <div class="analytics-record-card__value" id="longestShiftValue">—</div>
-              <div class="analytics-record-card__sub" id="longestShiftDate">Нет данных</div>
-            </div>
-
-            <div class="analytics-record-card">
-              <div class="analytics-record-card__header">
-                <span class="analytics-record-card__icon">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-                </span>
-                <span class="analytics-record-card__title">Макс. стрик</span>
-              </div>
-              <div class="analytics-record-card__value" id="maxStreakValue">—</div>
-              <div class="analytics-record-card__sub" id="maxStreakSub">смен подряд</div>
-            </div>
-          </div>
-
-          <!-- Структура смен (Breakdown) -->
-          <h4 class="modal__subtitle">Структура работы</h4>
-          <div class="analytics-breakdown">
-            <div class="analytics-breakdown__item">
-              <div class="analytics-breakdown__label">
-                <span class="analytics-breakdown__type"><svg class="breakdown-svg-icon breakdown-svg-icon--day" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg> <span id="breakdownDayLabel">Дневные</span></span>
-                <span id="breakdownDayText">0 (0%)</span>
-              </div>
-              <div class="analytics-breakdown__track">
-                <div class="analytics-breakdown__fill analytics-breakdown__fill--day" id="breakdownDayFill" style="width: 0%;"></div>
-              </div>
-            </div>
-
-            <div class="analytics-breakdown__item">
-              <div class="analytics-breakdown__label">
-                <span class="analytics-breakdown__type"><svg class="breakdown-svg-icon breakdown-svg-icon--night" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg> <span id="breakdownNightLabel">Ночные</span></span>
-                <span id="breakdownNightText">0 (0%)</span>
-              </div>
-              <div class="analytics-breakdown__track">
-                <div class="analytics-breakdown__fill analytics-breakdown__fill--night" id="breakdownNightFill" style="width: 0%;"></div>
-              </div>
-            </div>
-
-            <div class="analytics-breakdown__item">
-              <div class="analytics-breakdown__label">
-                <span class="analytics-breakdown__type"><svg class="breakdown-svg-icon breakdown-svg-icon--extra" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg> <span id="breakdownExtraLabel">Подработки</span></span>
-                <span id="breakdownExtraText">0 (0%)</span>
-              </div>
-              <div class="analytics-breakdown__track">
-                <div class="analytics-breakdown__fill analytics-breakdown__fill--extra" id="breakdownExtraFill" style="width: 0%;"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-        </div>
-      </div>
-    </div>
-
     <!-- Кастомное диалоговое окно подтверждения -->
     <div class="modal-overlay modal-overlay--dialog" id="confirmModal">
       <div class="modal modal--dialog modal-overlay__content" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
@@ -970,6 +805,58 @@
         </div>
       </div>
     </div>
+
+    <!-- Модальное окно безопасного восстановления резервной копии -->
+    <div class="modal-overlay modal-overlay--dialog" id="restoreModal">
+      <div class="modal modal--dialog modal-overlay__content" role="dialog" aria-modal="true" aria-labelledby="restoreModalTitle">
+        <div class="modal__dialog-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+        </div>
+        <h3 class="modal__dialog-title" id="restoreModalTitle">Восстановление данных</h3>
+        <div class="restore-dialog__body">
+          <div class="restore-dialog__stats">
+            <div class="restore-dialog__stat-item">
+              <span class="restore-dialog__stat-label">Смен в файле:</span>
+              <strong class="restore-dialog__stat-val" id="restoreModalShiftsCount">0</strong>
+            </div>
+            <div class="restore-dialog__stat-item">
+              <span class="restore-dialog__stat-label">Период:</span>
+              <span class="restore-dialog__stat-val" id="restoreModalDateRange">—</span>
+            </div>
+            <div class="restore-dialog__stat-item">
+              <span class="restore-dialog__stat-label">Дата копии:</span>
+              <span class="restore-dialog__stat-val" id="restoreModalExportDate">—</span>
+            </div>
+          </div>
+          <p class="restore-dialog__warning">
+            Текущие смены (<span id="restoreModalCurrentCount">0</span> см) будут <strong>полностью заменены</strong> данными из файла.
+          </p>
+          <button type="button" class="btn btn--secondary btn--full restore-dialog__backup-first-btn" id="restoreBackupFirstBtn">
+            Скачать копию текущих смен
+          </button>
+        </div>
+        <div class="modal__dialog-actions">
+          <button type="button" class="btn btn--secondary modal__dialog-btn" id="restoreCancelBtn">
+            Отмена
+          </button>
+          <button type="button" class="btn btn--danger modal__dialog-btn" id="restoreConfirmBtn">
+            Заменить
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Всплывающий баннер обновления PWA -->
+    <aside id="updateBanner" class="update-banner" role="alert" style="display: none;">
+      <div class="update-banner__content">
+        <div class="update-banner__text">Доступна новая версия WorkTrack</div>
+        <button type="button" class="btn btn--primary btn--sm" id="updateReloadBtn">Обновить</button>
+      </div>
+    </aside>
 
     <!-- Всплывающий тост для уведомлений -->
     <div id="appToast" class="app-toast" role="status" aria-live="polite">

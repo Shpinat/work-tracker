@@ -238,17 +238,16 @@
           </button>
         </div>
 
-          <!-- Блок сверки с расчетным листком (Payslip Audit) -->
-          <div class="payslip-audit" id="payslipAuditSection">
-          <button type="button" class="payslip-audit__toggle-btn" id="payslipToggleBtn" aria-expanded="false" aria-controls="payslipAuditBody">
-            <svg class="payslip-audit__icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="16" y1="13" x2="8" y2="13"></line>
-              <line x1="16" y1="17" x2="8" y2="17"></line>
-            </svg>
-            <span>Сверить с расчётным листком</span>
-            <span class="payslip-audit__arrow" id="payslipToggleArrow">▾</span>
+        <!-- Фильтр периодов выплат в детализации -->
+        <div class="segmented-control shifts-filter-segmented" role="radiogroup" aria-label="Фильтр периода выплат" id="shiftsFilterSegmented">
+          <button type="button" class="segmented-control__btn is-active" role="radio" aria-checked="true" data-value="all">
+            Все смены
+          </button>
+          <button type="button" class="segmented-control__btn" role="radio" aria-checked="false" data-value="advance" id="filterAdvanceBtn">
+            Аванс
+          </button>
+          <button type="button" class="segmented-control__btn" role="radio" aria-checked="false" data-value="salary" id="filterSalaryBtn">
+            Расчёт
           </button>
           <div class="payslip-audit__body" id="payslipAuditBody" style="display: none;">
             <div class="payslip-audit__input-row">
@@ -598,6 +597,54 @@
               value="₽"
               maxlength="5"
             />
+          </div>
+
+          <div class="form__group">
+            <label class="form__label" for="defCutoffDay" title="Число месяца, до которого смены идут в аванс">Отсечка аванса (день)</label>
+            <div class="input-with-segmented">
+              <input
+                class="form__control form__input input-with-segmented__input"
+                type="number"
+                id="defCutoffDay"
+                value="15"
+                min="1"
+                max="28"
+                step="1"
+                required
+              />
+              <div class="segmented-control segmented-control--suffix" role="radiogroup" aria-label="Включение аванса и расчета" id="defPayoutModeSegmented">
+                <button type="button" class="segmented-control__btn is-active" role="radio" aria-checked="true" data-value="off" id="defPayoutModeOffBtn">
+                  Выкл
+                </button>
+                <button type="button" class="segmented-control__btn" role="radio" aria-checked="false" data-value="on" id="defPayoutModeOnBtn">
+                  Вкл
+                </button>
+              </div>
+              <input type="hidden" id="defPayoutMode" value="off" />
+            </div>
+          </div>
+
+          <div class="form__group">
+            <label class="form__label" for="defMonthlyGoal">Цель на месяц</label>
+            <div class="input-with-segmented">
+              <input
+                class="form__control form__input input-with-segmented__input"
+                type="number"
+                id="defMonthlyGoal"
+                placeholder="0"
+                min="0"
+                step="any"
+              />
+              <div class="segmented-control segmented-control--suffix" role="radiogroup" aria-label="Включение цели на месяц" id="defGoalModeSegmented">
+                <button type="button" class="segmented-control__btn is-active" role="radio" aria-checked="true" data-value="off" id="defGoalModeOffBtn">
+                  Выкл
+                </button>
+                <button type="button" class="segmented-control__btn" role="radio" aria-checked="false" data-value="on" id="defGoalModeOnBtn">
+                  Вкл
+                </button>
+              </div>
+              <input type="hidden" id="defGoalMode" value="off" />
+            </div>
           </div>
 
           <button

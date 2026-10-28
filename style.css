@@ -266,7 +266,11 @@ body.modal-open {
 .calendar__day-cell:focus-visible,
 .shift-list__item:focus-visible,
 .shifts-trigger__btn:focus-visible,
-.segmented-control__btn:focus-visible {
+.segmented-control__btn:focus-visible,
+.stats__card[role="button"]:focus-visible,
+.goal-tracker[role="button"]:focus-visible,
+.payout-split__card[role="button"]:focus-visible,
+.analytics-record-card[role="button"]:focus-visible {
     outline: 2px solid var(--primary);
     outline-offset: 2px;
 }

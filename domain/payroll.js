@@ -175,6 +175,8 @@ export function calcMonthSummary(shifts, year, month, cutoffDay = 15) {
     }
   }
 
+  const effectiveHourlyRate = totalHours > 0 ? Math.round(totalIncome / totalHours) : 0;
+
   return {
     totalShifts,
     totalHours: Math.round(totalHours * 100) / 100,

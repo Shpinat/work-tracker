@@ -125,7 +125,7 @@ export function calcShiftPay(hours, rate, payMode = "hourly", bonus = 0, nightBo
  * @param {Date} [referenceDate=new Date()]
  * @returns {Object}
  */
-export function calcMonthSummary(shifts, year, month, cutoffDay = 15, referenceDate = new Date()) {
+export function calcMonthSummary(shifts, year, month, cutoffDay = 15) {
   let totalShifts = 0;
   let totalHours = 0;
   let totalIncome = 0;
@@ -148,26 +148,21 @@ export function calcMonthSummary(shifts, year, month, cutoffDay = 15, referenceD
 
   const monthShifts = [];
 
-  const refYear = referenceDate.getFullYear();
-  const refMonth = referenceDate.getMonth();
-  const refDay = referenceDate.getDate();
-  const todayKey = formatDateKey(refYear, refMonth, refDay);
-
-  // Оптимизация: Прямая выборка из хэш-мапы по дням месяца O(1) (максимум 31 день).
+  // Bolt Оптимизация: Прямая выборка из хэш-мапы (Object lookup)
+  // Вместо Object.keys(shifts).sort() за O(N log N) мы итерируемся только по дням месяца O(1) (максимум 31 день).
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   for (let day = 1; day <= daysInMonth; day++) {
     const dateKey = formatDateKey(year, month, day);
     const shift = shifts[dateKey];
     if (shift) {
       const h = Number(shift.hours) || 0;
-      const p = Number(shift.totalPay !== undefined ? shift.totalPay : shift.pay) || 0;
+      const p = Number(shift.totalPay) || 0;
 
       totalShifts++;
       totalHours += h;
       totalIncome += p;
       monthShifts.push({ dateKey, day, ...shift });
 
-      // Аванс / Расчет
       if (day <= cutoffDay) {
         advanceShiftsCount++;
         advanceHours += h;
@@ -177,21 +172,8 @@ export function calcMonthSummary(shifts, year, month, cutoffDay = 15, referenceD
         salaryHours += h;
         salaryIncome += p;
       }
-
-      // Факт vs Прогноз (относительно текущей даты)
-      if (dateKey <= todayKey) {
-        earnedShiftsCount++;
-        earnedHours += h;
-        earnedIncome += p;
-      } else {
-        projectedShiftsCount++;
-        projectedHours += h;
-        projectedIncome += p;
-      }
     }
   }
-
-  const effectiveHourlyRate = totalHours > 0 ? Math.round(totalIncome / totalHours) : 0;
 
   return {
     totalShifts,

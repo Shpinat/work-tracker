@@ -6,13 +6,20 @@
 
 /**
  * Форматирование даты в ключ YYYY-MM-DD
- * @param {number} year
- * @param {number} month 0-indexed (0..11)
- * @param {number} day 1..31
+ * Принимает либо объект Date, либо (year, month, day)
+ * @param {number|Date} yearOrDate
+ * @param {number} [month] 0-indexed (0..11)
+ * @param {number} [day] 1..31
  * @returns {string}
  */
-export function formatDateKey(year, month, day) {
-  return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+export function formatDateKey(yearOrDate, month, day) {
+  if (yearOrDate instanceof Date) {
+    const y = yearOrDate.getFullYear();
+    const m = yearOrDate.getMonth();
+    const d = yearOrDate.getDate();
+    return `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  }
+  return `${yearOrDate}-${String(Number(month) + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
 /**
@@ -36,32 +43,89 @@ export function calcHoursDiff(start, end, breakMins = 0) {
 }
 
 /**
+ * Расчет количества ночных часов смены в пределах ночного окна (по умолчанию 22:00–06:00)
+ * С учетом перехода через полночь и пропорционального вычета перерыва.
+ * @param {string} start "HH:MM"
+ * @param {string} end "HH:MM"
+ * @param {number|string} [breakMins=0]
+ * @param {string} [nightStart="22:00"]
+ * @param {string} [nightEnd="06:00"]
+ * @returns {number} ночные часы к доплате с округлением до сотых
+ */
+export function calcNightHours(start, end, breakMins = 0, nightStart = "22:00", nightEnd = "06:00") {
+  if (!start || !end) return 0;
+  const [sh, sm] = start.split(":").map(Number);
+  const [eh, em] = end.split(":").map(Number);
+  let sMins = sh * 60 + sm;
+  let eMins = eh * 60 + em;
+  if (eMins < sMins) {
+    eMins += 24 * 60; // Переход через полночь
+  }
+  const grossShiftMins = eMins - sMins;
+  if (grossShiftMins <= 0) return 0;
+
+  const [nsh, nsm] = (nightStart || "22:00").split(":").map(Number);
+  const [neh, nem] = (nightEnd || "06:00").split(":").map(Number);
+  const ns = nsh * 60 + nsm;
+  const ne = neh * 60 + nem;
+
+  // Формируем ночные интервалы для временной оси [0, 2880] (до 48 часов)
+  // Окно 1: утро текущего дня [0, ne]
+  // Окно 2: ночь текущего дня [ns, ne + 1440]
+  // Окно 3: ночь следующего дня [ns + 1440, 2880]
+  const intervals = [
+    [0, ne],
+    [ns, ne + 1440],
+    [ns + 1440, 2880],
+  ];
+
+  let rawNightMins = 0;
+  for (const [winStart, winEnd] of intervals) {
+    const overlapStart = Math.max(sMins, winStart);
+    const overlapEnd = Math.min(eMins, winEnd);
+    if (overlapEnd > overlapStart) {
+      rawNightMins += (overlapEnd - overlapStart);
+    }
+  }
+
+  // Пропорциональный вычет перерыва
+  const bMins = Math.max(0, Number(breakMins) || 0);
+  const breakDeduction = (grossShiftMins > 0 && bMins > 0)
+    ? (rawNightMins / grossShiftMins) * bMins
+    : 0;
+
+  const netNightMins = Math.max(0, rawNightMins - breakDeduction);
+  return Math.round((netNightMins / 60) * 100) / 100;
+}
+
+/**
  * Расчет итоговой суммы за смену
  * @param {number} hours
  * @param {number} rate
  * @param {string} payMode "hourly" | "fixed"
  * @param {number} [bonus=0]
+ * @param {number} [nightBonus=0]
  * @returns {number}
  */
-export function calcShiftPay(hours, rate, payMode = "hourly", bonus = 0) {
+export function calcShiftPay(hours, rate, payMode = "hourly", bonus = 0, nightBonus = 0) {
   const h = Number(hours) || 0;
   const r = Number(rate) || 0;
   const b = Number(bonus) || 0;
+  const nb = Number(nightBonus) || 0;
   const basePay = payMode === "hourly" ? h * r : r;
-  return Math.round(basePay + b);
+  return Math.round(basePay + b + nb);
 }
 
 /**
- * Подсчет сводной финансовой статистики и периодов выплат (Аванс / Расчет) за месяц
+ * Подсчет сводной финансовой статистики и периодов выплат (Аванс / Расчет / Факт vs План) за месяц
  * @param {Record<string, any>} shifts
  * @param {number} year
  * @param {number} month 0-indexed
- * @param {number} cutoffDay
+ * @param {number} [cutoffDay=15]
+ * @param {Date} [referenceDate=new Date()]
  * @returns {Object}
  */
 export function calcMonthSummary(shifts, year, month, cutoffDay = 15) {
-  const monthPrefix = `${year}-${String(month + 1).padStart(2, "0")}-`;
-
   let totalShifts = 0;
   let totalHours = 0;
   let totalIncome = 0;
@@ -74,44 +138,62 @@ export function calcMonthSummary(shifts, year, month, cutoffDay = 15) {
   let salaryHours = 0;
   let salaryIncome = 0;
 
+  let earnedShiftsCount = 0;
+  let earnedHours = 0;
+  let earnedIncome = 0;
+
+  let projectedShiftsCount = 0;
+  let projectedHours = 0;
+  let projectedIncome = 0;
+
   const monthShifts = [];
 
-  Object.keys(shifts)
-    .sort()
-    .forEach((dateKey) => {
-      if (dateKey.startsWith(monthPrefix)) {
-        const shift = shifts[dateKey];
-        const day = parseInt(dateKey.slice(8, 10), 10);
-        const h = Number(shift.hours) || 0;
-        const p = Number(shift.totalPay) || 0;
+  // Bolt Оптимизация: Прямая выборка из хэш-мапы (Object lookup)
+  // Вместо Object.keys(shifts).sort() за O(N log N) мы итерируемся только по дням месяца O(1) (максимум 31 день).
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateKey = formatDateKey(year, month, day);
+    const shift = shifts[dateKey];
+    if (shift) {
+      const h = Number(shift.hours) || 0;
+      const p = Number(shift.totalPay) || 0;
 
-        totalShifts++;
-        totalHours += h;
-        totalIncome += p;
-        monthShifts.push({ dateKey, day, ...shift });
+      totalShifts++;
+      totalHours += h;
+      totalIncome += p;
+      monthShifts.push({ dateKey, day, ...shift });
 
-        if (day <= cutoffDay) {
-          advanceShiftsCount++;
-          advanceHours += h;
-          advanceIncome += p;
-        } else {
-          salaryShiftsCount++;
-          salaryHours += h;
-          salaryIncome += p;
-        }
+      if (day <= cutoffDay) {
+        advanceShiftsCount++;
+        advanceHours += h;
+        advanceIncome += p;
+      } else {
+        salaryShiftsCount++;
+        salaryHours += h;
+        salaryIncome += p;
       }
-    });
+    }
+  }
+
+  const effectiveHourlyRate = totalHours > 0 ? Math.round(totalIncome / totalHours) : 0;
 
   return {
     totalShifts,
     totalHours: Math.round(totalHours * 100) / 100,
     totalIncome: Math.round(totalIncome),
+    effectiveHourlyRate,
     advanceShiftsCount,
     advanceHours: Math.round(advanceHours * 10) / 10,
     advanceIncome: Math.round(advanceIncome),
     salaryShiftsCount,
     salaryHours: Math.round(salaryHours * 10) / 10,
     salaryIncome: Math.round(salaryIncome),
+    earnedShiftsCount,
+    earnedHours: Math.round(earnedHours * 10) / 10,
+    earnedIncome: Math.round(earnedIncome),
+    projectedShiftsCount,
+    projectedHours: Math.round(projectedHours * 10) / 10,
+    projectedIncome: Math.round(projectedIncome),
     monthShifts,
   };
 }
@@ -126,12 +208,14 @@ export function calcMonthSummary(shifts, year, month, cutoffDay = 15) {
  * @returns {{ count: number, updatedShifts: Record<string, any> }}
  */
 export function recalcMonthShifts(shifts, year, month, newRate, newPayMode) {
-  const monthPrefix = `${year}-${String(month + 1).padStart(2, "0")}-`;
   const updatedShifts = { ...shifts };
   let count = 0;
 
-  Object.keys(updatedShifts).forEach((key) => {
-    if (key.startsWith(monthPrefix)) {
+  // Bolt Оптимизация: Прямая выборка из хэш-мапы по дням месяца (О(1)) вместо полного обхода ключей (O(N))
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  for (let day = 1; day <= daysInMonth; day++) {
+    const key = formatDateKey(year, month, day);
+    if (updatedShifts[key]) {
       const s = { ...updatedShifts[key] };
       s.rate = newRate;
       s.payMode = newPayMode;
@@ -142,7 +226,7 @@ export function recalcMonthShifts(shifts, year, month, newRate, newPayMode) {
       updatedShifts[key] = s;
       count++;
     }
-  });
+  }
 
   return { count, updatedShifts };
 }
@@ -200,5 +284,31 @@ export function calcGoalProgress(totalIncome, goal, totalShifts = 0, settings = 
     remaining,
     surplus,
     neededShifts,
+  };
+}
+
+/**
+ * Сверка ожидаемой суммы начислений со значением из расчетного листка
+ * @param {number|string} actualPay Начислено по листку работодателя
+ * @param {number|string} expectedIncome Начислено по сменам в приложении
+ * @returns {{ actual: number, expected: number, diff: number, isMatch: boolean, isUnderpaid: boolean, isOverpaid: boolean, absDiff: number }}
+ */
+export function verifyPayslip(actualPay, expectedIncome) {
+  const actual = Math.round(Number(actualPay) || 0);
+  const expected = Math.round(Number(expectedIncome) || 0);
+  const diff = actual - expected;
+  const isMatch = diff === 0;
+  const isUnderpaid = diff < 0;
+  const isOverpaid = diff > 0;
+  const status = isMatch ? "match" : isUnderpaid ? "underpaid" : "overpaid";
+  return {
+    actual,
+    expected,
+    diff,
+    status,
+    isMatch,
+    isUnderpaid,
+    isOverpaid,
+    absDiff: Math.abs(diff),
   };
 }

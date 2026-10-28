@@ -4,7 +4,7 @@
  * Чистые функции без привязки к DOM.
  */
 
-import { formatDateKey, calcHoursDiff, calcShiftPay } from "./payroll.js";
+import { formatDateKey, calcHoursDiff, calcNightHours, calcShiftPay } from "./payroll.js";
 
 export const SCHEDULE_PATTERNS = {
   "2-2-day": {
@@ -18,6 +18,18 @@ export const SCHEDULE_PATTERNS = {
   "3-3-day": {
     name: "3/3 День",
     cycle: ["day", "day", "day", "off", "off", "off"],
+  },
+  "1-3-day": {
+    name: "Сутки через трое (1/3)",
+    cycle: ["day", "off", "off", "off"],
+  },
+  "4-4-day": {
+    name: "4/4 День",
+    cycle: ["day", "day", "day", "day", "off", "off", "off", "off"],
+  },
+  "2-2-3-pitman": {
+    name: "2-2-3 Питман",
+    cycle: ["day", "day", "off", "off", "day", "day", "day", "off", "off", "day", "day", "off", "off", "off"],
   },
   "1-3-mixed": {
     name: "День-Ночь-48",
@@ -113,8 +125,8 @@ export function calculateScheduleDates({
 export function buildShiftFromPreset(type, settings) {
   const preset = settings.presets?.[type] || { start: "09:00", end: "21:00", breakMins: 60 };
   const hours = calcHoursDiff(preset.start, preset.end, preset.breakMins);
-  const rate = settings.rate || 0;
-  const payMode = settings.payMode || "hourly";
+  const payMode = preset.payMode || settings.payMode || "hourly";
+  const rate = preset.rate !== undefined && preset.rate !== "" ? Number(preset.rate) : Number(settings.defaultRate || settings.rate || 0);
   const totalPay = calcShiftPay(hours, rate, payMode, 0);
 
   return {

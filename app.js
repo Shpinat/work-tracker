@@ -11,6 +11,7 @@ import {
   STORAGE_KEY,
   SETTINGS_KEY,
   THEME_KEY,
+  TIMER_STORAGE_KEY,
   DEFAULT_PRESETS,
   DEFAULT_SETTINGS,
   loadShifts,
@@ -19,6 +20,10 @@ import {
   saveSettings,
   loadTheme,
   saveTheme,
+  loadShiftTimer,
+  saveShiftTimer,
+  clearShiftTimer,
+  requestPersistentStorage,
 } from "./data/storage.js";
 
 import {
@@ -33,11 +38,10 @@ import {
   calcShiftPay,
   calcMonthSummary,
   recalcMonthShifts,
-  calcGoalProgress,
+  verifyPayslip,
 } from "./domain/payroll.js";
 
 import {
-  calculateAllTimeAnalytics,
   calcMomTrends,
 } from "./domain/analytics.js";
 
@@ -52,7 +56,6 @@ import {
   MONTH_NAMES_GENITIVE,
   SHIFT_ICONS,
   getShiftIconSvg,
-  STREAK_ICONS,
 } from "./ui/icons.js";
 
 import {
@@ -87,15 +90,15 @@ let currentDate = new Date();
 let shifts = loadShifts();
 let settings = loadSettings();
 let currentTheme = loadTheme();
-let currentShiftsFilter = "all"; // "all" | "advance" | "salary"
 let currentMonthShiftsCache = [];
 let currentSettingsPreset = "day";
 let tempPresets = {};
 let customCycle = ["day", "night", "off", "off"];
 let lastScheduleSnapshot = null;
 let lastMonthComparisonSummary = null;
-let bestMonthNavTarget = null;
-let bestShiftNavTarget = null;
+let timerState = null;
+let timerInterval = null;
+let currentTimerPresetType = "day";
 
 // ============================================================
 // Кэширование DOM-элементов
@@ -107,39 +110,42 @@ const elements = {
   nextMonthBtn: document.getElementById("nextMonthBtn"),
   todayBtn: document.getElementById("todayBtn"),
   autoScheduleBtn: document.getElementById("autoScheduleBtn"),
-  statsOverviewBtn: document.getElementById("statsOverviewBtn"),
   themeToggleBtn: document.getElementById("themeToggleBtn"),
   themeIcon: document.getElementById("themeIcon"),
   settingsBtn: document.getElementById("settingsBtn"),
   metaThemeColor: document.querySelector('meta[name="theme-color"]'),
 
+  // Таймер текущей смены (Автономный секундомер)
+  shiftTimerWidget: document.getElementById("shiftTimerWidget"),
+  shiftTimerIdle: document.getElementById("shiftTimerIdle"),
+  shiftTimerActive: document.getElementById("shiftTimerActive"),
+  shiftTimerStartBtn: document.getElementById("shiftTimerStartBtn"),
+  shiftTimerPresetTabs: document.getElementById("shiftTimerPresetTabs"),
+  timerTabDay: document.getElementById("timerTabDay"),
+  timerTabNight: document.getElementById("timerTabNight"),
+  timerTabExtra: document.getElementById("timerTabExtra"),
+  timerTabNameDay: document.getElementById("timerTabNameDay"),
+  timerTabNameNight: document.getElementById("timerTabNameNight"),
+  timerTabNameExtra: document.getElementById("timerTabNameExtra"),
+  shiftTimerStatusText: document.getElementById("shiftTimerStatusText"),
+  shiftTimerActiveTypeBadge: document.getElementById("shiftTimerActiveTypeBadge"),
+  shiftTimerDigits: document.getElementById("shiftTimerDigits"),
+  shiftTimerPay: document.getElementById("shiftTimerPay"),
+  shiftTimerPauseBtn: document.getElementById("shiftTimerPauseBtn"),
+  shiftTimerFinishBtn: document.getElementById("shiftTimerFinishBtn"),
+  shiftTimerCancelBtn: document.getElementById("shiftTimerCancelBtn"),
+  shiftTimerPulseDot: document.getElementById("shiftTimerPulseDot"),
+
   // Статистика
   statShifts: document.getElementById("statShifts"),
   statHours: document.getElementById("statHours"),
+  statHoursRate: document.getElementById("statHoursRate"),
   statIncome: document.getElementById("statIncome"),
+  statIncomeBreakdown: document.getElementById("statIncomeBreakdown"),
   statShiftsCard: document.getElementById("statShiftsCard"),
   statHoursCard: document.getElementById("statHoursCard"),
   statIncomeCard: document.getElementById("statIncomeCard"),
   statShiftsBadge: document.getElementById("statShiftsBadge"),
-
-  // Финансовая цель на месяц ("Копилка")
-  goalTracker: document.getElementById("goalTracker"),
-  goalProgressText: document.getElementById("goalProgressText"),
-  goalPercentage: document.getElementById("goalPercentage"),
-  goalProgressBar: document.getElementById("goalProgressBar"),
-  goalStatusText: document.getElementById("goalStatusText"),
-  goalActionHint: document.getElementById("goalActionHint"),
-
-  // Выплаты: Аванс и Расчёт
-  payoutSplit: document.getElementById("payoutSplit"),
-  payoutAdvanceCard: document.getElementById("payoutAdvanceCard"),
-  payoutSalaryCard: document.getElementById("payoutSalaryCard"),
-  advanceLabel: document.getElementById("advanceLabel"),
-  salaryLabel: document.getElementById("salaryLabel"),
-  statAdvanceIncome: document.getElementById("statAdvanceIncome"),
-  statAdvanceMeta: document.getElementById("statAdvanceMeta"),
-  statSalaryIncome: document.getElementById("statSalaryIncome"),
-  statSalaryMeta: document.getElementById("statSalaryMeta"),
 
   // Календарь и триггер смен
   calendarGrid: document.getElementById("calendarGrid"),
@@ -150,10 +156,6 @@ const elements = {
   shiftsModalTitle: document.getElementById("shiftsModalTitle"),
   shiftsModalMonth: document.getElementById("shiftsModalMonth"),
   shiftsModalCloseBtn: document.getElementById("shiftsModalCloseBtn"),
-  shiftsFilterSegmented: document.getElementById("shiftsFilterSegmented"),
-  shiftsFilterInput: document.getElementById("shiftsFilterInput"),
-  filterAdvanceBtn: document.getElementById("filterAdvanceBtn"),
-  filterSalaryBtn: document.getElementById("filterSalaryBtn"),
   shiftList: document.getElementById("shiftList"),
   shiftListWrapper: document.getElementById("shiftListWrapper"),
 
@@ -206,12 +208,6 @@ const elements = {
   defRate: document.getElementById("defRate"),
   recalcMonthRatesBtn: document.getElementById("recalcMonthRatesBtn"),
   defCurrency: document.getElementById("defCurrency"),
-  defCutoffDay: document.getElementById("defCutoffDay"),
-  defPayoutModeSegmented: document.getElementById("defPayoutModeSegmented"),
-  defPayoutMode: document.getElementById("defPayoutMode"),
-  defMonthlyGoal: document.getElementById("defMonthlyGoal"),
-  defGoalModeSegmented: document.getElementById("defGoalModeSegmented"),
-  defGoalMode: document.getElementById("defGoalMode"),
 
   // Модальное окно автозаполнения графика
   scheduleModal: document.getElementById("scheduleModal"),
@@ -239,6 +235,15 @@ const elements = {
   backupRestoreBtn: document.getElementById("backupRestoreBtn"),
   importFile: document.getElementById("importFile"),
 
+  // Сверка с расчетным листком
+  payslipAuditSection: document.getElementById("payslipAuditSection"),
+  payslipToggleBtn: document.getElementById("payslipToggleBtn"),
+  payslipToggleArrow: document.getElementById("payslipToggleArrow"),
+  payslipAuditBody: document.getElementById("payslipAuditBody"),
+  payslipActualInput: document.getElementById("payslipActualInput"),
+  payslipCalcBtn: document.getElementById("payslipCalcBtn"),
+  payslipAuditResult: document.getElementById("payslipAuditResult"),
+
   // Кастомный диалог подтверждения и тосты
   confirmModal: document.getElementById("confirmModal"),
   confirmTitle: document.getElementById("confirmTitle"),
@@ -248,36 +253,20 @@ const elements = {
   confirmCancelBtn: document.getElementById("confirmCancelBtn"),
   appToast: document.getElementById("appToast"),
 
-  // Модальное окно аналитики и рекордов
-  analyticsModal: document.getElementById("analyticsModal"),
-  analyticsModalCloseBtn: document.getElementById("analyticsModalCloseBtn"),
-  allTimeIncome: document.getElementById("allTimeIncome"),
-  allTimeAvgMonth: document.getElementById("allTimeAvgMonth"),
-  allTimeShifts: document.getElementById("allTimeShifts"),
-  allTimeHours: document.getElementById("allTimeHours"),
-  analyticsStreakCard: document.getElementById("analyticsStreakCard"),
-  analyticsStreakIcon: document.getElementById("analyticsStreakIcon"),
-  analyticsStreakTitle: document.getElementById("analyticsStreakTitle"),
-  analyticsStreakDesc: document.getElementById("analyticsStreakDesc"),
-  bestMonthCard: document.getElementById("bestMonthCard"),
-  bestMonthValue: document.getElementById("bestMonthValue"),
-  bestMonthDate: document.getElementById("bestMonthDate"),
-  bestShiftCard: document.getElementById("bestShiftCard"),
-  bestShiftValue: document.getElementById("bestShiftValue"),
-  bestShiftDate: document.getElementById("bestShiftDate"),
-  longestShiftValue: document.getElementById("longestShiftValue"),
-  longestShiftDate: document.getElementById("longestShiftDate"),
-  maxStreakValue: document.getElementById("maxStreakValue"),
-  maxStreakSub: document.getElementById("maxStreakSub"),
-  breakdownDayLabel: document.getElementById("breakdownDayLabel"),
-  breakdownDayText: document.getElementById("breakdownDayText"),
-  breakdownDayFill: document.getElementById("breakdownDayFill"),
-  breakdownNightLabel: document.getElementById("breakdownNightLabel"),
-  breakdownNightText: document.getElementById("breakdownNightText"),
-  breakdownNightFill: document.getElementById("breakdownNightFill"),
-  breakdownExtraLabel: document.getElementById("breakdownExtraLabel"),
-  breakdownExtraText: document.getElementById("breakdownExtraText"),
-  breakdownExtraFill: document.getElementById("breakdownExtraFill"),
+  // Безопасное восстановление резервной копии
+  restoreModal: document.getElementById("restoreModal"),
+  restoreModalTitle: document.getElementById("restoreModalTitle"),
+  restoreModalShiftsCount: document.getElementById("restoreModalShiftsCount"),
+  restoreModalDateRange: document.getElementById("restoreModalDateRange"),
+  restoreModalExportDate: document.getElementById("restoreModalExportDate"),
+  restoreModalCurrentCount: document.getElementById("restoreModalCurrentCount"),
+  restoreBackupFirstBtn: document.getElementById("restoreBackupFirstBtn"),
+  restoreCancelBtn: document.getElementById("restoreCancelBtn"),
+  restoreConfirmBtn: document.getElementById("restoreConfirmBtn"),
+
+  // Баннер обновления PWA
+  updateBanner: document.getElementById("updateBanner"),
+  updateReloadBtn: document.getElementById("updateReloadBtn"),
 };
 
 // ============================================================
@@ -328,6 +317,8 @@ function updatePresetTimesUI() {
   if (elements.customAddDayBtn) elements.customAddDayBtn.textContent = `+ ${dayName}`;
   if (elements.customAddNightBtn) elements.customAddNightBtn.textContent = `+ ${nightName}`;
   if (elements.customAddExtraBtn) elements.customAddExtraBtn.textContent = `+ ${extraName}`;
+
+  updateTimerPresetTabsUI();
 }
 
 function applyPresetToModal(type) {
@@ -367,24 +358,6 @@ function initSegmentedControls() {
       onChange: () => recalcModal(),
     },
     {
-      containerId: "shiftsFilterSegmented",
-      inputId: "shiftsFilterInput",
-      onChange: (val) => {
-        currentShiftsFilter = val;
-        renderShiftList({
-          listEl: elements.shiftList,
-          wrapperEl: elements.shiftListWrapper,
-          monthShifts: currentMonthShiftsCache,
-          year: currentDate.getFullYear(),
-          month: currentDate.getMonth(),
-          filter: currentShiftsFilter,
-          settings,
-          onShiftClick: openShiftModal,
-        });
-        triggerHaptic(10);
-      },
-    },
-    {
       containerId: "settingsPresetSegmented",
       inputId: "settingsActivePreset",
       onChange: (newPreset) => {
@@ -398,16 +371,6 @@ function initSegmentedControls() {
       containerId: "defPayModeSegmented",
       inputId: "defPayMode",
       onChange: null,
-    },
-    {
-      containerId: "defPayoutModeSegmented",
-      inputId: "defPayoutMode",
-      onChange: () => triggerHaptic(10),
-    },
-    {
-      containerId: "defGoalModeSegmented",
-      inputId: "defGoalMode",
-      onChange: () => triggerHaptic(10),
     },
     {
       containerId: "scheduleDurationSegmented",
@@ -644,12 +607,7 @@ function openSettings() {
   setSegmentedValue("defPayModeSegmented", "defPayMode", settings.payMode || "hourly");
   elements.defRate.value = settings.rate;
   elements.defCurrency.value = settings.currency || "₽";
-  elements.defCutoffDay.value = settings.advanceCutoffDay || 15;
-  setSegmentedValue("defPayoutModeSegmented", "defPayoutMode", settings.payoutSplitEnabled ? "on" : "off");
-  if (elements.defMonthlyGoal) {
-    elements.defMonthlyGoal.value = settings.monthlyGoal ? settings.monthlyGoal : "";
-  }
-  setSegmentedValue("defGoalModeSegmented", "defGoalMode", settings.monthlyGoalEnabled ? "on" : "off");
+
   openModal("settingsModal");
 }
 
@@ -696,10 +654,6 @@ function saveSettingsFromModal(e) {
   settings.payMode = elements.defPayMode.value;
   settings.rate = parseFloat(elements.defRate.value) || 0;
   settings.currency = elements.defCurrency.value.trim() || "₽";
-  settings.advanceCutoffDay = Math.min(28, Math.max(1, parseInt(elements.defCutoffDay.value, 10) || 15));
-  settings.payoutSplitEnabled = elements.defPayoutMode ? elements.defPayoutMode.value === "on" : false;
-  settings.monthlyGoal = elements.defMonthlyGoal ? Math.max(0, parseFloat(elements.defMonthlyGoal.value) || 0) : (settings.monthlyGoal || 0);
-  settings.monthlyGoalEnabled = elements.defGoalMode ? elements.defGoalMode.value === "on" : false;
 
   if (!saveSettings(settings)) {
     showToast("Ошибка сохранения", "error");
@@ -758,142 +712,6 @@ async function recalcCurrentMonthRates() {
   render();
   triggerHaptic(20);
   showToast(`Пересчитано смен: ${updatedCount}`, "success");
-}
-
-// ============================================================
-// Рекорды и общая аналитика
-// ============================================================
-function openAnalyticsModal() {
-  updateAnalyticsData();
-  openModal("analyticsModal");
-  triggerHaptic(12);
-}
-
-function updateAnalyticsData() {
-  const curr = settings.currency || "₽";
-  const data = calculateAllTimeAnalytics(shifts);
-
-  if (data.isEmpty) {
-    if (elements.allTimeIncome) elements.allTimeIncome.textContent = `0 ${curr}`;
-    if (elements.allTimeAvgMonth) elements.allTimeAvgMonth.textContent = `~0 ${curr} / месяц`;
-    if (elements.allTimeShifts) elements.allTimeShifts.textContent = "0 см";
-    if (elements.allTimeHours) elements.allTimeHours.textContent = "0 ч всего";
-
-    if (elements.analyticsStreakTitle) elements.analyticsStreakTitle.textContent = "Текущий статус";
-    if (elements.analyticsStreakDesc) elements.analyticsStreakDesc.textContent = "Смен пока нет";
-    if (elements.analyticsStreakIcon) elements.analyticsStreakIcon.innerHTML = STREAK_ICONS.empty;
-
-    if (elements.bestMonthValue) elements.bestMonthValue.textContent = "—";
-    if (elements.bestMonthDate) elements.bestMonthDate.textContent = "Нет смен";
-    if (elements.bestShiftValue) elements.bestShiftValue.textContent = "—";
-    if (elements.bestShiftDate) elements.bestShiftDate.textContent = "Нет смен";
-    if (elements.longestShiftValue) elements.longestShiftValue.textContent = "—";
-    if (elements.longestShiftDate) elements.longestShiftDate.textContent = "Нет смен";
-    if (elements.maxStreakValue) elements.maxStreakValue.textContent = "0";
-
-    if (elements.breakdownDayText) elements.breakdownDayText.textContent = "0 см (0%)";
-    if (elements.breakdownDayFill) elements.breakdownDayFill.style.width = "0%";
-    if (elements.breakdownNightText) elements.breakdownNightText.textContent = "0 см (0%)";
-    if (elements.breakdownNightFill) elements.breakdownNightFill.style.width = "0%";
-    if (elements.breakdownExtraText) elements.breakdownExtraText.textContent = "0 см (0%)";
-    if (elements.breakdownExtraFill) elements.breakdownExtraFill.style.width = "0%";
-
-    bestMonthNavTarget = null;
-    bestShiftNavTarget = null;
-    return;
-  }
-
-  if (elements.allTimeIncome) {
-    elements.allTimeIncome.textContent = `${data.totalIncome.toLocaleString("ru-RU")} ${curr}`;
-  }
-  if (elements.allTimeAvgMonth) {
-    elements.allTimeAvgMonth.textContent = `~${data.avgMonthlyIncome.toLocaleString("ru-RU")} ${curr} / месяц`;
-  }
-  if (elements.allTimeShifts) {
-    elements.allTimeShifts.textContent = `${data.totalShifts} см`;
-  }
-  if (elements.allTimeHours) {
-    elements.allTimeHours.textContent = `${data.totalHours} ч всего`;
-  }
-
-  // Рекордный месяц
-  if (data.bestMonth) {
-    bestMonthNavTarget = { year: data.bestMonth.year, month: data.bestMonth.month };
-    if (elements.bestMonthValue) {
-      elements.bestMonthValue.textContent = `${data.bestMonth.income.toLocaleString("ru-RU")} ${curr}`;
-    }
-    if (elements.bestMonthDate) {
-      elements.bestMonthDate.textContent = `${MONTH_NAMES[data.bestMonth.month]} ${data.bestMonth.year} ↗`;
-    }
-  }
-
-  // Лучшая смена
-  if (data.bestShift) {
-    bestShiftNavTarget = data.bestShift.key;
-    if (elements.bestShiftValue) {
-      elements.bestShiftValue.textContent = `${data.bestShift.pay.toLocaleString("ru-RU")} ${curr}`;
-    }
-    if (elements.bestShiftDate) {
-      elements.bestShiftDate.textContent = `${data.bestShift.day} ${MONTH_NAMES_GENITIVE[data.bestShift.month]} ${data.bestShift.year} ↗`;
-    }
-  }
-
-  // Длинная смена
-  if (data.longestShift) {
-    if (elements.longestShiftValue) {
-      elements.longestShiftValue.textContent = `${data.longestShift.hours} ч`;
-    }
-    if (elements.longestShiftDate) {
-      elements.longestShiftDate.textContent = `${data.longestShift.day} ${MONTH_NAMES_GENITIVE[data.longestShift.month]} ${data.longestShift.year}`;
-    }
-  }
-
-  // Максимальный стрик
-  if (elements.maxStreakValue) {
-    elements.maxStreakValue.textContent = data.maxStreak;
-  }
-  if (elements.maxStreakSub) {
-    elements.maxStreakSub.textContent = getRussianDeclension(data.maxStreak, ["смена подряд", "смены подряд", "смен подряд"]);
-  }
-
-  // Текущий стрик / отдых
-  if (data.currentStreak.status === "today") {
-    if (elements.analyticsStreakCard) elements.analyticsStreakCard.classList.remove("analytics-streak--rest");
-    if (elements.analyticsStreakIcon) elements.analyticsStreakIcon.innerHTML = STREAK_ICONS.today || STREAK_ICONS.fire;
-    if (elements.analyticsStreakTitle) elements.analyticsStreakTitle.textContent = "Текущий стрик смен";
-    if (elements.analyticsStreakDesc) {
-      elements.analyticsStreakDesc.textContent = `${data.currentStreak.days} ${getRussianDeclension(data.currentStreak.days, ["смена подряд", "смены подряд", "смен подряд"])} (включая сегодня)`;
-    }
-  } else if (data.currentStreak.status === "yesterday") {
-    if (elements.analyticsStreakCard) elements.analyticsStreakCard.classList.remove("analytics-streak--rest");
-    if (elements.analyticsStreakIcon) elements.analyticsStreakIcon.innerHTML = STREAK_ICONS.yesterday || STREAK_ICONS.flash;
-    if (elements.analyticsStreakTitle) elements.analyticsStreakTitle.textContent = "Последний стрик";
-    if (elements.analyticsStreakDesc) {
-      elements.analyticsStreakDesc.textContent = `${data.currentStreak.days} ${getRussianDeclension(data.currentStreak.days, ["смена подряд", "смены подряд", "смен подряд"])} (вчера была смена)`;
-    }
-  } else {
-    if (elements.analyticsStreakCard) elements.analyticsStreakCard.classList.add("analytics-streak--rest");
-    if (elements.analyticsStreakIcon) elements.analyticsStreakIcon.innerHTML = STREAK_ICONS.rest || STREAK_ICONS.coffee;
-    if (elements.analyticsStreakTitle) elements.analyticsStreakTitle.textContent = "Текущий статус";
-    if (elements.analyticsStreakDesc) {
-      elements.analyticsStreakDesc.textContent = `Отдых: ${data.currentStreak.days} ${getRussianDeclension(data.currentStreak.days, ["день", "дня", "дней"])} без смен`;
-    }
-  }
-
-  // Структура работы (Breakdown)
-  const p = settings.presets || DEFAULT_PRESETS;
-  if (elements.breakdownDayLabel) elements.breakdownDayLabel.textContent = p.day?.name || "Дневные";
-  if (elements.breakdownNightLabel) elements.breakdownNightLabel.textContent = p.night?.name || "Ночные";
-  if (elements.breakdownExtraLabel) elements.breakdownExtraLabel.textContent = p.extra?.name || "Подработки";
-
-  if (elements.breakdownDayText) elements.breakdownDayText.textContent = `${data.dayShiftsCount} см (${data.dayPct}%)`;
-  if (elements.breakdownDayFill) elements.breakdownDayFill.style.width = `${data.dayPct}%`;
-
-  if (elements.breakdownNightText) elements.breakdownNightText.textContent = `${data.nightShiftsCount} см (${data.nightPct}%)`;
-  if (elements.breakdownNightFill) elements.breakdownNightFill.style.width = `${data.nightPct}%`;
-
-  if (elements.breakdownExtraText) elements.breakdownExtraText.textContent = `${data.extraShiftsCount} см (${data.extraPct}%)`;
-  if (elements.breakdownExtraFill) elements.breakdownExtraFill.style.width = `${data.extraPct}%`;
 }
 
 // ============================================================
@@ -1055,8 +873,22 @@ function applySchedule(e) {
 // ============================================================
 // Бэкап и Экспорт
 // ============================================================
-function handleBackupDownload() {
-  downloadBackup(shifts, settings);
+let pendingRestoreData = null;
+
+async function handleBackupDownload() {
+  try {
+    const res = await downloadBackup(shifts, settings);
+    if (res.shared) {
+      showToast("Резервная копия отправлена", "success");
+    } else if (res.aborted) {
+      // Пользователь закрыл системное меню
+    } else {
+      showToast("Резервная копия скачана", "success");
+    }
+    triggerHaptic(15);
+  } catch (err) {
+    showToast("Ошибка создания резервной копии", "error");
+  }
 }
 
 async function handleBackupRestore(event) {
@@ -1065,22 +897,61 @@ async function handleBackupRestore(event) {
 
   try {
     const restored = await parseBackupFile(file);
-    shifts = restored.shifts;
-    settings = restored.settings;
-    const shiftsSaved = saveShifts(shifts);
-    const settingsSaved = saveSettings(settings);
-    if (!shiftsSaved || !settingsSaved) {
-      showToast("Ошибка сохранения при восстановлении", "error");
-      return;
+    pendingRestoreData = restored;
+
+    const currCount = Object.keys(shifts).length;
+    const currCurr = settings.currency || "₽";
+
+    if (elements.restoreModalShiftsCount) {
+      elements.restoreModalShiftsCount.textContent = `${restored.stats.shiftsCount} (${restored.stats.totalIncome.toLocaleString("ru-RU")} ${restored.settings.currency || currCurr})`;
     }
-    closeModal("settingsModal");
-    render();
-    showToast("Данные успешно восстановлены!", "success");
+    if (elements.restoreModalDateRange) {
+      elements.restoreModalDateRange.textContent =
+        restored.stats.firstDate && restored.stats.lastDate
+          ? `${restored.stats.firstDate} — ${restored.stats.lastDate}`
+          : "нет смен";
+    }
+    if (elements.restoreModalExportDate) {
+      elements.restoreModalExportDate.textContent = restored.exportedAt
+        ? new Date(restored.exportedAt).toLocaleString("ru-RU", { dateStyle: "short", timeStyle: "short" })
+        : "не указана";
+    }
+    if (elements.restoreModalCurrentCount) {
+      elements.restoreModalCurrentCount.textContent = currCount;
+    }
+
+    openModal("restoreModal");
+    triggerHaptic(15);
   } catch (err) {
-    showToast("Ошибка чтения файла бэкапа", "error");
+    showToast(err.message || "Ошибка чтения файла бэкапа", "error");
   }
 
   event.target.value = "";
+}
+
+function confirmRestore() {
+  if (!pendingRestoreData) return;
+  shifts = pendingRestoreData.shifts;
+  settings = pendingRestoreData.settings;
+  const shiftsSaved = saveShifts(shifts);
+  const settingsSaved = saveSettings(settings);
+  if (!shiftsSaved || !settingsSaved) {
+    showToast("Ошибка сохранения при восстановлении", "error");
+    return;
+  }
+  closeModal("restoreModal");
+  closeModal("settingsModal");
+  pendingRestoreData = null;
+  updatePayModeLabels();
+  updatePresetTimesUI();
+  render();
+  triggerHaptic([30, 40, 30]);
+  showToast("Данные успешно восстановлены!", "success");
+}
+
+function cancelRestore() {
+  closeModal("restoreModal");
+  pendingRestoreData = null;
 }
 
 async function handleExportCSV(allTime = false) {
@@ -1153,80 +1024,20 @@ function updateStatsTrends(year, month, currentShifts, currentHours, currentInco
   };
 }
 
-function updateGoalTrackerUI(totalIncome, totalShifts) {
-  if (!elements.goalTracker) return;
-
-  const goal = settings.monthlyGoal || 0;
-  const curr = settings.currency || "₽";
-
-  const p = calcGoalProgress(totalIncome, goal, totalShifts, settings);
-
-  if (p.isZeroGoal) {
-    elements.goalTracker.classList.remove("goal-tracker--completed");
-    if (elements.goalProgressText) elements.goalProgressText.textContent = `0 ${curr}`;
-    if (elements.goalPercentage) elements.goalPercentage.textContent = "0%";
-    if (elements.goalProgressBar) {
-      elements.goalProgressBar.style.width = "0%";
-      elements.goalProgressBar.classList.remove("goal-tracker__bar--completed");
-    }
-    if (elements.goalStatusText) elements.goalStatusText.textContent = "Поставьте цель заработка на месяц";
-    if (elements.goalActionHint) elements.goalActionHint.textContent = "Настроить";
-    return;
-  }
-
-  if (elements.goalProgressText) {
-    elements.goalProgressText.textContent = `${totalIncome.toLocaleString("ru-RU")} / ${goal.toLocaleString("ru-RU")} ${curr}`;
-  }
-  if (elements.goalPercentage) {
-    elements.goalPercentage.textContent = `${p.percent}%`;
-  }
-  if (elements.goalProgressBar) {
-    elements.goalProgressBar.style.width = `${p.clampedWidth}%`;
-  }
-
-  if (p.isCompleted) {
-    elements.goalTracker.classList.add("goal-tracker--completed");
-    if (elements.goalProgressBar) {
-      elements.goalProgressBar.classList.add("goal-tracker__bar--completed");
-    }
-    if (elements.goalStatusText) {
-      if (p.surplus > 0) {
-        elements.goalStatusText.textContent = `Цель выполнена! Перевыполнение: +${p.surplus.toLocaleString("ru-RU")} ${curr}`;
-      } else {
-        elements.goalStatusText.textContent = "Цель достигнута на 100%! Отличная работа!";
-      }
-    }
-    if (elements.goalActionHint) elements.goalActionHint.textContent = "Изменить";
-  } else {
-    elements.goalTracker.classList.remove("goal-tracker--completed");
-    if (elements.goalProgressBar) {
-      elements.goalProgressBar.classList.remove("goal-tracker__bar--completed");
-    }
-    if (elements.goalStatusText) {
-      if (p.neededShifts) {
-        const shiftWord = getRussianDeclension(p.neededShifts, ["смена", "смены", "смен"]);
-        elements.goalStatusText.textContent = `Осталось: ${p.remaining.toLocaleString("ru-RU")} ${curr} (~${p.neededShifts} ${shiftWord})`;
-      } else {
-        elements.goalStatusText.textContent = `Осталось заработать: ${p.remaining.toLocaleString("ru-RU")} ${curr}`;
-      }
-    }
-    if (elements.goalActionHint) elements.goalActionHint.textContent = "Изменить";
-  }
-}
-
 function render() {
   if (window.scrollX !== 0) {
     window.scrollTo(0, window.scrollY);
   }
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
-  const cutoffDay = settings.advanceCutoffDay || 15;
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = new Date();
+  const isCurrentMonth =
+    today.getFullYear() === year && today.getMonth() === month;
 
   elements.monthTitle.textContent = `${MONTH_NAMES[month]} ${year}`;
 
   // Подсчет сводки по сменам месяца
-  const summary = calcMonthSummary(shifts, year, month, cutoffDay);
+  const summary = calcMonthSummary(shifts, year, month);
 
   // Отрисовка календаря
   renderCalendarGrid(elements.calendarGrid, {
@@ -1243,40 +1054,30 @@ function render() {
   elements.statIncome.textContent = `${summary.totalIncome.toLocaleString("ru-RU")} ${settings.currency}`;
   elements.statIncome.title = elements.statIncome.textContent;
 
+  // Эффективная ставка в час
+  if (elements.statHoursRate) {
+    if (summary.totalHours > 0 && summary.effectiveHourlyRate > 0) {
+      elements.statHoursRate.style.display = "block";
+      elements.statHoursRate.textContent = `~${summary.effectiveHourlyRate.toLocaleString("ru-RU")} ${settings.currency}/ч`;
+      elements.statHoursRate.title = `Эффективная ставка: ~${summary.effectiveHourlyRate.toLocaleString("ru-RU")} ${settings.currency} за час`;
+    } else {
+      elements.statHoursRate.style.display = "none";
+    }
+  }
+
+  // Разделение Факт vs Прогноз для текущего месяца
+  if (elements.statIncomeBreakdown) {
+    if (isCurrentMonth && summary.earnedIncome > 0 && summary.projectedIncome > 0) {
+      elements.statIncomeBreakdown.style.display = "block";
+      elements.statIncomeBreakdown.textContent = `факт: ${summary.earnedIncome.toLocaleString("ru-RU")} • план: ${summary.projectedIncome.toLocaleString("ru-RU")}`;
+      elements.statIncomeBreakdown.title = `Уже заработано на сегодня: ${summary.earnedIncome.toLocaleString("ru-RU")} ${settings.currency} (${summary.earnedHours} ч)\nОжидается до конца месяца: ${summary.projectedIncome.toLocaleString("ru-RU")} ${settings.currency} (${summary.projectedHours} ч)`;
+    } else {
+      elements.statIncomeBreakdown.style.display = "none";
+    }
+  }
+
   // Динамика трендов MoM
   updateStatsTrends(year, month, summary.totalShifts, summary.totalHours, summary.totalIncome);
-
-  // Блоки выплат: Аванс и Расчет
-  if (elements.payoutSplit) {
-    elements.payoutSplit.style.display = settings.payoutSplitEnabled ? "" : "none";
-  }
-  const curr = settings.currency || "₽";
-  if (elements.advanceLabel) {
-    elements.advanceLabel.textContent = `Аванс (1–${cutoffDay})`;
-  }
-  if (elements.salaryLabel) {
-    elements.salaryLabel.textContent = `Расчёт (${cutoffDay + 1}–${daysInMonth})`;
-  }
-  if (elements.statAdvanceIncome) {
-    elements.statAdvanceIncome.textContent = `${summary.advanceIncome.toLocaleString("ru-RU")} ${curr}`;
-    elements.statAdvanceIncome.title = elements.statAdvanceIncome.textContent;
-  }
-  if (elements.statAdvanceMeta) {
-    elements.statAdvanceMeta.textContent = `${summary.advanceShiftsCount} см • ${summary.advanceHours} ч`;
-  }
-  if (elements.statSalaryIncome) {
-    elements.statSalaryIncome.textContent = `${summary.salaryIncome.toLocaleString("ru-RU")} ${curr}`;
-    elements.statSalaryIncome.title = elements.statSalaryIncome.textContent;
-  }
-  if (elements.statSalaryMeta) {
-    elements.statSalaryMeta.textContent = `${summary.salaryShiftsCount} см • ${summary.salaryHours} ч`;
-  }
-  if (elements.filterAdvanceBtn) {
-    elements.filterAdvanceBtn.textContent = `Аванс (1–${cutoffDay})`;
-  }
-  if (elements.filterSalaryBtn) {
-    elements.filterSalaryBtn.textContent = `Расчёт (${cutoffDay + 1}–${daysInMonth})`;
-  }
 
   // Бейдж средней оплаты
   if (elements.statShiftsBadge) {
@@ -1294,23 +1095,11 @@ function render() {
   }
 
   // Индикация на кнопке «Сегодня»
-  const today = new Date();
-  const isCurrentMonth =
-    currentDate.getFullYear() === today.getFullYear() &&
-    currentDate.getMonth() === today.getMonth();
   if (elements.todayBtn) {
     elements.todayBtn.classList.toggle("header__today-btn--active", !isCurrentMonth);
     elements.todayBtn.title = isCurrentMonth
       ? "Текущий месяц"
       : `Вернуться к ${MONTH_NAMES[today.getMonth()]} ${today.getFullYear()}`;
-  }
-
-  // Финансовая цель ("Копилка")
-  if (elements.goalTracker) {
-    elements.goalTracker.style.display = settings.monthlyGoalEnabled ? "" : "none";
-  }
-  if (settings.monthlyGoalEnabled) {
-    updateGoalTrackerUI(summary.totalIncome, summary.totalShifts);
   }
 
   currentMonthShiftsCache = summary.monthShifts;
@@ -1320,10 +1109,283 @@ function render() {
     monthShifts: summary.monthShifts,
     year,
     month,
-    filter: currentShiftsFilter,
+    filter: "all",
     settings,
     onShiftClick: openShiftModal,
   });
+}
+
+// ============================================================
+// Таймер текущей смены (Автономный секундомер)
+// ============================================================
+function setTimerPreset(type) {
+  currentTimerPresetType = type;
+  updateTimerPresetTabsUI();
+}
+
+function updateTimerPresetTabsUI() {
+  const tabs = [
+    { el: elements.timerTabDay, nameEl: elements.timerTabNameDay, type: "day" },
+    { el: elements.timerTabNight, nameEl: elements.timerTabNameNight, type: "night" },
+    { el: elements.timerTabExtra, nameEl: elements.timerTabNameExtra, type: "extra" },
+  ];
+
+  tabs.forEach(({ el, nameEl, type }) => {
+    if (el) {
+      const isActive = currentTimerPresetType === type;
+      el.classList.toggle("is-active", isActive);
+      el.setAttribute("aria-selected", String(isActive));
+    }
+    if (nameEl) {
+      const p = settings.presets?.[type] || DEFAULT_PRESETS[type];
+      const fallback = type === "day" ? "День" : type === "night" ? "Ночь" : "Подработка";
+      nameEl.textContent = p?.name || fallback;
+    }
+  });
+}
+
+function renderShiftTimerTick() {
+  if (!timerState) return;
+  const now = Date.now();
+  let elapsedMs = 0;
+  if (timerState.isPaused) {
+    elapsedMs = (timerState.pausedAt || now) - timerState.startedAt - (timerState.totalPausedMs || 0);
+  } else {
+    elapsedMs = now - timerState.startedAt - (timerState.totalPausedMs || 0);
+  }
+  if (elapsedMs < 0) elapsedMs = 0;
+
+  const totalSeconds = Math.floor(elapsedMs / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (elements.shiftTimerDigits) {
+    elements.shiftTimerDigits.textContent =
+      `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+
+  // Расчет примерного заработка на лету
+  const presetType = timerState.presetType || "day";
+  const p = settings.presets?.[presetType] || DEFAULT_PRESETS[presetType] || DEFAULT_PRESETS.day;
+  const rate = p.rate !== undefined && p.rate !== "" ? Number(p.rate) : Number(settings.defaultRate || 0);
+  const payMode = p.payMode || settings.payMode || "hourly";
+  const elapsedHours = elapsedMs / (1000 * 60 * 60);
+
+  let livePay = 0;
+  if (payMode === "hourly") {
+    livePay = Math.round(elapsedHours * rate);
+  } else {
+    const stdHours = calcHoursDiff(p.start || "09:00", p.end || "18:00", p.breakMins || 0);
+    livePay = stdHours > 0 ? Math.round((elapsedHours / stdHours) * rate) : rate;
+  }
+
+  if (elements.shiftTimerPay) {
+    elements.shiftTimerPay.textContent = `~ ${livePay.toLocaleString("ru-RU")} ${settings.currency || "₽"}`;
+  }
+}
+
+function updateShiftTimerUI() {
+  if (!elements.shiftTimerWidget) return;
+
+  if (!timerState || !timerState.isRunning) {
+    if (elements.shiftTimerIdle) elements.shiftTimerIdle.style.display = "";
+    if (elements.shiftTimerActive) elements.shiftTimerActive.style.display = "none";
+    updateTimerPresetTabsUI();
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+    return;
+  }
+
+  if (elements.shiftTimerIdle) elements.shiftTimerIdle.style.display = "none";
+  if (elements.shiftTimerActive) elements.shiftTimerActive.style.display = "";
+
+  const presetType = timerState.presetType || "day";
+  const p = settings.presets?.[presetType] || DEFAULT_PRESETS[presetType] || DEFAULT_PRESETS.day;
+
+  if (elements.shiftTimerActiveTypeBadge) {
+    elements.shiftTimerActiveTypeBadge.textContent = p.name || "День";
+    elements.shiftTimerActiveTypeBadge.className = `shift-timer__type-badge shift-timer__type-badge--${presetType}`;
+  }
+
+  if (timerState.isPaused) {
+    if (elements.shiftTimerPauseBtn) elements.shiftTimerPauseBtn.textContent = "Продолжить";
+    if (elements.shiftTimerStatusText) elements.shiftTimerStatusText.textContent = "На паузе";
+    if (elements.shiftTimerPulseDot) {
+      elements.shiftTimerPulseDot.classList.add("shift-timer__pulse-dot--paused", "is-paused");
+    }
+  } else {
+    if (elements.shiftTimerPauseBtn) elements.shiftTimerPauseBtn.textContent = "Пауза";
+    if (elements.shiftTimerStatusText) elements.shiftTimerStatusText.textContent = "Смена идёт";
+    if (elements.shiftTimerPulseDot) {
+      elements.shiftTimerPulseDot.classList.remove("shift-timer__pulse-dot--paused", "is-paused");
+    }
+  }
+
+  renderShiftTimerTick();
+
+  if (!timerInterval) {
+    timerInterval = setInterval(renderShiftTimerTick, 1000);
+  }
+}
+
+function initShiftTimer() {
+  timerState = loadShiftTimer();
+  updateTimerPresetTabsUI();
+  updateShiftTimerUI();
+}
+
+function startShiftTimer() {
+  timerState = {
+    isRunning: true,
+    isPaused: false,
+    startedAt: Date.now(),
+    pausedAt: null,
+    totalPausedMs: 0,
+    presetType: currentTimerPresetType,
+  };
+  saveShiftTimer(timerState);
+  updateShiftTimerUI();
+  triggerHaptic([20, 30]);
+}
+
+function togglePauseShiftTimer() {
+  if (!timerState) return;
+  const now = Date.now();
+  if (timerState.isPaused) {
+    if (timerState.pausedAt) {
+      timerState.totalPausedMs = (timerState.totalPausedMs || 0) + (now - timerState.pausedAt);
+    }
+    timerState.isPaused = false;
+    timerState.pausedAt = null;
+    triggerHaptic(15);
+  } else {
+    timerState.isPaused = true;
+    timerState.pausedAt = now;
+    triggerHaptic(10);
+  }
+  saveShiftTimer(timerState);
+  updateShiftTimerUI();
+}
+
+function finishShiftTimer() {
+  if (!timerState) return;
+  const startDate = new Date(timerState.startedAt);
+  const endDate = new Date(timerState.isPaused ? (timerState.pausedAt || Date.now()) : Date.now());
+
+  const startH = String(startDate.getHours()).padStart(2, "0");
+  const startM = String(startDate.getMinutes()).padStart(2, "0");
+  const endH = String(endDate.getHours()).padStart(2, "0");
+  const endM = String(endDate.getMinutes()).padStart(2, "0");
+
+  const dateKey = formatDateKey(startDate);
+  const presetType = timerState.presetType || "day";
+  const breakMins = Math.round((timerState.totalPausedMs || 0) / (1000 * 60));
+
+  clearShiftTimer();
+  timerState = null;
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+  updateShiftTimerUI();
+
+  // Открываем модалку смены с предзаполненными данными
+  openShiftModal(dateKey);
+
+  setSegmentedValue("shiftTypeSegmented", "shiftType", presetType);
+  elements.startTime.value = `${startH}:${startM}`;
+  elements.endTime.value = `${endH}:${endM}`;
+  elements.breakMins.value = breakMins;
+  recalcModal();
+
+  showToast("Смена завершена! Проверьте данные и нажмите Сохранить", "info", null, 4000);
+  triggerHaptic([20, 40, 20]);
+}
+
+async function cancelShiftTimer() {
+  if (!timerState) return;
+  const confirmed = await showConfirm({
+    title: "Сбросить таймер?",
+    message: "Текущее отработанное время будет сброшено без сохранения в календарь.",
+    confirmText: "Сбросить",
+    cancelText: "Отмена",
+    type: "danger",
+  });
+  if (!confirmed) return;
+
+  clearShiftTimer();
+  timerState = null;
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+  updateShiftTimerUI();
+  triggerHaptic(15);
+  showToast("Таймер сброшен", "info");
+}
+
+// ============================================================
+// Сверка с расчетным листком (Payslip Audit)
+// ============================================================
+let payslipAuditOpen = false;
+
+function togglePayslipAudit() {
+  payslipAuditOpen = !payslipAuditOpen;
+  if (elements.payslipAuditBody) {
+    elements.payslipAuditBody.style.display = payslipAuditOpen ? "block" : "none";
+  }
+  if (elements.payslipToggleArrow) {
+    elements.payslipToggleArrow.textContent = payslipAuditOpen ? "▴" : "▾";
+    elements.payslipToggleArrow.classList.toggle("payslip-audit__arrow--open", payslipAuditOpen);
+  }
+  if (elements.payslipToggleBtn) {
+    elements.payslipToggleBtn.setAttribute("aria-expanded", String(payslipAuditOpen));
+  }
+  if (payslipAuditOpen && elements.payslipActualInput) {
+    setTimeout(() => elements.payslipActualInput.focus(), 100);
+  }
+}
+
+function runPayslipAudit() {
+  if (!elements.payslipActualInput || !elements.payslipAuditResult) return;
+  const actualVal = parseFloat(elements.payslipActualInput.value);
+  if (isNaN(actualVal) || actualVal < 0) {
+    showToast("Введите корректную сумму из расчётного листка", "error");
+    elements.payslipActualInput.focus();
+    return;
+  }
+
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const summary = calcMonthSummary(shifts, year, month);
+  const expectedIncome = summary.totalIncome;
+
+  const result = verifyPayslip(actualVal, expectedIncome);
+  const curr = settings.currency || "₽";
+
+  elements.payslipAuditResult.style.display = "block";
+  elements.payslipAuditResult.className = `payslip-audit__result payslip-audit__result--${result.status}`;
+
+  if (result.status === "match") {
+    elements.payslipAuditResult.innerHTML = `
+      <div class="payslip-audit__badge payslip-audit__badge--match">✓ Сходится точь-в-точь</div>
+      <div class="payslip-audit__text">Расчёты приложения и расчётного листка полностью совпадают: <strong>${actualVal.toLocaleString("ru-RU")} ${curr}</strong>.</div>
+    `;
+  } else if (result.status === "underpaid") {
+    elements.payslipAuditResult.innerHTML = `
+      <div class="payslip-audit__badge payslip-audit__badge--underpaid">⚠ Недоплата: -${result.diff.toLocaleString("ru-RU")} ${curr}</div>
+      <div class="payslip-audit__text">По вашему графику начислено <strong>${expectedIncome.toLocaleString("ru-RU")} ${curr}</strong>, а в листке указано <strong>${actualVal.toLocaleString("ru-RU")} ${curr}</strong>. Проверьте количество учтённых часов или штрафы/удержания.</div>
+    `;
+  } else {
+    elements.payslipAuditResult.innerHTML = `
+      <div class="payslip-audit__badge payslip-audit__badge--overpaid">ℹ Переплата: +${Math.abs(result.diff).toLocaleString("ru-RU")} ${curr}</div>
+      <div class="payslip-audit__text">В листке начислено больше, чем по табелю (<strong>${actualVal.toLocaleString("ru-RU")} ${curr}</strong> против <strong>${expectedIncome.toLocaleString("ru-RU")} ${curr}</strong>). Возможно, начислены премии или отпускные.</div>
+    `;
+  }
+  triggerHaptic(15);
 }
 
 // ============================================================
@@ -1333,9 +1395,37 @@ function registerSW() {
   if (!("serviceWorker" in navigator)) return;
 
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js").then((reg) => {
-      reg.update();
-    });
+    navigator.serviceWorker
+      .register("./sw.js")
+      .then((reg) => {
+        reg.update();
+
+        reg.addEventListener("updatefound", () => {
+          const newWorker = reg.installing;
+          if (!newWorker) return;
+          newWorker.addEventListener("statechange", () => {
+            if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+              if (elements.updateBanner) {
+                elements.updateBanner.style.display = "block";
+              }
+            }
+          });
+        });
+      })
+      .catch((err) => {
+        console.warn("SW registration error:", err);
+      });
+
+    if (elements.updateReloadBtn) {
+      elements.updateReloadBtn.addEventListener("click", () => {
+        navigator.serviceWorker.getRegistration().then((reg) => {
+          if (reg && reg.waiting) {
+            reg.waiting.postMessage({ action: "skipWaiting" });
+          }
+        });
+        window.location.reload();
+      });
+    }
   });
 }
 
@@ -1343,6 +1433,16 @@ function registerSW() {
 // Привязка событий
 // ============================================================
 function bindEvents() {
+  // Глобальный тактильный отклик (Haptic Feedback) на нажатие интерактивных элементов
+  document.addEventListener("pointerdown", (e) => {
+    const target = e.target.closest(
+      "button, .btn, [role='button'], [role='tab'], .calendar__day, .segmented__btn, .stats__card"
+    );
+    if (target && !target.disabled) {
+      triggerHaptic(8);
+    }
+  }, { passive: true });
+
   // Навигация
   elements.prevMonthBtn.addEventListener("click", (e) => {
     changeMonth(-1);
@@ -1374,62 +1474,16 @@ function bindEvents() {
   elements.themeToggleBtn.addEventListener("click", toggleTheme);
   elements.settingsBtn.addEventListener("click", openSettings);
 
-  // Рекорды и общая аналитика
-  if (elements.statsOverviewBtn) {
-    elements.statsOverviewBtn.addEventListener("click", openAnalyticsModal);
-  }
-  if (elements.analyticsModalCloseBtn) {
-    elements.analyticsModalCloseBtn.addEventListener("click", () => closeModal("analyticsModal"));
-  }
-  if (elements.bestMonthCard) {
-    elements.bestMonthCard.addEventListener("click", () => {
-      if (bestMonthNavTarget) {
-        currentDate = new Date(bestMonthNavTarget.year, bestMonthNavTarget.month, 1);
-        closeModal("analyticsModal");
-        render();
-        triggerHaptic(12);
-        showToast(`Перешли к месяцу: ${MONTH_NAMES[bestMonthNavTarget.month]} ${bestMonthNavTarget.year}`, "info");
-      }
-    });
-    elements.bestMonthCard.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        elements.bestMonthCard.click();
-      }
-    });
-  }
-  if (elements.bestShiftCard) {
-    elements.bestShiftCard.addEventListener("click", () => {
-      if (bestShiftNavTarget) {
-        const [y, m] = bestShiftNavTarget.split("-").map(Number);
-        currentDate = new Date(y, m - 1, 1);
-        closeModal("analyticsModal");
-        render();
-        setTimeout(() => {
-          openShiftModal(bestShiftNavTarget);
-        }, 120);
-        triggerHaptic(12);
-      }
-    });
-    elements.bestShiftCard.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        elements.bestShiftCard.click();
-      }
-    });
-  }
-
   // Интерактивное сравнение с прошлым месяцем по тапу на карточки
   if (elements.statIncomeCard) {
     elements.statIncomeCard.addEventListener("click", () => {
-      triggerHaptic(10);
       if (lastMonthComparisonSummary) {
         const s = lastMonthComparisonSummary;
         const sign = s.diffIncome >= 0 ? "+" : "";
         const arrow = s.diffIncome >= 0 ? "↗" : "↘";
         const curr = settings.currency || "₽";
         const msg = `${s.prevMonthName}: ${s.prevIncome.toLocaleString("ru-RU")} ${curr} (${s.prevShiftsCount} см)\n${s.curMonthName}: ${s.currentIncome.toLocaleString("ru-RU")} ${curr} (${s.currentShifts} см)\n${arrow} Разница дохода: ${sign}${s.diffIncome.toLocaleString("ru-RU")} ${curr} (${sign}${s.pctIncome}%)`;
-        showToast(msg, s.diffIncome >= 0 ? "success" : "info", null, 5000);
+        showToast(msg, "info", null, 4500);
       } else {
         showToast("Нет данных за предыдущий месяц для сравнения", "info");
       }
@@ -1444,13 +1498,12 @@ function bindEvents() {
 
   if (elements.statShiftsCard) {
     elements.statShiftsCard.addEventListener("click", () => {
-      triggerHaptic(10);
       if (lastMonthComparisonSummary) {
         const s = lastMonthComparisonSummary;
         const sign = s.diffShifts >= 0 ? "+" : "";
         const arrow = s.diffShifts >= 0 ? "↗" : "↘";
         const msg = `${s.prevMonthName}: ${s.prevShiftsCount} см\n${s.curMonthName}: ${s.currentShifts} см\n${arrow} Разница смен: ${sign}${s.diffShifts} см`;
-        showToast(msg, s.diffShifts >= 0 ? "success" : "info", null, 4000);
+        showToast(msg, "info", null, 4000);
       } else {
         showToast("Нет данных за предыдущий месяц для сравнения", "info");
       }
@@ -1465,13 +1518,12 @@ function bindEvents() {
 
   if (elements.statHoursCard) {
     elements.statHoursCard.addEventListener("click", () => {
-      triggerHaptic(10);
       if (lastMonthComparisonSummary) {
         const s = lastMonthComparisonSummary;
         const sign = s.diffHours >= 0 ? "+" : "";
         const arrow = s.diffHours >= 0 ? "↗" : "↘";
         const msg = `${s.prevMonthName}: ${s.prevHours} ч\n${s.curMonthName}: ${s.currentHours} ч\n${arrow} Разница часов: ${sign}${s.diffHours} ч`;
-        showToast(msg, s.diffHours >= 0 ? "success" : "info", null, 4000);
+        showToast(msg, "info", null, 4000);
       } else {
         showToast("Нет данных за предыдущий месяц для сравнения", "info");
       }
@@ -1488,88 +1540,16 @@ function bindEvents() {
   elements.exportMonthBtn.addEventListener("click", () => handleExportCSV(false));
   elements.exportAllBtn.addEventListener("click", () => handleExportCSV(true));
 
-  // Цель на месяц
-  if (elements.goalTracker) {
-    elements.goalTracker.addEventListener("click", () => {
-      triggerHaptic(10);
-      openSettings();
-      setTimeout(() => {
-        if (elements.defMonthlyGoal) {
-          elements.defMonthlyGoal.focus();
-          elements.defMonthlyGoal.select();
-        }
-      }, 150);
-    });
-    elements.goalTracker.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        elements.goalTracker.click();
-      }
-    });
-  }
-
-  // Детализация смен и выплаты
-  if (elements.payoutAdvanceCard) {
-    elements.payoutAdvanceCard.addEventListener("click", () => {
-      currentShiftsFilter = "advance";
-      setSegmentedValue("shiftsFilterSegmented", "shiftsFilterInput", "advance");
-      renderShiftList({
-        listEl: elements.shiftList,
-        wrapperEl: elements.shiftListWrapper,
-        monthShifts: currentMonthShiftsCache,
-        year: currentDate.getFullYear(),
-        month: currentDate.getMonth(),
-        filter: currentShiftsFilter,
-        settings,
-        onShiftClick: openShiftModal,
-      });
-      openModal("shiftsModal");
-      triggerHaptic(12);
-    });
-    elements.payoutAdvanceCard.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        elements.payoutAdvanceCard.click();
-      }
-    });
-  }
-
-  if (elements.payoutSalaryCard) {
-    elements.payoutSalaryCard.addEventListener("click", () => {
-      currentShiftsFilter = "salary";
-      setSegmentedValue("shiftsFilterSegmented", "shiftsFilterInput", "salary");
-      renderShiftList({
-        listEl: elements.shiftList,
-        wrapperEl: elements.shiftListWrapper,
-        monthShifts: currentMonthShiftsCache,
-        year: currentDate.getFullYear(),
-        month: currentDate.getMonth(),
-        filter: currentShiftsFilter,
-        settings,
-        onShiftClick: openShiftModal,
-      });
-      openModal("shiftsModal");
-      triggerHaptic(12);
-    });
-    elements.payoutSalaryCard.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        elements.payoutSalaryCard.click();
-      }
-    });
-  }
-
+  // Детализация смен
   if (elements.openShiftsBtn) {
     elements.openShiftsBtn.addEventListener("click", () => {
-      currentShiftsFilter = "all";
-      setSegmentedValue("shiftsFilterSegmented", "shiftsFilterInput", "all");
       renderShiftList({
         listEl: elements.shiftList,
         wrapperEl: elements.shiftListWrapper,
         monthShifts: currentMonthShiftsCache,
         year: currentDate.getFullYear(),
         month: currentDate.getMonth(),
-        filter: currentShiftsFilter,
+        filter: "all",
         settings,
         onShiftClick: openShiftModal,
       });
@@ -1586,7 +1566,12 @@ function bindEvents() {
       render();
     } else if (e.key === SETTINGS_KEY) {
       settings = loadSettings();
+      updatePayModeLabels();
+      updatePresetTimesUI();
       render();
+    } else if (e.key === TIMER_STORAGE_KEY) {
+      timerState = loadShiftTimer();
+      updateShiftTimerUI();
     }
   });
   if (elements.shiftList) {
@@ -1685,10 +1670,62 @@ function bindEvents() {
     });
   }
 
+  // Таймер текущей смены
+  if (elements.shiftTimerStartBtn) {
+    elements.shiftTimerStartBtn.addEventListener("click", startShiftTimer);
+  }
+  if (elements.timerTabDay) {
+    elements.timerTabDay.addEventListener("click", () => setTimerPreset("day"));
+  }
+  if (elements.timerTabNight) {
+    elements.timerTabNight.addEventListener("click", () => setTimerPreset("night"));
+  }
+  if (elements.timerTabExtra) {
+    elements.timerTabExtra.addEventListener("click", () => setTimerPreset("extra"));
+  }
+  if (elements.shiftTimerPauseBtn) {
+    elements.shiftTimerPauseBtn.addEventListener("click", togglePauseShiftTimer);
+  }
+  if (elements.shiftTimerFinishBtn) {
+    elements.shiftTimerFinishBtn.addEventListener("click", finishShiftTimer);
+  }
+  if (elements.shiftTimerCancelBtn) {
+    elements.shiftTimerCancelBtn.addEventListener("click", cancelShiftTimer);
+  }
+
+  // Сверка с расчетным листком
+  if (elements.payslipToggleBtn) {
+    elements.payslipToggleBtn.addEventListener("click", togglePayslipAudit);
+  }
+  if (elements.payslipCalcBtn) {
+    elements.payslipCalcBtn.addEventListener("click", runPayslipAudit);
+  }
+  if (elements.payslipActualInput) {
+    elements.payslipActualInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        runPayslipAudit();
+      }
+    });
+  }
+
   // Бэкап
   elements.backupDownloadBtn.addEventListener("click", handleBackupDownload);
   elements.backupRestoreBtn.addEventListener("click", () => elements.importFile.click());
   elements.importFile.addEventListener("change", handleBackupRestore);
+
+  // Безопасное восстановление данных
+  if (elements.restoreConfirmBtn) {
+    elements.restoreConfirmBtn.addEventListener("click", confirmRestore);
+  }
+  if (elements.restoreCancelBtn) {
+    elements.restoreCancelBtn.addEventListener("click", cancelRestore);
+  }
+  if (elements.restoreBackupFirstBtn) {
+    elements.restoreBackupFirstBtn.addEventListener("click", () => {
+      handleBackupDownload();
+    });
+  }
 
   // Закрытие модалок по клику на фон оверлея
   [
@@ -1696,7 +1733,7 @@ function bindEvents() {
     elements.settingsModal,
     elements.shiftsModal,
     elements.scheduleModal,
-    elements.analyticsModal,
+    elements.restoreModal,
   ].filter(Boolean).forEach((overlay) => {
     overlay.addEventListener("click", (e) => {
       if (e.target === overlay) closeModal(overlay.id);
@@ -1709,7 +1746,7 @@ function bindEvents() {
       closeModal("settingsModal");
       closeModal("shiftsModal");
       closeModal("scheduleModal");
-      closeModal("analyticsModal");
+      closeModal("restoreModal");
     }
   });
 }
@@ -1719,6 +1756,8 @@ function bindEvents() {
 // ============================================================
 applyTheme(currentTheme);
 initSegmentedControls();
+initShiftTimer();
+requestPersistentStorage();
 bindEvents();
 initCalendarSwipe(document.querySelector(".calendar"), elements.calendarGrid, {
   onSwipeLeft: () => changeMonth(1),

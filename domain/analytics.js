@@ -125,9 +125,7 @@ export function calculateAllTimeAnalytics(shifts) {
   }
 
   // Подсчет максимального стрика
-  // Bolt Оптимизация: O(N) вместо O(N^2).
-  // Замена медленного .filter(val => arr.indexOf(val) === idx) на быстрый Set для получения уникальных значений.
-  const epochDays = Array.from(new Set(keys.map(dateKeyToEpochDays)));
+  const epochDays = keys.map(dateKeyToEpochDays).filter((val, idx, arr) => arr.indexOf(val) === idx);
   let maxStreak = 1;
   let currRun = 1;
 

@@ -92,6 +92,7 @@ let settings = loadSettings();
 let currentTheme = loadTheme();
 let currentMonthShiftsCache = [];
 let currentSettingsPreset = "day";
+let deferredPrompt = null; // Для установки PWA
 let tempPresets = {};
 let customCycle = ["day", "night", "off", "off"];
 let lastScheduleSnapshot = null;
@@ -234,6 +235,10 @@ const elements = {
   backupDownloadBtn: document.getElementById("backupDownloadBtn"),
   backupRestoreBtn: document.getElementById("backupRestoreBtn"),
   importFile: document.getElementById("importFile"),
+  installAppDivider: document.getElementById("installAppDivider"),
+  installAppTitle: document.getElementById("installAppTitle"),
+  installAppContainer: document.getElementById("installAppContainer"),
+  installPwaBtn: document.getElementById("installPwaBtn"),
 
   // Сверка с расчетным листком
   payslipAuditSection: document.getElementById("payslipAuditSection"),
@@ -1389,8 +1394,26 @@ function runPayslipAudit() {
 }
 
 // ============================================================
-// Service Worker
+// Service Worker & PWA Install
 // ============================================================
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+
+  if (elements.installAppDivider) elements.installAppDivider.style.display = 'block';
+  if (elements.installAppTitle) elements.installAppTitle.style.display = 'block';
+  if (elements.installAppContainer) elements.installAppContainer.style.display = 'flex';
+});
+
+window.addEventListener('appinstalled', () => {
+  deferredPrompt = null;
+
+  if (elements.installAppDivider) elements.installAppDivider.style.display = 'none';
+  if (elements.installAppTitle) elements.installAppTitle.style.display = 'none';
+  if (elements.installAppContainer) elements.installAppContainer.style.display = 'none';
+});
+
 function registerSW() {
   if (!("serviceWorker" in navigator)) return;
 
@@ -1713,6 +1736,18 @@ function bindEvents() {
   elements.backupDownloadBtn.addEventListener("click", handleBackupDownload);
   elements.backupRestoreBtn.addEventListener("click", () => elements.importFile.click());
   elements.importFile.addEventListener("change", handleBackupRestore);
+
+  // Установка PWA
+  if (elements.installPwaBtn) {
+    elements.installPwaBtn.addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        deferredPrompt = null;
+      }
+    });
+  }
 
   // Безопасное восстановление данных
   if (elements.restoreConfirmBtn) {

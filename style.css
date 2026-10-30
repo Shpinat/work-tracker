@@ -1,6 +1,6 @@
 :root {
     color-scheme: dark;
-    --bg: #000000;
+    --bg: transparent;
     --card: rgba(28, 28, 30, 0.7);
     --card-solid: #1c1c1e;
     --text: #ffffff;
@@ -20,7 +20,7 @@
 
 [data-theme="light"] {
     color-scheme: light;
-    --bg: #f7f4ec;
+    --bg: transparent;
     --card: rgba(255, 255, 255, 0.88);
     --card-solid: #fcfbf8;
     --text: #1f1d1a;

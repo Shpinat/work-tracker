@@ -1,4 +1,4 @@
-const CACHE_NAME = 'worktrack-v2.5';
+const CACHE_NAME = 'worktrack-v2.8';
 
 // Относительные пути (корректно работают в GitHub Pages подкаталогах)
 const ASSETS_TO_CACHE = [

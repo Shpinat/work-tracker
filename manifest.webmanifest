@@ -5,10 +5,10 @@
   "lang": "ru",
   "start_url": "./index.html",
   "scope": "./",
-  "display": "standalone",
+  "display": "fullscreen",
   "orientation": "portrait",
   "background_color": "#000000",
-  "theme_color": "#131535",
+  "theme_color": "#000000",
   "categories": ["productivity", "finance"],
   "icons": [
     {

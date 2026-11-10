@@ -1395,15 +1395,6 @@ function bindEvents() {
     updateShiftListScrollGradients(elements.shiftList, elements.shiftListWrapper);
   }, { passive: true });
 
-  const headerEl = document.querySelector(".header");
-  if (headerEl) {
-    const syncHeaderScroll = () => {
-      headerEl.classList.toggle("header--scrolled", window.scrollY > 8);
-    };
-    window.addEventListener("scroll", syncHeaderScroll, { passive: true });
-    syncHeaderScroll();
-  }
-
   // Форма смены
   elements.shiftForm.addEventListener("submit", saveShift);
   elements.shiftModalCloseBtn.addEventListener("click", () => closeModal("shiftModal"));

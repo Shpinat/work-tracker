@@ -4,7 +4,7 @@
  */
 
 import { formatDateKey } from "../domain/payroll.js";
-import { getShiftIconSvg } from "./icons.js";
+import { getShiftIconSvg, DEFAULT_TEMPLATE_STYLE } from "./icons.js";
 
 let isSwipingMonth = false;
 
@@ -18,6 +18,7 @@ export function createDayCell({
   isWeekend = false,
   isToday = false,
   shift = null,
+  settings = null,
   ariaLabel = "",
   onDayClick = null,
   onDayLongPress = null,
@@ -46,13 +47,21 @@ export function createDayCell({
       cell.classList.add("calendar__day-cell--extra");
     }
 
+    const presetColor =
+      settings?.presets?.[shift.type]?.color ||
+      DEFAULT_TEMPLATE_STYLE[shift.type]?.color ||
+      DEFAULT_TEMPLATE_STYLE.day.color;
+    if (presetColor) {
+      cell.style.setProperty("--shift-color", presetColor);
+    }
+
     const iconWrapper = document.createElement("div");
     iconWrapper.className = "calendar__day-icons";
 
     const iconSpan = document.createElement("span");
     iconSpan.className = "calendar__shift-icon";
     iconSpan.setAttribute("aria-hidden", "true");
-    iconSpan.innerHTML = getShiftIconSvg(shift.type);
+    iconSpan.innerHTML = getShiftIconSvg(shift.type, settings);
     iconWrapper.appendChild(iconSpan);
 
     const hasNote = Boolean(shift.note && shift.note.trim());
@@ -150,6 +159,7 @@ export function renderCalendarGrid(grid, {
   year,
   month,
   shifts,
+  settings = null,
   onDayClick,
   onDayLongPress,
 }) {
@@ -188,6 +198,7 @@ export function renderCalendarGrid(grid, {
         isWeekend,
         isToday: dateKey === todayKey,
         shift: shifts[dateKey] || null,
+        settings,
         ariaLabel: `Предыдущий месяц, ${prevDay}`,
         onDayClick,
         onDayLongPress,
@@ -209,6 +220,7 @@ export function renderCalendarGrid(grid, {
         isWeekend,
         isToday: dateKey === todayKey,
         shift: shifts[dateKey] || null,
+        settings,
         ariaLabel: "",
         onDayClick,
         onDayLongPress,
@@ -236,6 +248,7 @@ export function renderCalendarGrid(grid, {
         isWeekend,
         isToday: dateKey === todayKey,
         shift: shifts[dateKey] || null,
+        settings,
         ariaLabel: `Следующий месяц, ${d}`,
         onDayClick,
         onDayLongPress,

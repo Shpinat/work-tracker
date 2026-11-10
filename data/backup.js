@@ -199,16 +199,14 @@ export async function exportCSV({
       "Тип",
       "Начало",
       "Конец",
-      "Перерыв(мин)",
       "Часы",
-      "Бонус",
       "Итого",
       "Заметка",
     ],
   ];
 
   // Keep the CSV header aligned with the tags and note columns below.
-  rows[0].splice(8, 0, "Tags");
+  rows[0].splice(6, 0, "Tags");
 
   let count = 0;
   Object.keys(shifts)
@@ -236,9 +234,7 @@ export async function exportCSV({
           typeLabel,
           s.start || "",
           s.end || "",
-          s.breakMins ?? 0,
           s.hours ?? 0,
-          s.bonus ?? 0,
           s.totalPay ?? 0,
           `"${tagsStr.replace(/"/g, '""')}"`,
           `"${noteStr.replace(/"/g, '""')}"`,

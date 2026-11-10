@@ -123,8 +123,8 @@ export function calculateScheduleDates({
  * @returns {Object}
  */
 export function buildShiftFromPreset(type, settings) {
-  const preset = settings.presets?.[type] || { start: "09:00", end: "21:00", breakMins: 60 };
-  const hours = calcHoursDiff(preset.start, preset.end, preset.breakMins);
+  const preset = settings.presets?.[type] || { start: "09:00", end: "21:00" };
+  const hours = calcHoursDiff(preset.start, preset.end, 0);
   const payMode = preset.payMode || settings.payMode || "hourly";
   const rate = preset.rate !== undefined && preset.rate !== "" ? Number(preset.rate) : Number(settings.defaultRate || settings.rate || 0);
   const totalPay = calcShiftPay(hours, rate, payMode, 0);
@@ -133,7 +133,7 @@ export function buildShiftFromPreset(type, settings) {
     type,
     start: preset.start,
     end: preset.end,
-    breakMins: preset.breakMins,
+    breakMins: 0,
     hours,
     payMode,
     rate,

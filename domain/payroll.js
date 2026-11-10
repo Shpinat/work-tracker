@@ -328,3 +328,78 @@ export function verifyPayslip(actualPay, expectedIncome) {
     absDiff: Math.abs(diff),
   };
 }
+
+/**
+ * Расчет графика выплат:
+ * - Аванс: за смены с 1 по cutoffDay (по умолчанию 15) текущего месяца
+ * - ЗП (расчет): выплачивается salaryPayDay (по умолчанию 12) числа следующего месяца за вторую половину предыдущего месяца
+ * @param {Record<string, any>} shifts
+ * @param {number} year
+ * @param {number} month 0-indexed
+ * @param {{ cutoffDay?: number, advancePayDay?: number, salaryPayDay?: number }} [options={}]
+ * @param {Date} [referenceDate=new Date()]
+ * @returns {Object}
+ */
+export function calcPayoutSchedule(
+  shifts,
+  year,
+  month,
+  { cutoffDay = 15, advancePayDay = 27, salaryPayDay = 12 } = {},
+  referenceDate = new Date()
+) {
+  const safeCutoff = Math.min(28, Math.max(1, parseInt(cutoffDay, 10) || 15));
+  const safeAdvancePayDay = Math.min(31, Math.max(1, parseInt(advancePayDay, 10) || 27));
+  const safeSalaryPayDay = Math.min(31, Math.max(1, parseInt(salaryPayDay, 10) || 12));
+
+  const currentSummary = calcMonthSummary(shifts, year, month, safeCutoff, referenceDate);
+
+  const prevDate = new Date(year, month - 1, 1);
+  const prevYear = prevDate.getFullYear();
+  const prevMonth = prevDate.getMonth();
+  const prevDaysInMonth = new Date(prevYear, prevMonth + 1, 0).getDate();
+  const prevSummary = calcMonthSummary(shifts, prevYear, prevMonth, safeCutoff, referenceDate);
+
+  const nextDate = new Date(year, month + 1, 1);
+  const nextYear = nextDate.getFullYear();
+  const nextMonth = nextDate.getMonth();
+  const curDaysInMonth = new Date(year, month + 1, 0).getDate();
+
+  return {
+    cutoffDay: safeCutoff,
+    advancePayDay: safeAdvancePayDay,
+    salaryPayDay: safeSalaryPayDay,
+    // Начисления за выбранный месяц
+    advance: {
+      amount: currentSummary.advanceIncome,
+      hours: currentSummary.advanceHours,
+      shiftsCount: currentSummary.advanceShiftsCount,
+      fromDay: 1,
+      toDay: safeCutoff,
+      payDay: Math.min(safeAdvancePayDay, curDaysInMonth),
+      payMonth: month,
+      payYear: year,
+    },
+    nextMonthSalary: {
+      amount: currentSummary.salaryIncome,
+      hours: currentSummary.salaryHours,
+      shiftsCount: currentSummary.salaryShiftsCount,
+      fromDay: safeCutoff + 1,
+      toDay: curDaysInMonth,
+      payDay: safeSalaryPayDay,
+      payMonth: nextMonth,
+      payYear: nextYear,
+    },
+    // Поступления в выбранном месяце: 12-го за прошлый месяц + аванс текущего месяца
+    incomingPrevSalary: {
+      amount: prevSummary.salaryIncome,
+      hours: prevSummary.salaryHours,
+      shiftsCount: prevSummary.salaryShiftsCount,
+      fromDay: safeCutoff + 1,
+      toDay: prevDaysInMonth,
+      sourceMonth: prevMonth,
+      sourceYear: prevYear,
+      payDay: Math.min(safeSalaryPayDay, curDaysInMonth),
+    },
+    totalIncomingInMonth: Math.round(prevSummary.salaryIncome + currentSummary.advanceIncome),
+  };
+}

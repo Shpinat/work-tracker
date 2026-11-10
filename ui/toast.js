@@ -33,13 +33,13 @@ function initToastInteractions(toast) {
     const dx = currentX - startX;
     const dy = currentY - startY;
 
-    // Смахивание вниз (к краю экрана) или вбок
+    // Смахивание вверх (к краю экрана) или вбок
     const isMobile = window.innerWidth <= 600;
     const xBase = isMobile ? dx : `calc(-50% + ${dx}px)`;
-    const yVal = Math.max(-10, dy);
+    const yVal = Math.min(10, dy);
 
     toast.style.transform = `translate(${xBase}, ${yVal}px)`;
-    const maxDist = Math.max(Math.abs(dx), Math.max(0, dy));
+    const maxDist = Math.max(Math.abs(dx), Math.max(0, -dy));
     toast.style.opacity = String(Math.max(0, 1 - maxDist / 140));
   }, { passive: true });
 
@@ -51,11 +51,11 @@ function initToastInteractions(toast) {
 
     toast.style.transition = "transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease";
 
-    // Если смахнули вниз на 35px или вбок на 50px — закрываем
-    if (dy > 35 || Math.abs(dx) > 50) {
+    // Если смахнули вверх на 35px или вбок на 50px — закрываем
+    if (dy < -35 || Math.abs(dx) > 50) {
       const isMobile = window.innerWidth <= 600;
       const finalX = isMobile ? (dx > 0 ? "100%" : "-100%") : (dx > 0 ? "50%" : "-150%");
-      toast.style.transform = dy > 35 ? (isMobile ? "translate(0, 60px)" : "translate(-50%, 60px)") : `translate(${finalX}, 0)`;
+      toast.style.transform = dy < -35 ? (isMobile ? "translate(0, -60px)" : "translate(-50%, -60px)") : `translate(${finalX}, 0)`;
       toast.style.opacity = "0";
       triggerHaptic(10);
       if (toastTimer) clearTimeout(toastTimer);

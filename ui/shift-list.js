@@ -95,7 +95,7 @@ export function renderShiftList({
     article.setAttribute("tabindex", "0");
     article.innerHTML = `
       <div class="shift-list__left">
-        <div class="shift-list__date">${getShiftIconSvg(s.type)}<span>${escapeHtml(String(s.day))} ${MONTH_NAMES_GENITIVE[month]}</span></div>
+        <div class="shift-list__date">${getShiftIconSvg(s.type, settings)}<span>${escapeHtml(String(s.day))} ${MONTH_NAMES_GENITIVE[month]}</span></div>
         <div class="shift-list__meta">${escapeHtml(s.start)} – ${escapeHtml(s.end)}${typeBadge}${noteStr}</div>
       </div>
       <div class="shift-list__right">

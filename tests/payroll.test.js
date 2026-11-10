@@ -5,6 +5,7 @@ import {
   calcNightHours,
   calcShiftPay,
   calcMonthSummary,
+  calcPayoutSchedule,
   verifyPayslip
 } from "../domain/payroll.js";
 
@@ -87,5 +88,30 @@ assert.equal(v2.isOverpaid, true);
 const v3 = verifyPayslip(72500, 72500);
 assert.equal(v3.diff, 0);
 assert.equal(v3.isMatch, true);
+
+// 7. calcPayoutSchedule (advance 1..15 current month, salary 12th of next month for previous month)
+const payoutShifts = {
+  "2026-09-10": { hours: 10, totalPay: 3000 }, // Sep 1..15 -> Sep advance
+  "2026-09-20": { hours: 10, totalPay: 3500 }, // Sep 16..30 -> paid Oct 12
+  "2026-09-28": { hours: 10, totalPay: 4000 }, // Sep 16..30 -> paid Oct 12
+  "2026-10-05": { hours: 12, totalPay: 4200 }, // Oct 1..15 -> Oct advance
+  "2026-10-22": { hours: 8, totalPay: 2800 },  // Oct 16..31 -> paid Nov 12
+};
+const octPayout = calcPayoutSchedule(payoutShifts, 2026, 9, {
+  cutoffDay: 15,
+  advancePayDay: 27,
+  salaryPayDay: 12,
+});
+assert.equal(octPayout.incomingPrevSalary.amount, 7500);
+assert.equal(octPayout.incomingPrevSalary.shiftsCount, 2);
+assert.equal(octPayout.incomingPrevSalary.payDay, 12);
+assert.equal(octPayout.incomingPrevSalary.sourceMonth, 8); // September
+assert.equal(octPayout.advance.amount, 4200);
+assert.equal(octPayout.advance.shiftsCount, 1);
+assert.equal(octPayout.advance.payDay, 27);
+assert.equal(octPayout.nextMonthSalary.amount, 2800);
+assert.equal(octPayout.nextMonthSalary.payDay, 12);
+assert.equal(octPayout.nextMonthSalary.payMonth, 10); // November
+assert.equal(octPayout.totalIncomingInMonth, 11700);
 
 console.log("All domain/payroll.js tests PASSED successfully!");

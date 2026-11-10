@@ -179,8 +179,6 @@ export function initBottomSheetSwipe(modalIds = [
   "shiftModal",
   "settingsModal",
   "shiftsModal",
-  "scheduleModal",
-  "analyticsModal",
 ]) {
   modalIds.forEach((id) => {
     const overlay = document.getElementById(id);

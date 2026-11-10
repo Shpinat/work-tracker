@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { sanitizeSettings } from "../data/storage.js";
+import { exportCSV } from "../data/backup.js";
 
 console.log("Running data/backup and storage tests...");
 
@@ -101,5 +102,48 @@ assert.equal(parsedV1.stats.shiftsCount, 1);
 
 // Test corrupt/invalid payload
 assert.throws(() => simulateParse(JSON.stringify({ someUnknownApp: true })));
+
+// 4. CSV export must support stored tags and keep its header aligned.
+const originalDocument = Object.getOwnPropertyDescriptor(globalThis, "document");
+const originalNavigator = Object.getOwnPropertyDescriptor(globalThis, "navigator");
+const originalURL = Object.getOwnPropertyDescriptor(globalThis, "URL");
+let exportedBlob = null;
+Object.defineProperty(globalThis, "document", { configurable: true, writable: true, value: {
+  createElement: () => ({
+    click() {},
+    set href(_) {},
+    set download(_) {},
+  }),
+} });
+Object.defineProperty(globalThis, "navigator", { configurable: true, writable: true, value: { canShare: () => false } });
+Object.defineProperty(globalThis, "URL", { configurable: true, writable: true, value: {
+  createObjectURL: (blob) => {
+    exportedBlob = blob;
+    return "blob:test";
+  },
+  revokeObjectURL() {},
+} });
+
+const csvResult = await exportCSV({
+  shifts: {
+    "2026-10-01": {
+      type: "day", start: "09:00", end: "18:00", breakMins: 0,
+      hours: 9, bonus: 0, totalPay: 2700, tags: ["urgent", "weekend"], note: "Test",
+    },
+  },
+  settings: sanitized,
+  currentDate: new Date(2026, 9, 1),
+});
+assert.equal(csvResult.count, 1);
+const csvText = await exportedBlob.text();
+assert.match(csvText, /Итого;Tags;Заметка/);
+assert.match(csvText, /urgent; weekend/);
+
+if (originalDocument) Object.defineProperty(globalThis, "document", originalDocument);
+else delete globalThis.document;
+if (originalNavigator) Object.defineProperty(globalThis, "navigator", originalNavigator);
+else delete globalThis.navigator;
+if (originalURL) Object.defineProperty(globalThis, "URL", originalURL);
+else delete globalThis.URL;
 
 console.log("All data/backup and storage tests PASSED successfully!");

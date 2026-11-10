@@ -179,7 +179,6 @@ export function parseBackupFile(file) {
  * @param {boolean} [options.allTime=false]
  * @param {Date} options.currentDate
  * @param {string} options.monthName
- * @param {Record<string, any>} [options.shiftTags={}]
  * @returns {Promise<{ count: number, shared: boolean }>}
  */
 export async function exportCSV({
@@ -208,6 +207,9 @@ export async function exportCSV({
     ],
   ];
 
+  // Keep the CSV header aligned with the tags and note columns below.
+  rows[0].splice(8, 0, "Tags");
+
   let count = 0;
   Object.keys(shifts)
     .sort()
@@ -215,10 +217,8 @@ export async function exportCSV({
       if (allTime || key.startsWith(datePrefix)) {
         const s = shifts[key];
         count++;
-        let tagsStr =
-          s.tags && Array.isArray(s.tags) && s.tags.length > 0
-            ? s.tags.map((t) => shiftTags[t]?.label || t).join("; ")
-            : "";
+        // Tags are plain strings in the current schema; no tag catalog exists.
+        let tagsStr = Array.isArray(s.tags) ? s.tags.map(String).join("; ") : "";
 
         let noteStr = s.note || "";
 

@@ -95,7 +95,7 @@ let currentSettingsPreset = "day";
 let deferredPrompt = null; // Для установки PWA
 let tempPresets = {};
 let customCycle = ["day", "night", "off", "off"];
-let lastScheduleSnapshot = null;
+let lastScheduleUndo = null;
 let lastMonthComparisonSummary = null;
 let timerState = null;
 let timerInterval = null;
@@ -786,6 +786,7 @@ function updateCustomPatternBuilderUI() {
 function updateSchedulePreview() {
   const previewEl = elements.previewScheduleText;
   if (!previewEl) return;
+  const latestShifts = loadShifts();
 
   const planned = calculateScheduleDates({
     startDateStr: elements.scheduleStartDate.value,
@@ -793,7 +794,7 @@ function updateSchedulePreview() {
     customCycle,
     durationMonths: parseInt(elements.scheduleDuration.value, 10) || 1,
     skipExisting: elements.scheduleSkipExisting.checked,
-    shifts,
+    shifts: latestShifts,
   });
 
   if (planned.length === 0) {
@@ -826,8 +827,10 @@ function updateSchedulePreview() {
   previewEl.innerHTML = `Будет добавлено <strong>${planned.length} смен</strong> (${breakdown.join(", ")}) на <strong>${durationStr}</strong>.<br>Прогнозируемый доход: ~<strong>${estTotal.toLocaleString("ru-RU")} ${currencyStr}</strong>.`;
 }
 
-function applySchedule(e) {
+async function applySchedule(e) {
   e.preventDefault();
+  // Re-read before planning so a second tab cannot make this preview stale.
+  shifts = loadShifts();
   const planned = calculateScheduleDates({
     startDateStr: elements.scheduleStartDate.value,
     patternKey: elements.selectedPattern.value,
@@ -843,17 +846,32 @@ function applySchedule(e) {
   }
 
   // Снимок для функции "Отменить"
-  lastScheduleSnapshot = JSON.parse(JSON.stringify(shifts));
+  const overwriteCount = planned.filter((s) => s.willOverwrite).length;
+  if (overwriteCount > 0) {
+    const confirmed = await showConfirm({
+      title: "Заменить существующие смены?",
+      message: `Будет заменено смен: ${overwriteCount}. После применения можно отменить только эти изменения.`,
+      confirmText: "Заменить",
+      cancelText: "Отмена",
+      type: "danger",
+    });
+    if (!confirmed) return;
+  }
 
-  shifts = loadShifts();
+  const previous = {};
+  const applied = {};
   planned.forEach((s) => {
-    shifts[s.dateKey] = buildShiftFromPreset(s.type, settings);
+    previous[s.dateKey] = shifts[s.dateKey] ? structuredClone(shifts[s.dateKey]) : null;
+    const newShift = buildShiftFromPreset(s.type, settings);
+    shifts[s.dateKey] = newShift;
+    applied[s.dateKey] = structuredClone(newShift);
   });
 
   if (!saveShifts(shifts)) {
     showToast("Ошибка сохранения", "error");
     return;
   }
+  lastScheduleUndo = { previous, applied };
   closeModal("scheduleModal");
   render();
   triggerHaptic([30, 40, 50]);
@@ -861,8 +879,15 @@ function applySchedule(e) {
   showToast(`График заполнен (+${planned.length} смен)!`, "success", {
     label: "Отменить",
     onClick: () => {
-      if (lastScheduleSnapshot) {
-        shifts = lastScheduleSnapshot;
+      if (lastScheduleUndo) {
+        const latestShifts = loadShifts();
+        Object.entries(lastScheduleUndo.previous).forEach(([dateKey, oldShift]) => {
+          // Preserve a change saved after the schedule was generated.
+          if (JSON.stringify(latestShifts[dateKey]) !== JSON.stringify(lastScheduleUndo.applied[dateKey])) return;
+          if (oldShift) latestShifts[dateKey] = oldShift;
+          else delete latestShifts[dateKey];
+        });
+        shifts = latestShifts;
         if (!saveShifts(shifts)) {
           showToast("Ошибка сохранения", "error");
           return;
@@ -1173,7 +1198,7 @@ function renderShiftTimerTick() {
   // Расчет примерного заработка на лету
   const presetType = timerState.presetType || "day";
   const p = settings.presets?.[presetType] || DEFAULT_PRESETS[presetType] || DEFAULT_PRESETS.day;
-  const rate = p.rate !== undefined && p.rate !== "" ? Number(p.rate) : Number(settings.defaultRate || 0);
+  const rate = p.rate !== undefined && p.rate !== "" ? Number(p.rate) : Number(settings.defaultRate || settings.rate || 0);
   const payMode = p.payMode || settings.payMode || "hourly";
   const elapsedHours = elapsedMs / (1000 * 60 * 60);
 
@@ -1369,7 +1394,7 @@ function runPayslipAudit() {
   const expectedIncome = summary.totalIncome;
 
   const result = verifyPayslip(actualVal, expectedIncome);
-  const curr = settings.currency || "₽";
+  const curr = escapeHtml(settings.currency || "₽");
 
   elements.payslipAuditResult.style.display = "block";
   elements.payslipAuditResult.className = `payslip-audit__result payslip-audit__result--${result.status}`;

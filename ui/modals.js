@@ -1,3 +1,11 @@
+const modalOpeners = new Map();
+
+function getFocusableElement(modal) {
+  return modal?.querySelector(
+    'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+  );
+}
+
 /**
  * ui/modals.js
  * Управление модальными окнами, жестами смахивания шторок (bottom-sheet) и диалогом подтверждения.
@@ -11,6 +19,8 @@
 export function openModal(id, onOpen) {
   const modal = document.getElementById(id);
   if (modal) {
+    const opener = document.activeElement;
+    if (opener instanceof HTMLElement) modalOpeners.set(id, opener);
     const content = modal.querySelector(".modal-overlay__content");
     if (content) {
       content.style.transform = "";
@@ -31,6 +41,7 @@ export function openModal(id, onOpen) {
     if (typeof onOpen === "function") {
       requestAnimationFrame(onOpen);
     }
+    requestAnimationFrame(() => getFocusableElement(modal)?.focus());
   }
 }
 
@@ -61,6 +72,9 @@ export function closeModal(id) {
   if (!hasActiveModal) {
     document.body.classList.remove("modal-open");
   }
+  const opener = modalOpeners.get(id);
+  modalOpeners.delete(id);
+  if (opener?.isConnected) opener.focus();
 }
 
 /**

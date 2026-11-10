@@ -492,7 +492,7 @@ body.modal-open {
 
 /* Main Content Container */
 .main {
-    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
 }
 
 /* Stats (Block) */
@@ -2268,7 +2268,7 @@ body.modal-open {
    Автономный таймер смены (Shift Timer под календарем)
    ============================================================ */
 .shift-timer {
-    margin: 10px 0 16px 0;
+    margin: 12px 0 0 0;
     width: 100%;
     background: var(--card);
     backdrop-filter: blur(24px);
@@ -3022,7 +3022,7 @@ body::before {
 }
 .btn:active, .btn--icon:active { transform: scale(.97); }
 
-.main { padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px)); }
+.main { padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
 
 .stats { gap: 8px; margin-bottom: 14px; }
 
@@ -3049,6 +3049,7 @@ body::before {
 [data-theme="light"] .stats__card--income .stats__value { color: var(--primary-strong); }
 
 .calendar {
+    margin-bottom: 12px;
     padding: 16px 12px 12px;
     background: var(--surface);
     border-color: var(--border);

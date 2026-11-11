@@ -40,4 +40,43 @@ assert.equal(nightShift.hours, 8);
 // 8h * 300 = 2400 base pay
 assert.equal(nightShift.totalPay, 2400);
 
+// 4. End-of-month clamping: Jan 31 + 1 month must NOT overflow into March
+const jan31NonLeap = calculateScheduleDates({
+  startDateStr: "2026-01-31",
+  patternKey: "custom",
+  customCycle: ["day"],
+  durationMonths: 1,
+  skipExisting: false,
+});
+assert.equal(jan31NonLeap[0].dateKey, "2026-01-31");
+assert.equal(jan31NonLeap[jan31NonLeap.length - 1].dateKey, "2026-02-27");
+assert.equal(jan31NonLeap.length, 28);
+
+const jan31Leap = calculateScheduleDates({
+  startDateStr: "2024-01-31",
+  patternKey: "custom",
+  customCycle: ["day"],
+  durationMonths: 1,
+  skipExisting: false,
+});
+assert.equal(jan31Leap[jan31Leap.length - 1].dateKey, "2024-02-28");
+assert.equal(jan31Leap.length, 29);
+
+// 5. Invalid startDateStr & skipExisting
+assert.deepEqual(calculateScheduleDates({ startDateStr: "2026-02-31", patternKey: "1-3-day" }), []);
+const skipped = calculateScheduleDates({
+  startDateStr: "2026-11-01",
+  patternKey: "1-3-day",
+  durationMonths: 1,
+  skipExisting: true,
+  shifts: { "2026-11-01": { type: "day" } },
+});
+assert.equal(skipped.length, 7);
+assert.equal(skipped[0].dateKey, "2026-11-05");
+
+// 6. Negative rate protection in buildShiftFromPreset
+const negShift = buildShiftFromPreset("day", { rate: -100, payMode: "hourly" });
+assert.equal(negShift.rate, 0);
+assert.equal(negShift.totalPay, 0);
+
 console.log("All domain/schedule.js tests PASSED successfully!");

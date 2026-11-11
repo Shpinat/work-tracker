@@ -6,6 +6,7 @@ import {
   calcShiftPay,
   calcMonthSummary,
   calcPayoutSchedule,
+  recalcMonthShifts,
   verifyPayslip
 } from "../domain/payroll.js";
 
@@ -24,6 +25,10 @@ assert.equal(calcHoursDiff("09:00", "20:00", 60), 10);
 assert.equal(calcHoursDiff("21:00", "09:00", 60), 11); // overnight shift
 assert.equal(calcHoursDiff("22:00", "06:00", 0), 8); // overnight shift
 assert.equal(calcHoursDiff("10:00", "10:30", 45), 0); // break > shift duration
+assert.equal(calcHoursDiff("09:00", "09:00", 0), 0);
+assert.equal(calcHoursDiff("invalid", "18:00", 0), 0);
+assert.equal(calcHoursDiff("09:00", "25:00", 0), 0);
+assert.equal(calcHoursDiff("09:00", "17:00", -60), 8); // negative break clamped to 0
 
 // 3. calcNightHours
 // Window 22:00 - 06:00 (default)
@@ -50,6 +55,8 @@ assert.equal(calcNightHours("05:00", "12:00", 0), 1);
 assert.equal(calcShiftPay(10, 300, "hourly", 500, 0), 3500);
 assert.equal(calcShiftPay(10, 300, "hourly", 500, 200), 3700);
 assert.equal(calcShiftPay(10, 3000, "fixed", 500, 0), 3500);
+assert.equal(calcShiftPay(10, -300, "hourly", 0, 0), 0);
+assert.equal(calcShiftPay(-5, 300, "hourly", 100, 0), 100);
 
 // 5. calcMonthSummary with Fact vs Projected
 const shifts = {
@@ -113,5 +120,72 @@ assert.equal(octPayout.nextMonthSalary.amount, 2800);
 assert.equal(octPayout.nextMonthSalary.payDay, 12);
 assert.equal(octPayout.nextMonthSalary.payMonth, 10); // November
 assert.equal(octPayout.totalIncomingInMonth, 11700);
+
+// 8. calcPayoutSchedule boundary cases: Dec->Jan, Jan->Dec, leap/non-leap Feb, payDay=31, cutoffDay=28
+const boundaryShifts = {
+  "2025-12-20": { hours: 10, totalPay: 3000 },
+  "2026-01-10": { hours: 8, totalPay: 2400 },
+  "2026-01-25": { hours: 10, totalPay: 3000 },
+  "2026-02-14": { hours: 8, totalPay: 2400 },
+  "2026-02-28": { hours: 8, totalPay: 2500 },
+};
+
+// Jan 2026: incomingPrevSalary from Dec 2025, nextMonthSalary in Feb 2026 (28 days -> payDay 31 clamped to 28)
+const jan2026 = calcPayoutSchedule(boundaryShifts, 2026, 0, {
+  cutoffDay: 15,
+  advancePayDay: 31,
+  salaryPayDay: 31,
+});
+assert.equal(jan2026.incomingPrevSalary.sourceYear, 2025);
+assert.equal(jan2026.incomingPrevSalary.sourceMonth, 11);
+assert.equal(jan2026.incomingPrevSalary.amount, 3000);
+assert.equal(jan2026.advance.payDay, 31);
+assert.equal(jan2026.nextMonthSalary.payMonth, 1); // Feb
+assert.equal(jan2026.nextMonthSalary.payDay, 28); // clamped to 28
+
+// Leap Jan 2024 -> Feb 2024 (29 days -> payDay 31 clamped to 29)
+const jan2024 = calcPayoutSchedule({}, 2024, 0, {
+  cutoffDay: 15,
+  advancePayDay: 31,
+  salaryPayDay: 31,
+});
+assert.equal(jan2024.nextMonthSalary.payDay, 29);
+
+// Dec 2026 -> Jan 2027 rollover
+const dec2026 = calcPayoutSchedule({ "2026-12-20": { hours: 10, totalPay: 4000 } }, 2026, 11, {
+  cutoffDay: 15,
+  advancePayDay: 27,
+  salaryPayDay: 12,
+});
+assert.equal(dec2026.nextMonthSalary.payYear, 2027);
+assert.equal(dec2026.nextMonthSalary.payMonth, 0);
+assert.equal(dec2026.nextMonthSalary.amount, 4000);
+
+// cutoffDay=28 in non-leap Feb 2026 (28 days): no inverted 29-28 range
+const febCutoff28 = calcPayoutSchedule(boundaryShifts, 2026, 1, {
+  cutoffDay: 28,
+  advancePayDay: 31,
+  salaryPayDay: 31,
+});
+assert.equal(febCutoff28.advance.toDay, 28);
+assert.equal(febCutoff28.advance.payDay, 28);
+assert.equal(febCutoff28.nextMonthSalary.hasRange, false);
+assert.equal(febCutoff28.nextMonthSalary.fromDay, null);
+assert.equal(febCutoff28.nextMonthSalary.toDay, null);
+
+// 9. recalcMonthShifts preserves bonus and nightBonus, clamps negative rates
+const recalcInput = {
+  "2026-10-01": { hours: 10, rate: 200, payMode: "hourly", bonus: 500, nightBonus: 300, totalPay: 2800 },
+  "2026-10-02": { hours: 8, rate: 200, payMode: "fixed", bonus: 0, totalPay: 200 },
+  "2026-09-30": { hours: 10, rate: 200, payMode: "hourly", bonus: 0, totalPay: 2000 },
+};
+const recalcRes = recalcMonthShifts(recalcInput, 2026, 9, 400, "hourly");
+assert.equal(recalcRes.count, 2);
+assert.equal(recalcRes.updatedShifts["2026-10-01"].totalPay, 4800); // 10*400 + 500 + 300
+assert.equal(recalcRes.updatedShifts["2026-10-02"].totalPay, 3200); // 8*400
+assert.equal(recalcRes.updatedShifts["2026-09-30"].totalPay, 2000); // untouched other month
+const recalcNeg = recalcMonthShifts(recalcInput, 2026, 9, -50, "hourly");
+assert.equal(recalcNeg.updatedShifts["2026-10-02"].rate, 0);
+assert.equal(recalcNeg.updatedShifts["2026-10-02"].totalPay, 0);
 
 console.log("All domain/payroll.js tests PASSED successfully!");

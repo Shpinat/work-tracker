@@ -3,6 +3,8 @@
  * Векторные SVG-иконки, названия месяцев, палитра цветов и иконки шаблонов смен.
  */
 
+export const HEX_COLOR_RE = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
+
 export const MONTH_NAMES = [
   "Январь",
   "Февраль",
@@ -85,17 +87,24 @@ export const DEFAULT_TEMPLATE_STYLE = {
   extra: { icon: "flame", color: "#ff9f0a" },
 };
 
+/**
+ * Рендерит SVG-иконку шаблона без inline stroke-переопределения.
+ * Валидный hex-цвет пробрасывается как CSS custom property --shift-color,
+ * чтобы CSS мог корректно адаптировать контраст в светлой и тёмной темах.
+ * @param {string} iconKey
+ * @param {string} [className="shift-svg-icon"]
+ * @param {string} [color=""]
+ * @returns {string}
+ */
 export function renderIconSvgByKey(iconKey, className = "shift-svg-icon", color = "") {
   const def = TEMPLATE_ICONS[iconKey] || TEMPLATE_ICONS.sun;
-  const styleAttr = color ? ` style="stroke: ${color}"` : "";
-  return `<svg class="${className}"${styleAttr} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${def.body}</svg>`;
+  const safeClass = String(className || "shift-svg-icon").replace(/[^a-zA-Z0-9_\-\s]/g, "");
+  const trimmedColor = typeof color === "string" ? color.trim() : "";
+  const styleAttr = HEX_COLOR_RE.test(trimmedColor)
+    ? ` style="--shift-color: ${trimmedColor}"`
+    : "";
+  return `<svg class="${safeClass}"${styleAttr} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${def.body}</svg>`;
 }
-
-export const SHIFT_ICONS = {
-  day: renderIconSvgByKey("sun", "shift-svg-icon shift-svg-icon--day"),
-  night: renderIconSvgByKey("moon", "shift-svg-icon shift-svg-icon--night"),
-  extra: renderIconSvgByKey("flame", "shift-svg-icon shift-svg-icon--extra"),
-};
 
 /**
  * Возвращает SVG-иконку смены с учетом пользовательских настроек шаблона
@@ -108,16 +117,6 @@ export function getShiftIconSvg(type, settings = null) {
   const preset = settings?.presets?.[safeType];
   const fallback = DEFAULT_TEMPLATE_STYLE[safeType];
   const iconKey = preset?.icon && TEMPLATE_ICONS[preset.icon] ? preset.icon : fallback.icon;
-  const color = preset?.color || "";
+  const color = preset?.color || fallback.color;
   return renderIconSvgByKey(iconKey, `shift-svg-icon shift-svg-icon--${safeType}`, color);
 }
-
-export const STREAK_ICONS = {
-  today: renderIconSvgByKey("flame", ""),
-  yesterday: renderIconSvgByKey("bolt", ""),
-  rest: renderIconSvgByKey("coffee", ""),
-  empty: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>',
-  fire: renderIconSvgByKey("flame", ""),
-  flash: renderIconSvgByKey("bolt", ""),
-  coffee: renderIconSvgByKey("coffee", ""),
-};

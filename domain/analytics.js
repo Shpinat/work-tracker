@@ -19,10 +19,11 @@ export function dateKeyToEpochDays(key) {
 /**
  * Подсчет всеобщей аналитики, рекордов, стриков и структуры смен
  * @param {Record<string, any>} shifts
+ * @param {Date} [referenceDate=new Date()]
  * @returns {Object}
  */
-export function calculateAllTimeAnalytics(shifts) {
-  const keys = Object.keys(shifts).sort();
+export function calculateAllTimeAnalytics(shifts, referenceDate = new Date()) {
+  const keys = Object.keys(shifts || {}).sort();
 
   if (keys.length === 0) {
     return {
@@ -63,7 +64,7 @@ export function calculateAllTimeAnalytics(shifts) {
 
   keys.forEach((key) => {
     const s = shifts[key];
-    const pay = Number(s.totalPay) || 0;
+    const pay = Number(s.totalPay !== undefined ? s.totalPay : s.pay) || 0;
     const hours = Number(s.hours) || 0;
 
     totalIncome += pay;
@@ -124,10 +125,15 @@ export function calculateAllTimeAnalytics(shifts) {
     longestShift = { key: longestShiftKey, year: ly, month: lm - 1, day: ld, hours: longestShiftHours };
   }
 
-  // Подсчет максимального стрика
-  const epochDays = keys.map(dateKeyToEpochDays).filter((val, idx, arr) => arr.indexOf(val) === idx);
-  let maxStreak = 1;
-  let currRun = 1;
+  // Подсчет максимального и текущего стрика (исключая будущие запланированные смены)
+  const todayKey = formatDateKey(referenceDate);
+  const pastOrTodayKeys = keys.filter((k) => k <= todayKey);
+  const epochDays = pastOrTodayKeys
+    .map(dateKeyToEpochDays)
+    .filter((val, idx, arr) => arr.indexOf(val) === idx);
+
+  let maxStreak = epochDays.length > 0 ? 1 : 0;
+  let currRun = epochDays.length > 0 ? 1 : 0;
 
   for (let i = 1; i < epochDays.length; i++) {
     if (epochDays[i] === epochDays[i - 1] + 1) {
@@ -139,15 +145,18 @@ export function calculateAllTimeAnalytics(shifts) {
   }
 
   // Подсчет текущего стрика
-  const today = new Date();
-  const todayEpoch = Math.round(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()) / 86400000);
+  const todayEpoch = Math.round(
+    Date.UTC(referenceDate.getFullYear(), referenceDate.getMonth(), referenceDate.getDate()) / 86400000
+  );
   const epochSet = new Set(epochDays);
 
   let activeStreak = 0;
   let checkEpoch = todayEpoch;
   let currentStreak = { status: "none", days: 0 };
 
-  if (epochSet.has(todayEpoch)) {
+  if (epochDays.length === 0) {
+    currentStreak = { status: "none", days: 0 };
+  } else if (epochSet.has(todayEpoch)) {
     while (epochSet.has(checkEpoch)) {
       activeStreak++;
       checkEpoch--;
@@ -219,7 +228,7 @@ export function calcMomTrends(year, month, shifts, currentShifts, currentHours, 
     if (s) {
       prevShiftsCount++;
       prevHours += Number(s.hours) || 0;
-      prevIncome += Number(s.totalPay) || 0;
+      prevIncome += Number(s.totalPay !== undefined ? s.totalPay : s.pay) || 0;
     }
   }
 

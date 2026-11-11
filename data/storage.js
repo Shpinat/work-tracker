@@ -8,11 +8,13 @@ import { TEMPLATE_ICONS, DEFAULT_TEMPLATE_STYLE } from "../ui/icons.js";
 export const STORAGE_KEY = "my_work_shifts_v1";
 export const SETTINGS_KEY = "my_work_settings_v1";
 export const THEME_KEY = "my_work_theme_v1";
-export const TIMER_STORAGE_KEY = "my_work_timer_v1";
+export const PAID_PAYOUTS_KEY = "worktrack_paid_payouts_v1";
 export const APP_VERSION = "2.0";
 export const SCHEMA_VERSION = 2;
 
 const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
+const TIME_HHMM_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+const PAYOUT_KEY_RE = /^\d{4}-(0[1-9]|1[0-2]):(advance|salary)$/;
 
 export const DEFAULT_PRESETS = {
   day: {
@@ -55,6 +57,26 @@ export const DEFAULT_SETTINGS = {
   presets: DEFAULT_PRESETS,
 };
 
+function isPlainObject(val) {
+  return val !== null && typeof val === "object" && !Array.isArray(val);
+}
+
+function sanitizeTimeHHMM(val, fallback) {
+  if (typeof val === "string" && TIME_HHMM_RE.test(val.trim())) {
+    return val.trim();
+  }
+  return fallback;
+}
+
+function sanitizeNonNegativeNumber(val, fallback) {
+  if (val === "" || val === null || val === undefined || typeof val === "boolean") {
+    return fallback;
+  }
+  const n = Number(val);
+  if (!Number.isFinite(n) || n < 0) return fallback;
+  return n;
+}
+
 function sanitizePreset(rawPreset, fallbackPreset, legacyStart, legacyEnd) {
   const icon = rawPreset?.icon && TEMPLATE_ICONS[rawPreset.icon] ? rawPreset.icon : fallbackPreset.icon;
   const color = typeof rawPreset?.color === "string" && HEX_COLOR_RE.test(rawPreset.color.trim())
@@ -65,8 +87,8 @@ function sanitizePreset(rawPreset, fallbackPreset, legacyStart, legacyEnd) {
     name: typeof rawPreset?.name === "string" && rawPreset.name.trim()
       ? rawPreset.name.trim()
       : fallbackPreset.name,
-    start: rawPreset?.start || legacyStart || fallbackPreset.start,
-    end: rawPreset?.end || legacyEnd || fallbackPreset.end,
+    start: sanitizeTimeHHMM(rawPreset?.start, sanitizeTimeHHMM(legacyStart, fallbackPreset.start)),
+    end: sanitizeTimeHHMM(rawPreset?.end, sanitizeTimeHHMM(legacyEnd, fallbackPreset.end)),
     breakMins: 0,
     icon,
     color,
@@ -85,11 +107,11 @@ function clampInt(val, min, max, fallback) {
  * @returns {Object}
  */
 export function sanitizeSettings(raw) {
-  if (!raw || typeof raw !== "object") {
+  if (!isPlainObject(raw)) {
     return JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
   }
 
-  const presets = raw.presets && typeof raw.presets === "object"
+  const presets = isPlainObject(raw.presets)
     ? {
         day: sanitizePreset(raw.presets.day, DEFAULT_PRESETS.day, raw.start, raw.end),
         night: sanitizePreset(raw.presets.night, DEFAULT_PRESETS.night),
@@ -106,7 +128,7 @@ export function sanitizeSettings(raw) {
     end: presets.day.end,
     breakMins: 0,
     payMode: ["hourly", "fixed"].includes(raw.payMode) ? raw.payMode : DEFAULT_SETTINGS.payMode,
-    rate: typeof raw.rate === "number" ? Math.max(0, raw.rate) : DEFAULT_SETTINGS.rate,
+    rate: sanitizeNonNegativeNumber(raw.rate, DEFAULT_SETTINGS.rate),
     currency: typeof raw.currency === "string" && raw.currency.trim() ? raw.currency.trim() : DEFAULT_SETTINGS.currency,
     payoutMode: ["on", "off"].includes(raw.payoutMode) ? raw.payoutMode : DEFAULT_SETTINGS.payoutMode,
     advanceCutoffDay: clampInt(raw.advanceCutoffDay, 1, 28, DEFAULT_SETTINGS.advanceCutoffDay),
@@ -123,7 +145,9 @@ export function sanitizeSettings(raw) {
 export function loadShifts() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : {};
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return isPlainObject(parsed) ? parsed : {};
   } catch (err) {
     console.error("Ошибка чтения смен из localStorage:", err);
     return {};
@@ -181,7 +205,8 @@ export function saveSettings(settings) {
  */
 export function loadTheme() {
   try {
-    return localStorage.getItem(THEME_KEY) || "dark";
+    const val = localStorage.getItem(THEME_KEY);
+    return val === "light" ? "light" : "dark";
   } catch (_) {
     return "dark";
   }
@@ -198,39 +223,58 @@ export function saveTheme(theme) {
 }
 
 /**
- * Чтение сохраненного состояния таймера смены
- * @returns {Object|null}
+ * Валидация карты отмеченных выплат ("YYYY-MM:advance" | "YYYY-MM:salary")
+ * @param {unknown} raw
+ * @returns {Record<string, { paid: boolean, actualAmount?: number, paidAt?: string }>}
  */
-export function loadShiftTimer() {
+export function sanitizePaidPayouts(raw) {
+  if (!isPlainObject(raw)) return {};
+  const clean = {};
+  for (const [key, entry] of Object.entries(raw)) {
+    if (!PAYOUT_KEY_RE.test(key) || !isPlainObject(entry)) continue;
+    const item = { paid: Boolean(entry.paid) };
+    if (entry.actualAmount !== undefined && entry.actualAmount !== null && entry.actualAmount !== "") {
+      const amt = Number(entry.actualAmount);
+      if (Number.isFinite(amt) && amt >= 0) {
+        item.actualAmount = amt;
+      }
+    }
+    if (typeof entry.paidAt === "string" && entry.paidAt.trim()) {
+      item.paidAt = entry.paidAt.trim();
+    }
+    clean[key] = item;
+  }
+  return clean;
+}
+
+/**
+ * Чтение статусов выплат из localStorage
+ * @returns {Record<string, { paid: boolean, actualAmount?: number, paidAt?: string }>}
+ */
+export function loadPaidPayouts() {
   try {
-    const raw = localStorage.getItem(TIMER_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch (_) {
-    return null;
+    const raw = localStorage.getItem(PAID_PAYOUTS_KEY);
+    if (!raw) return {};
+    return sanitizePaidPayouts(JSON.parse(raw));
+  } catch (err) {
+    console.error("Ошибка чтения статусов выплат из localStorage:", err);
+    return {};
   }
 }
 
 /**
- * Сохранение состояния таймера смены
- * @param {Object} timerState
+ * Сохранение статусов выплат в localStorage
+ * @param {Record<string, any>} map
+ * @returns {boolean} Успешно ли сохранено
  */
-export function saveShiftTimer(timerState) {
+export function savePaidPayouts(map) {
   try {
-    if (!timerState) {
-      localStorage.removeItem(TIMER_STORAGE_KEY);
-    } else {
-      localStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(timerState));
-    }
-  } catch (_) {}
-}
-
-/**
- * Очистка сохраненного таймера
- */
-export function clearShiftTimer() {
-  try {
-    localStorage.removeItem(TIMER_STORAGE_KEY);
-  } catch (_) {}
+    localStorage.setItem(PAID_PAYOUTS_KEY, JSON.stringify(sanitizePaidPayouts(map)));
+    return true;
+  } catch (err) {
+    console.error("Ошибка сохранения статусов выплат в localStorage:", err);
+    return false;
+  }
 }
 
 /**

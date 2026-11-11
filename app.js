@@ -11,14 +11,16 @@ import {
   STORAGE_KEY,
   SETTINGS_KEY,
   THEME_KEY,
+  PAID_PAYOUTS_KEY,
   DEFAULT_PRESETS,
-  DEFAULT_SETTINGS,
   loadShifts,
   saveShifts,
   loadSettings,
   saveSettings,
   loadTheme,
   saveTheme,
+  loadPaidPayouts,
+  savePaidPayouts,
   requestPersistentStorage,
 } from "./data/storage.js";
 
@@ -26,6 +28,7 @@ import {
   downloadBackup,
   parseBackupFile,
   exportCSV,
+  exportICS,
 } from "./data/backup.js";
 
 import {
@@ -38,9 +41,7 @@ import {
   verifyPayslip,
 } from "./domain/payroll.js";
 
-import {
-  buildShiftFromPreset,
-} from "./domain/schedule.js";
+import { buildShiftFromPreset } from "./domain/schedule.js";
 
 import {
   MONTH_NAMES,
@@ -49,7 +50,6 @@ import {
   TEMPLATE_ICONS,
   DEFAULT_TEMPLATE_STYLE,
   renderIconSvgByKey,
-  getShiftIconSvg,
 } from "./ui/icons.js";
 
 import {
@@ -68,6 +68,8 @@ import {
 
 import {
   renderShiftList,
+  renderShiftsPayoutSummary,
+  formatPayoutKey,
   updateShiftListScrollGradients,
 } from "./ui/shift-list.js";
 
@@ -84,12 +86,17 @@ let currentDate = new Date();
 let shifts = loadShifts();
 let settings = loadSettings();
 let currentTheme = loadTheme();
+let paidPayouts = loadPaidPayouts();
 let currentMonthShiftsCache = [];
 let currentSettingsPreset = "day";
-let deferredPrompt = null; // Для установки PWA
+let deferredPrompt = null;
 let tempPresets = {};
 let lastPayoutSchedule = null;
 let currentTimerPresetType = "day";
+let isStampMode = false;
+let hasUnsavedShiftEdits = false;
+let payslipAuditOpen = false;
+let pendingRestoreData = null;
 
 // ============================================================
 // Кэширование DOM-элементов
@@ -102,12 +109,13 @@ const elements = {
   themeToggleBtn: document.getElementById("themeToggleBtn"),
   themeIcon: document.getElementById("themeIcon"),
   settingsBtn: document.getElementById("settingsBtn"),
-  metaThemeColor: document.querySelector('meta[name="theme-color"]'),
+  metaThemeColors: document.querySelectorAll('meta[name="theme-color"]'),
 
-  // Быстрое добавление смены под календарем
+  // Быстрое добавление смены и штамп под календарем
   shiftTimerWidget: document.getElementById("shiftTimerWidget"),
   shiftTimerIdle: document.getElementById("shiftTimerIdle"),
   quickAddShiftBtn: document.getElementById("quickAddShiftBtn"),
+  stampModeToggleBtn: document.getElementById("stampModeToggleBtn"),
   shiftTimerPresetTabs: document.getElementById("shiftTimerPresetTabs"),
   timerTabDay: document.getElementById("timerTabDay"),
   timerTabNight: document.getElementById("timerTabNight"),
@@ -125,11 +133,13 @@ const elements = {
   payoutSalaryTitle: document.getElementById("payoutSalaryTitle"),
   payoutSalaryPeriod: document.getElementById("payoutSalaryPeriod"),
   payoutSalaryValue: document.getElementById("payoutSalaryValue"),
+  payoutSalaryStatus: document.getElementById("payoutSalaryStatus"),
   payoutSalaryMeta: document.getElementById("payoutSalaryMeta"),
   payoutAdvanceCard: document.getElementById("payoutAdvanceCard"),
   payoutAdvanceTitle: document.getElementById("payoutAdvanceTitle"),
   payoutAdvancePeriod: document.getElementById("payoutAdvancePeriod"),
   payoutAdvanceValue: document.getElementById("payoutAdvanceValue"),
+  payoutAdvanceStatus: document.getElementById("payoutAdvanceStatus"),
   payoutAdvanceMeta: document.getElementById("payoutAdvanceMeta"),
   shiftsPayoutSummary: document.getElementById("shiftsPayoutSummary"),
 
@@ -148,12 +158,14 @@ const elements = {
   shiftsModalTitle: document.getElementById("shiftsModalTitle"),
   shiftsModalMonth: document.getElementById("shiftsModalMonth"),
   shiftsModalCloseBtn: document.getElementById("shiftsModalCloseBtn"),
+  shiftsFilter: document.getElementById("shiftsFilter"),
   shiftList: document.getElementById("shiftList"),
   shiftListWrapper: document.getElementById("shiftListWrapper"),
 
   // Экспорт
   exportMonthBtn: document.getElementById("exportMonthBtn"),
   exportAllBtn: document.getElementById("exportAllBtn"),
+  exportIcsBtn: document.getElementById("exportIcsBtn"),
 
   // Модальное окно смены
   shiftModal: document.getElementById("shiftModal"),
@@ -161,6 +173,7 @@ const elements = {
   shiftModalCloseBtn: document.getElementById("shiftModalCloseBtn"),
   shiftForm: document.getElementById("shiftForm"),
   shiftDate: document.getElementById("shiftDate"),
+  shiftDateWarning: document.getElementById("shiftDateWarning"),
   shiftType: document.getElementById("shiftType"),
   shiftTypeSegmented: document.getElementById("shiftTypeSegmented"),
   presetIconDay: document.getElementById("presetIconDay"),
@@ -217,7 +230,7 @@ const elements = {
   defSalaryPayDay: document.getElementById("defSalaryPayDay"),
   payoutRuleHint: document.getElementById("payoutRuleHint"),
 
-  // Бэкап
+  // Бэкап и установка PWA
   backupDownloadBtn: document.getElementById("backupDownloadBtn"),
   backupRestoreBtn: document.getElementById("backupRestoreBtn"),
   importFile: document.getElementById("importFile"),
@@ -259,6 +272,38 @@ const elements = {
   updateBanner: document.getElementById("updateBanner"),
   updateReloadBtn: document.getElementById("updateReloadBtn"),
 };
+
+// ============================================================
+// Вспомогательные утилиты
+// ============================================================
+function clampNonNegativeRate(rawVal) {
+  const n = parseFloat(rawVal);
+  return Number.isFinite(n) && n >= 0 ? n : 0;
+}
+
+function showShiftDateWarning(message) {
+  if (!elements.shiftDateWarning) return;
+  elements.shiftDateWarning.textContent = message;
+  elements.shiftDateWarning.style.display = "block";
+}
+
+function hideShiftDateWarning() {
+  if (!elements.shiftDateWarning) return;
+  elements.shiftDateWarning.textContent = "";
+  elements.shiftDateWarning.style.display = "none";
+}
+
+function pulseCalendarCell(dateKey) {
+  if (!dateKey) return;
+  requestAnimationFrame(() => {
+    const cell = document.querySelector(`.calendar__day-cell[data-date-key="${dateKey}"]`);
+    if (!cell) return;
+    cell.classList.remove("calendar__day-cell--pulse");
+    requestAnimationFrame(() => {
+      cell.classList.add("calendar__day-cell--pulse");
+    });
+  });
+}
 
 // ============================================================
 // Сегментированные переключатели (Pill Switchers)
@@ -345,6 +390,7 @@ function initSegmentedControls() {
       containerId: "shiftTypeSegmented",
       inputId: "shiftType",
       onChange: (val) => {
+        hasUnsavedShiftEdits = true;
         applyPresetToModal(val);
         triggerHaptic(12);
       },
@@ -352,7 +398,10 @@ function initSegmentedControls() {
     {
       containerId: "payModeSegmented",
       inputId: "payMode",
-      onChange: () => recalcModal(),
+      onChange: () => {
+        hasUnsavedShiftEdits = true;
+        recalcModal();
+      },
     },
     {
       containerId: "settingsPresetSegmented",
@@ -381,16 +430,7 @@ function initSegmentedControls() {
       containerId: "shiftsFilterSegmented",
       inputId: "shiftsFilter",
       onChange: (filterVal) => {
-        renderShiftList({
-          listEl: elements.shiftList,
-          wrapperEl: elements.shiftListWrapper,
-          monthShifts: currentMonthShiftsCache,
-          year: currentDate.getFullYear(),
-          month: currentDate.getMonth(),
-          filter: filterVal || "all",
-          settings,
-          onShiftClick: openShiftModal,
-        });
+        refreshShiftsModalContent(filterVal || "all");
         triggerHaptic(10);
       },
     },
@@ -415,6 +455,32 @@ function initSegmentedControls() {
   updatePresetTimesUI();
 }
 
+function initArrowKeyNavigation() {
+  document.addEventListener("keydown", (e) => {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
+    const active = document.activeElement;
+    if (!(active instanceof HTMLElement)) return;
+    const group = active.closest('[role="tablist"], [role="radiogroup"]');
+    if (!group) return;
+
+    const items = Array.from(group.querySelectorAll('button:not([disabled]), [role="tab"]:not([disabled]), [role="radio"]:not([disabled])'));
+    if (items.length <= 1) return;
+    const idx = items.indexOf(active);
+    if (idx === -1) return;
+
+    e.preventDefault();
+    let nextIdx = idx;
+    if (e.key === "ArrowRight") nextIdx = (idx + 1) % items.length;
+    else if (e.key === "ArrowLeft") nextIdx = (idx - 1 + items.length) % items.length;
+    else if (e.key === "Home") nextIdx = 0;
+    else if (e.key === "End") nextIdx = items.length - 1;
+
+    const target = items[nextIdx];
+    target.focus();
+    target.click();
+  });
+}
+
 // ============================================================
 // Навигация по месяцам
 // ============================================================
@@ -433,12 +499,7 @@ function goToToday() {
     currentDate.getMonth() === today.getMonth();
 
   if (isCurrent) {
-    const todayCell = document.querySelector(".calendar__day-cell--today");
-    if (todayCell) {
-      todayCell.classList.remove("calendar__day-cell--pulse");
-      void todayCell.offsetWidth;
-      todayCell.classList.add("calendar__day-cell--pulse");
-    }
+    pulseCalendarCell(formatDateKey(today));
     return;
   }
 
@@ -455,21 +516,18 @@ function goToToday() {
   });
 
   setTimeout(() => {
-    const todayCell = document.querySelector(".calendar__day-cell--today");
-    if (todayCell) {
-      todayCell.classList.add("calendar__day-cell--pulse");
-    }
+    pulseCalendarCell(formatDateKey(today));
   }, 220);
 }
 
 // ============================================================
-// Пересчёт модалки смены
+// Пересчёт и работа модалки смены
 // ============================================================
 function recalcModal() {
   const start = elements.startTime.value;
   const end = elements.endTime.value;
   const payMode = elements.payMode.value;
-  const rate = parseFloat(elements.rate.value) || 0;
+  const rate = clampNonNegativeRate(elements.rate.value);
   const curr = settings.currency || "₽";
 
   elements.rateLabel.textContent =
@@ -519,12 +577,18 @@ function syncShiftModalForDate(dateKey, forcedType = null) {
   }
 }
 
-function openShiftModal(dateKey, forcedType = null) {
+function openShiftModal(dateKey, forcedType = null, warningMsg = "") {
   closeModal("shiftsModal");
   updatePayModeLabels();
   updatePresetTimesUI();
   elements.shiftDate.value = dateKey;
+  hasUnsavedShiftEdits = false;
   syncShiftModalForDate(dateKey, forcedType);
+  if (warningMsg) {
+    showShiftDateWarning(warningMsg);
+  } else {
+    hideShiftDateWarning();
+  }
   openModal("shiftModal");
 }
 
@@ -533,12 +597,11 @@ function saveShift(e) {
   const dateKey = elements.shiftDate.value;
   if (!dateKey) return;
 
-  // Перезагрузка перед слиянием, чтобы не стереть изменения из другой вкладки
   shifts = loadShifts();
 
   const hours = calcHoursDiff(elements.startTime.value, elements.endTime.value, 0);
   const payMode = elements.payMode.value;
-  const rate = parseFloat(elements.rate.value) || 0;
+  const rate = clampNonNegativeRate(elements.rate.value);
   const totalPay = calcShiftPay(hours, rate, payMode, 0);
   shifts[dateKey] = {
     type: elements.shiftType.value,
@@ -557,6 +620,8 @@ function saveShift(e) {
     showToast("Ошибка сохранения", "error");
     return;
   }
+  hasUnsavedShiftEdits = false;
+  hideShiftDateWarning();
   closeModal("shiftModal");
   render();
   triggerHaptic(15);
@@ -574,7 +639,6 @@ async function deleteShift() {
   if (!confirmed) return;
   const dateKey = elements.shiftDate.value;
 
-  // Перезагрузка перед удалением
   shifts = loadShifts();
 
   delete shifts[dateKey];
@@ -582,6 +646,8 @@ async function deleteShift() {
     showToast("Ошибка сохранения", "error");
     return;
   }
+  hasUnsavedShiftEdits = false;
+  hideShiftDateWarning();
   closeModal("shiftModal");
   render();
   triggerHaptic(20);
@@ -592,26 +658,101 @@ function quickAddDefaultShift(dateKey) {
   shifts = loadShifts();
   if (shifts[dateKey]) return;
 
-  shifts[dateKey] = buildShiftFromPreset("day", settings);
+  const type = currentTimerPresetType || "day";
+  const safeRate = clampNonNegativeRate(settings.rate);
+  shifts[dateKey] = buildShiftFromPreset(type, { ...settings, rate: safeRate });
   if (!saveShifts(shifts)) {
     showToast("Ошибка сохранения", "error");
     return;
   }
   triggerHaptic([30, 40, 30]);
   render();
+  pulseCalendarCell(dateKey);
 
-  setTimeout(() => {
-    const updatedCell = document.querySelector(`.calendar__day-cell[data-date-key="${dateKey}"]`);
-    if (updatedCell) {
-      updatedCell.classList.add("calendar__day-cell--pulse");
-    }
-  }, 40);
-
-  const [y, m, d] = dateKey.split("-");
-  const monthName = MONTH_NAMES_GENITIVE[parseInt(m, 10) - 1];
-  const preset = settings.presets?.day || DEFAULT_PRESETS.day;
+  const [, m, d] = dateKey.split("-");
+  const monthName = MONTH_NAMES_GENITIVE[parseInt(m, 10) - 1] || "";
+  const preset = settings.presets?.[type] || DEFAULT_PRESETS[type] || DEFAULT_PRESETS.day;
   const shiftTitle = preset.name || "Смена";
   showToast(`${shiftTitle} добавлена: ${parseInt(d, 10)} ${monthName} (${preset.start}–${preset.end})`, "success");
+}
+
+// ============================================================
+// Режим штампа (быстрое проставление/удаление смен в 1 тап)
+// ============================================================
+function setStampMode(active) {
+  isStampMode = Boolean(active);
+  if (elements.stampModeToggleBtn) {
+    elements.stampModeToggleBtn.classList.toggle("is-active", isStampMode);
+    elements.stampModeToggleBtn.setAttribute("aria-pressed", String(isStampMode));
+  }
+  if (elements.calendarGrid) {
+    elements.calendarGrid.classList.toggle("calendar--stamp-active", isStampMode);
+  }
+}
+
+function handleStampDay(dateKey) {
+  if (!dateKey) return;
+  shifts = loadShifts();
+  const existing = shifts[dateKey];
+  const type = currentTimerPresetType || "day";
+  const preset = settings.presets?.[type] || DEFAULT_PRESETS[type] || DEFAULT_PRESETS.day;
+  const presetName = preset.name || "Смена";
+  const [, m, d] = dateKey.split("-");
+  const dayNum = parseInt(d, 10);
+  const monthGen = MONTH_NAMES_GENITIVE[parseInt(m, 10) - 1] || "";
+
+  if (existing && existing.type === type) {
+    const removedShift = { ...existing };
+    delete shifts[dateKey];
+    if (!saveShifts(shifts)) {
+      showToast("Ошибка сохранения", "error");
+      return;
+    }
+    render();
+    triggerHaptic(15);
+    showToast(`Смена удалена (${dayNum} ${monthGen})`, "info", {
+      label: "Отменить",
+      onClick: () => {
+        shifts = loadShifts();
+        shifts[dateKey] = removedShift;
+        if (saveShifts(shifts)) {
+          render();
+          pulseCalendarCell(dateKey);
+          triggerHaptic(12);
+          showToast("Смена восстановлена", "success");
+        }
+      },
+    });
+    return;
+  }
+
+  const prevShift = existing ? { ...existing } : null;
+  const safeRate = clampNonNegativeRate(settings.rate);
+  shifts[dateKey] = buildShiftFromPreset(type, { ...settings, rate: safeRate });
+  if (!saveShifts(shifts)) {
+    showToast("Ошибка сохранения", "error");
+    return;
+  }
+  render();
+  pulseCalendarCell(dateKey);
+  triggerHaptic([20, 30, 20]);
+
+  if (prevShift) {
+    showToast(`${presetName}: ${dayNum} ${monthGen}`, "success", {
+      label: "Отменить",
+      onClick: () => {
+        shifts = loadShifts();
+        shifts[dateKey] = prevShift;
+        if (saveShifts(shifts)) {
+          render();
+          pulseCalendarCell(dateKey);
+          triggerHaptic(12);
+        }
+      },
+    });
+  } else {
+    showToast(`${presetName} добавлена: ${dayNum} ${monthGen}`, "success");
+  }
 }
 
 // ============================================================
@@ -799,7 +940,7 @@ function saveSettingsFromModal(e) {
   settings.end = tempPresets.day.end;
   settings.breakMins = 0;
   settings.payMode = elements.defPayMode.value;
-  settings.rate = parseFloat(elements.defRate.value) || 0;
+  settings.rate = clampNonNegativeRate(elements.defRate.value);
   settings.currency = elements.defCurrency.value.trim() || "₽";
   settings.payoutMode = elements.defPayoutMode?.value || "on";
   settings.advanceCutoffDay = Math.min(28, Math.max(1, parseInt(elements.defCutoffDay?.value, 10) || 15));
@@ -821,12 +962,12 @@ function saveSettingsFromModal(e) {
 async function recalcCurrentMonthRates() {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
-  const newRate = parseFloat(elements.defRate.value) >= 0 ? parseFloat(elements.defRate.value) : (settings.rate || 0);
+  const newRate = clampNonNegativeRate(elements.defRate.value);
   const newPayMode = elements.defPayMode ? elements.defPayMode.value : (settings.payMode || "hourly");
   const curr = (elements.defCurrency && elements.defCurrency.value.trim()) || settings.currency || "₽";
 
-  const monthPrefix = `${year}-${String(month + 1).padStart(2, "0")}-`;
-  const count = Object.keys(shifts).filter((k) => k.startsWith(monthPrefix)).length;
+  const monthSummary = calcMonthSummary(shifts, year, month, settings.advanceCutoffDay || 15);
+  const count = monthSummary.totalShifts;
 
   if (count === 0) {
     showToast("В этом месяце нет смен для пересчета", "info");
@@ -846,7 +987,7 @@ async function recalcCurrentMonthRates() {
 
   if (!confirmed) return;
 
-  shifts = loadShifts(); // Load latest state
+  shifts = loadShifts();
   const { count: updatedCount, updatedShifts } = recalcMonthShifts(shifts, year, month, newRate, newPayMode);
   shifts = updatedShifts;
 
@@ -868,16 +1009,12 @@ async function recalcCurrentMonthRates() {
 // ============================================================
 // Бэкап и Экспорт
 // ============================================================
-let pendingRestoreData = null;
-
 async function handleBackupDownload() {
   try {
-    const res = await downloadBackup(shifts, settings);
+    const res = await downloadBackup(shifts, settings, paidPayouts);
     if (res.shared) {
       showToast("Резервная копия отправлена", "success");
-    } else if (res.aborted) {
-      // Пользователь закрыл системное меню
-    } else {
+    } else if (!res.aborted) {
       showToast("Резервная копия скачана", "success");
     }
     triggerHaptic(15);
@@ -926,17 +1063,44 @@ async function handleBackupRestore(event) {
 
 function confirmRestore() {
   if (!pendingRestoreData) return;
-  shifts = pendingRestoreData.shifts;
-  settings = pendingRestoreData.settings;
-  const shiftsSaved = saveShifts(shifts);
-  const settingsSaved = saveSettings(settings);
-  if (!shiftsSaved || !settingsSaved) {
-    showToast("Ошибка сохранения при восстановлении", "error");
+
+  const prevShifts = loadShifts();
+  const prevSettings = loadSettings();
+  const prevPaidPayouts = loadPaidPayouts();
+
+  const nextShifts = pendingRestoreData.shifts;
+  const nextSettings = pendingRestoreData.settings;
+  const nextPaidPayouts = pendingRestoreData.paidPayouts && typeof pendingRestoreData.paidPayouts === "object"
+    ? pendingRestoreData.paidPayouts
+    : {};
+
+  // Атомарная запись в localStorage до обновления глобального состояния
+  if (!saveShifts(nextShifts)) {
+    showToast("Ошибка сохранения смен при восстановлении", "error");
     return;
   }
+
+  if (!saveSettings(nextSettings)) {
+    saveShifts(prevShifts);
+    showToast("Ошибка сохранения настроек при восстановлении", "error");
+    return;
+  }
+
+  if (!savePaidPayouts(nextPaidPayouts)) {
+    saveShifts(prevShifts);
+    saveSettings(prevSettings);
+    savePaidPayouts(prevPaidPayouts);
+    showToast("Ошибка сохранения статусов выплат при восстановлении", "error");
+    return;
+  }
+
+  shifts = nextShifts;
+  settings = nextSettings;
+  paidPayouts = nextPaidPayouts;
+  pendingRestoreData = null;
+
   closeModal("restoreModal");
   closeModal("settingsModal");
-  pendingRestoreData = null;
   updatePayModeLabels();
   updatePresetTimesUI();
   render();
@@ -971,17 +1135,34 @@ async function handleExportCSV(allTime = false) {
   }
 }
 
+function handleExportICS() {
+  const res = exportICS({
+    shifts,
+    settings,
+    year: currentDate.getFullYear(),
+    month: currentDate.getMonth(),
+  });
+
+  if (res.count === 0) {
+    showToast("В этом месяце нет смен для экспорта", "info");
+    return;
+  }
+
+  triggerHaptic(15);
+  showToast(`Календарь .ics скачан (${res.count} см)`, "success");
+}
+
 // ============================================================
 // Тема
 // ============================================================
 function applyTheme(theme) {
   document.documentElement.setAttribute("data-theme", theme);
+  const themeColor = theme === "light" ? "#f5f5f7" : "#101115";
 
-  if (elements.metaThemeColor) {
-    elements.metaThemeColor.setAttribute(
-      "content",
-      theme === "light" ? "#f7f4ec" : "#131535",
-    );
+  if (elements.metaThemeColors && elements.metaThemeColors.length > 0) {
+    elements.metaThemeColors.forEach((meta) => {
+      meta.setAttribute("content", themeColor);
+    });
   }
 
   if (elements.themeIcon) {
@@ -999,12 +1180,79 @@ function toggleTheme() {
 }
 
 // ============================================================
+// Детализация смен и статусы выплат
+// ============================================================
+function handleTogglePaid(payoutKey) {
+  if (!payoutKey) return;
+  paidPayouts = loadPaidPayouts();
+  const isCurrentlyPaid = Boolean(paidPayouts[payoutKey]?.paid);
+
+  if (isCurrentlyPaid) {
+    delete paidPayouts[payoutKey];
+  } else {
+    paidPayouts[payoutKey] = {
+      paid: true,
+      paidAt: new Date().toISOString(),
+    };
+  }
+
+  if (!savePaidPayouts(paidPayouts)) {
+    showToast("Ошибка сохранения статуса выплаты", "error");
+    return;
+  }
+
+  triggerHaptic(12);
+  render();
+  showToast(isCurrentlyPaid ? "Статус сброшен: Ожидается" : "Отмечено: Выплачено", "success");
+}
+
+function refreshShiftsModalContent(filterOverride = null) {
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const activeFilter = filterOverride || elements.shiftsFilter?.value || "all";
+
+  if ((settings.payoutMode || "on") === "on" && lastPayoutSchedule && elements.shiftsPayoutSummary) {
+    renderShiftsPayoutSummary({
+      summaryEl: elements.shiftsPayoutSummary,
+      payout: lastPayoutSchedule,
+      year,
+      month,
+      currency: settings.currency || "₽",
+      paidPayouts,
+      onTogglePaid: handleTogglePaid,
+    });
+  } else if (elements.shiftsPayoutSummary) {
+    elements.shiftsPayoutSummary.style.display = "none";
+  }
+
+  renderShiftList({
+    listEl: elements.shiftList,
+    wrapperEl: elements.shiftListWrapper,
+    monthShifts: currentMonthShiftsCache,
+    year,
+    month,
+    filter: activeFilter,
+    settings,
+    onShiftClick: openShiftModal,
+  });
+}
+
+function openShiftsModal(filter = "all", targetYear = null, targetMonth = null) {
+  if (Number.isInteger(targetYear) && Number.isInteger(targetMonth)) {
+    if (currentDate.getFullYear() !== targetYear || currentDate.getMonth() !== targetMonth) {
+      currentDate = new Date(targetYear, targetMonth, 1);
+      render();
+    }
+  }
+  setSegmentedValue("shiftsFilterSegmented", "shiftsFilter", filter);
+  refreshShiftsModalContent(filter);
+  openModal("shiftsModal");
+}
+
+// ============================================================
 // Рендер и UI-виджеты
 // ============================================================
 function render() {
-  if (window.scrollX !== 0) {
-    window.scrollTo(0, window.scrollY);
-  }
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
   const today = new Date();
@@ -1015,9 +1263,11 @@ function render() {
   elements.monthTitle.classList.toggle("month-selector__title--current", isCurrentMonth);
   elements.monthTitle.title = isCurrentMonth ? "Текущий месяц" : "Перейти к текущему месяцу";
 
-  // Подсчет сводки по сменам месяца и выплатам
+  // Один проход сводки по месяцу и выплатам
   const cutoffDay = settings.advanceCutoffDay || 15;
   const summary = calcMonthSummary(shifts, year, month, cutoffDay);
+  currentMonthShiftsCache = summary.monthShifts;
+
   renderPayoutSchedule(year, month);
 
   // Отрисовка календаря
@@ -1028,6 +1278,7 @@ function render() {
     settings,
     onDayClick: openShiftModal,
     onDayLongPress: quickAddDefaultShift,
+    onDayStamp: isStampMode ? handleStampDay : null,
   });
 
   // Основная статистика
@@ -1036,7 +1287,7 @@ function render() {
   elements.statIncome.textContent = `${summary.totalIncome.toLocaleString("ru-RU")} ${settings.currency}`;
   elements.statIncome.title = elements.statIncome.textContent;
 
-  // Бейдж средней оплаты
+  // Бейдж средней оплаты в шапке модалки детализации
   if (elements.statShiftsBadge) {
     if (summary.totalShifts > 0) {
       const avgPay = Math.round(summary.totalIncome / summary.totalShifts);
@@ -1051,25 +1302,27 @@ function render() {
     elements.shiftsModalMonth.textContent = `${MONTH_NAMES[month]} ${year}`;
   }
 
-
-
-  currentMonthShiftsCache = summary.monthShifts;
-  const activeFilter = document.getElementById("shiftsFilter")?.value || "all";
-  renderShiftList({
-    listEl: elements.shiftList,
-    wrapperEl: elements.shiftListWrapper,
-    monthShifts: summary.monthShifts,
-    year,
-    month,
-    filter: activeFilter,
-    settings,
-    onShiftClick: openShiftModal,
-  });
+  // Ленивое обновление списка смен только при открытом модальном окне
+  if (elements.shiftsModal?.classList.contains("active")) {
+    refreshShiftsModalContent();
+  }
 }
 
 // ============================================================
 // График выплат (Аванс 1–15 / ЗП 12-го за прошлый месяц)
 // ============================================================
+function updatePayoutStatusBadge(el, isPaid, shouldShow) {
+  if (!el) return;
+  if (!shouldShow) {
+    el.style.display = "none";
+    el.classList.remove("payout-strip__status--paid");
+    return;
+  }
+  el.style.display = "";
+  el.textContent = isPaid ? "Выплачено" : "Ожидается";
+  el.classList.toggle("payout-strip__status--paid", isPaid);
+}
+
 function renderPayoutSchedule(year, month) {
   const isEnabled = (settings.payoutMode || "on") === "on";
   const curr = settings.currency || "₽";
@@ -1092,6 +1345,15 @@ function renderPayoutSchedule(year, month) {
   const prevMonthGen = MONTH_NAMES_GENITIVE[payout.incomingPrevSalary.sourceMonth];
   const nextMonthGen = MONTH_NAMES_GENITIVE[payout.nextMonthSalary.payMonth];
 
+  const prevSalKey = formatPayoutKey(
+    payout.incomingPrevSalary.sourceYear,
+    payout.incomingPrevSalary.sourceMonth,
+    "salary",
+  );
+  const curAdvKey = formatPayoutKey(year, month, "advance");
+  const isPrevSalPaid = Boolean(paidPayouts?.[prevSalKey]?.paid);
+  const isCurAdvPaid = Boolean(paidPayouts?.[curAdvKey]?.paid);
+
   if (elements.payoutStrip) {
     elements.payoutStrip.style.display = "";
   }
@@ -1105,10 +1367,19 @@ function renderPayoutSchedule(year, month) {
     elements.payoutSalaryValue.textContent = `${payout.incomingPrevSalary.amount.toLocaleString("ru-RU")} ${curr}`;
   }
   if (elements.payoutSalaryMeta) {
-    elements.payoutSalaryMeta.textContent = payout.incomingPrevSalary.shiftsCount > 0
-      ? `${payout.incomingPrevSalary.fromDay}–${payout.incomingPrevSalary.toDay} ${prevMonthGen} • ${payout.incomingPrevSalary.shiftsCount} см (${payout.incomingPrevSalary.hours} ч)`
-      : `Нет смен за ${payout.incomingPrevSalary.fromDay}–${payout.incomingPrevSalary.toDay} ${prevMonthGen}`;
+    if (!payout.incomingPrevSalary.hasRange) {
+      elements.payoutSalaryMeta.textContent = `Нет дней (отсечка ${payout.cutoffDay} ${prevMonthGen})`;
+    } else if (payout.incomingPrevSalary.shiftsCount > 0) {
+      elements.payoutSalaryMeta.textContent = `${payout.incomingPrevSalary.fromDay}–${payout.incomingPrevSalary.toDay} ${prevMonthGen} • ${payout.incomingPrevSalary.shiftsCount} см (${payout.incomingPrevSalary.hours} ч)`;
+    } else {
+      elements.payoutSalaryMeta.textContent = `Нет смен за ${payout.incomingPrevSalary.fromDay}–${payout.incomingPrevSalary.toDay} ${prevMonthGen}`;
+    }
   }
+  updatePayoutStatusBadge(
+    elements.payoutSalaryStatus,
+    isPrevSalPaid,
+    payout.incomingPrevSalary.shiftsCount > 0 || isPrevSalPaid,
+  );
 
   if (elements.payoutAdvanceTitle) {
     elements.payoutAdvanceTitle.textContent = `Аванс ${payout.advance.payDay} ${curMonthGen}`;
@@ -1122,29 +1393,16 @@ function renderPayoutSchedule(year, month) {
   if (elements.payoutAdvanceMeta) {
     elements.payoutAdvanceMeta.textContent = `${payout.advance.shiftsCount} см • ${payout.nextMonthSalary.payDay} ${nextMonthGen}: ${payout.nextMonthSalary.amount.toLocaleString("ru-RU")} ${curr}`;
   }
+  updatePayoutStatusBadge(
+    elements.payoutAdvanceStatus,
+    isCurAdvPaid,
+    payout.advance.shiftsCount > 0 || isCurAdvPaid,
+  );
 
   const advBtn = document.getElementById("filterAdvanceBtn");
   const salBtn = document.getElementById("filterSalaryBtn");
   if (advBtn) advBtn.textContent = `Аванс (1–${payout.cutoffDay})`;
   if (salBtn) salBtn.textContent = `ЗП ${payout.nextMonthSalary.payDay}-го`;
-
-  if (elements.shiftsPayoutSummary) {
-    elements.shiftsPayoutSummary.style.display = "";
-    elements.shiftsPayoutSummary.innerHTML = `
-      <div class="shifts-payout-summary__row">
-        <span>Аванс (${payout.advance.fromDay}–${payout.advance.toDay} ${curMonthGen}, выпл. ${payout.advance.payDay} ${curMonthGen}):</span>
-        <strong>${payout.advance.amount.toLocaleString("ru-RU")} ${escapeHtml(curr)}</strong>
-      </div>
-      <div class="shifts-payout-summary__row">
-        <span>ЗП за ${payout.nextMonthSalary.fromDay}–${payout.nextMonthSalary.toDay} ${curMonthGen} (выпл. ${payout.nextMonthSalary.payDay} ${nextMonthGen}):</span>
-        <strong>${payout.nextMonthSalary.amount.toLocaleString("ru-RU")} ${escapeHtml(curr)}</strong>
-      </div>
-      <div class="shifts-payout-summary__row shifts-payout-summary__row--muted">
-        <span>Поступления в ${MONTH_NAMES[month].toLowerCase()} (ЗП за прошл. мес. + аванс):</span>
-        <strong>${payout.totalIncomingInMonth.toLocaleString("ru-RU")} ${escapeHtml(curr)}</strong>
-      </div>
-    `;
-  }
 }
 
 // ============================================================
@@ -1187,21 +1445,26 @@ function handleQuickAddShift() {
   const targetKey = isCurrentMonth
     ? formatDateKey(today)
     : formatDateKey(currentDate.getFullYear(), currentDate.getMonth(), 1);
+
+  if (shifts[targetKey]) {
+    openShiftModal(targetKey, null, "На эту дату уже есть смена — открыта текущая запись");
+    return;
+  }
   openShiftModal(targetKey, currentTimerPresetType);
 }
 
 // ============================================================
 // Сверка с расчетным листком (Payslip Audit)
 // ============================================================
-let payslipAuditOpen = false;
-
 function togglePayslipAudit() {
   payslipAuditOpen = !payslipAuditOpen;
+  if (elements.payslipAuditSection) {
+    elements.payslipAuditSection.classList.toggle("is-open", payslipAuditOpen);
+  }
   if (elements.payslipAuditBody) {
     elements.payslipAuditBody.style.display = payslipAuditOpen ? "block" : "none";
   }
   if (elements.payslipToggleArrow) {
-    elements.payslipToggleArrow.textContent = payslipAuditOpen ? "▴" : "▾";
     elements.payslipToggleArrow.classList.toggle("payslip-audit__arrow--open", payslipAuditOpen);
   }
   if (elements.payslipToggleBtn) {
@@ -1223,7 +1486,7 @@ function runPayslipAudit() {
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
-  const summary = calcMonthSummary(shifts, year, month);
+  const summary = calcMonthSummary(shifts, year, month, settings.advanceCutoffDay || 15);
   const expectedIncome = summary.totalIncome;
 
   const result = verifyPayslip(actualVal, expectedIncome);
@@ -1239,8 +1502,8 @@ function runPayslipAudit() {
     `;
   } else if (result.status === "underpaid") {
     elements.payslipAuditResult.innerHTML = `
-      <div class="payslip-audit__badge payslip-audit__badge--underpaid">⚠ Недоплата: -${result.diff.toLocaleString("ru-RU")} ${curr}</div>
-      <div class="payslip-audit__text">По вашему графику начислено <strong>${expectedIncome.toLocaleString("ru-RU")} ${curr}</strong>, а в листке указано <strong>${actualVal.toLocaleString("ru-RU")} ${curr}</strong>. Проверьте количество учтённых часов или штрафы/удержания.</div>
+      <div class="payslip-audit__badge payslip-audit__badge--underpaid">⚠ Недоплата: ${result.diff.toLocaleString("ru-RU")} ${curr}</div>
+      <div class="payslip-audit__text">По вашему графику начислено <strong>${expectedIncome.toLocaleString("ru-RU")} ${curr}</strong>, а в листке указано <strong>${actualVal.toLocaleString("ru-RU")} ${curr}</strong>. Проверьте количество учтённых часов или удержания.</div>
     `;
   } else {
     elements.payslipAuditResult.innerHTML = `
@@ -1254,22 +1517,21 @@ function runPayslipAudit() {
 // ============================================================
 // Service Worker & PWA Install
 // ============================================================
-
-window.addEventListener('beforeinstallprompt', (e) => {
+window.addEventListener("beforeinstallprompt", (e) => {
   e.preventDefault();
   deferredPrompt = e;
 
-  if (elements.installAppDivider) elements.installAppDivider.style.display = 'block';
-  if (elements.installAppTitle) elements.installAppTitle.style.display = 'block';
-  if (elements.installAppContainer) elements.installAppContainer.style.display = 'flex';
+  if (elements.installAppDivider) elements.installAppDivider.style.display = "block";
+  if (elements.installAppTitle) elements.installAppTitle.style.display = "block";
+  if (elements.installAppContainer) elements.installAppContainer.style.display = "flex";
 });
 
-window.addEventListener('appinstalled', () => {
+window.addEventListener("appinstalled", () => {
   deferredPrompt = null;
 
-  if (elements.installAppDivider) elements.installAppDivider.style.display = 'none';
-  if (elements.installAppTitle) elements.installAppTitle.style.display = 'none';
-  if (elements.installAppContainer) elements.installAppContainer.style.display = 'none';
+  if (elements.installAppDivider) elements.installAppDivider.style.display = "none";
+  if (elements.installAppTitle) elements.installAppTitle.style.display = "none";
+  if (elements.installAppContainer) elements.installAppContainer.style.display = "none";
 });
 
 function registerSW() {
@@ -1280,6 +1542,10 @@ function registerSW() {
       .register("./sw.js")
       .then((reg) => {
         reg.update();
+
+        if (reg.waiting && navigator.serviceWorker.controller && elements.updateBanner) {
+          elements.updateBanner.style.display = "block";
+        }
 
         reg.addEventListener("updatefound", () => {
           const newWorker = reg.installing;
@@ -1301,10 +1567,16 @@ function registerSW() {
       elements.updateReloadBtn.addEventListener("click", () => {
         navigator.serviceWorker.getRegistration().then((reg) => {
           if (reg && reg.waiting) {
+            navigator.serviceWorker.addEventListener(
+              "controllerchange",
+              () => window.location.reload(),
+              { once: true },
+            );
             reg.waiting.postMessage({ action: "skipWaiting" });
+          } else {
+            window.location.reload();
           }
         });
-        window.location.reload();
       });
     }
   });
@@ -1314,15 +1586,17 @@ function registerSW() {
 // Привязка событий
 // ============================================================
 function bindEvents() {
-  // Глобальный тактильный отклик (Haptic Feedback) на нажатие интерактивных элементов
-  document.addEventListener("pointerdown", (e) => {
-    const target = e.target.closest(
-      "button, .btn, [role='button'], [role='tab'], .calendar__day, .segmented__btn"
-    );
-    if (target && !target.disabled) {
-      triggerHaptic(8);
-    }
-  }, { passive: true });
+  // Глобальный тактильный отклик на нажатие интерактивных элементов
+  document.addEventListener(
+    "pointerdown",
+    (e) => {
+      const target = e.target.closest("button, .btn, [role='button'], [role='tab']");
+      if (target && !target.disabled) {
+        triggerHaptic(8);
+      }
+    },
+    { passive: true },
+  );
 
   // Навигация
   elements.prevMonthBtn.addEventListener("click", (e) => {
@@ -1337,14 +1611,6 @@ function bindEvents() {
     goToToday();
     e.currentTarget.blur();
   });
-  elements.monthTitle.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      goToToday();
-    }
-  });
-
-
 
   // Тема и настройки
   elements.themeToggleBtn.addEventListener("click", toggleTheme);
@@ -1353,47 +1619,63 @@ function bindEvents() {
   // Экспорт
   elements.exportMonthBtn.addEventListener("click", () => handleExportCSV(false));
   elements.exportAllBtn.addEventListener("click", () => handleExportCSV(true));
+  if (elements.exportIcsBtn) {
+    elements.exportIcsBtn.addEventListener("click", handleExportICS);
+  }
 
   // Детализация смен
   if (elements.openShiftsBtn) {
-    elements.openShiftsBtn.addEventListener("click", () => {
-      setSegmentedValue("shiftsFilterSegmented", "shiftsFilter", "all");
-      renderShiftList({
-        listEl: elements.shiftList,
-        wrapperEl: elements.shiftListWrapper,
-        monthShifts: currentMonthShiftsCache,
-        year: currentDate.getFullYear(),
-        month: currentDate.getMonth(),
-        filter: "all",
-        settings,
-        onShiftClick: openShiftModal,
-      });
-      openModal("shiftsModal");
-    });
+    elements.openShiftsBtn.addEventListener("click", () => openShiftsModal("all"));
   }
   if (elements.shiftsModalCloseBtn) {
     elements.shiftsModalCloseBtn.addEventListener("click", () => closeModal("shiftsModal"));
   }
 
+  // Синхронизация между вкладками
   window.addEventListener("storage", (e) => {
     if (e.key === STORAGE_KEY) {
       shifts = loadShifts();
       render();
+      if (elements.shiftModal?.classList.contains("active")) {
+        const activeKey = elements.shiftDate?.value;
+        if (activeKey) {
+          if (!hasUnsavedShiftEdits) {
+            syncShiftModalForDate(activeKey, null);
+          } else {
+            showShiftDateWarning("Данные этой смены изменены в другой вкладке");
+          }
+        }
+      }
     } else if (e.key === SETTINGS_KEY) {
       settings = loadSettings();
       updatePayModeLabels();
       updatePresetTimesUI();
       render();
+    } else if (e.key === THEME_KEY) {
+      currentTheme = loadTheme();
+      applyTheme(currentTheme);
+    } else if (e.key === PAID_PAYOUTS_KEY) {
+      paidPayouts = loadPaidPayouts();
+      render();
     }
   });
+
   if (elements.shiftList) {
-    elements.shiftList.addEventListener("scroll", () => {
-      updateShiftListScrollGradients(elements.shiftList, elements.shiftListWrapper);
-    }, { passive: true });
+    elements.shiftList.addEventListener(
+      "scroll",
+      () => {
+        updateShiftListScrollGradients(elements.shiftList, elements.shiftListWrapper);
+      },
+      { passive: true },
+    );
   }
-  window.addEventListener("resize", () => {
-    updateShiftListScrollGradients(elements.shiftList, elements.shiftListWrapper);
-  }, { passive: true });
+  window.addEventListener(
+    "resize",
+    () => {
+      updateShiftListScrollGradients(elements.shiftList, elements.shiftListWrapper);
+    },
+    { passive: true },
+  );
 
   // Форма смены
   elements.shiftForm.addEventListener("submit", saveShift);
@@ -1402,21 +1684,46 @@ function bindEvents() {
 
   // Пересчёт и смена даты в модалке смены
   elements.shiftDate.addEventListener("change", () => {
-    syncShiftModalForDate(elements.shiftDate.value);
+    const newKey = elements.shiftDate.value;
+    if (!newKey) return;
+    const existing = shifts[newKey];
+    if (existing) {
+      hasUnsavedShiftEdits = false;
+      syncShiftModalForDate(newKey, null);
+      showShiftDateWarning("На эту дату уже есть смена — загружены сохранённые данные");
+    } else if (hasUnsavedShiftEdits) {
+      const [y, m, d] = newKey.split("-");
+      elements.shiftModalTitle.textContent = `Смена ${d}.${m}.${y}`;
+      elements.deleteBtn.style.display = "none";
+      hideShiftDateWarning();
+    } else {
+      syncShiftModalForDate(newKey, null);
+      hideShiftDateWarning();
+    }
   });
-  elements.startTime.addEventListener("input", recalcModal);
-  elements.startTime.addEventListener("change", recalcModal);
-  elements.endTime.addEventListener("input", recalcModal);
-  elements.endTime.addEventListener("change", recalcModal);
-  elements.payMode.addEventListener("change", recalcModal);
-  elements.rate.addEventListener("input", recalcModal);
+
+  const markEditedAndRecalc = () => {
+    hasUnsavedShiftEdits = true;
+    recalcModal();
+  };
+  elements.startTime.addEventListener("input", markEditedAndRecalc);
+  elements.startTime.addEventListener("change", markEditedAndRecalc);
+  elements.endTime.addEventListener("input", markEditedAndRecalc);
+  elements.endTime.addEventListener("change", markEditedAndRecalc);
+  elements.payMode.addEventListener("change", markEditedAndRecalc);
+  elements.rate.addEventListener("input", markEditedAndRecalc);
+  elements.note.addEventListener("input", () => {
+    hasUnsavedShiftEdits = true;
+  });
 
   // Форма настроек
   elements.settingsForm.addEventListener("submit", saveSettingsFromModal);
   elements.settingsModalCloseBtn.addEventListener("click", () => closeModal("settingsModal"));
-  [elements.defCutoffDay, elements.defAdvancePayDay, elements.defSalaryPayDay].filter(Boolean).forEach((inp) => {
-    inp.addEventListener("input", updatePayoutRuleHint);
-  });
+  [elements.defCutoffDay, elements.defAdvancePayDay, elements.defSalaryPayDay]
+    .filter(Boolean)
+    .forEach((inp) => {
+      inp.addEventListener("input", updatePayoutRuleHint);
+    });
   if (elements.defPresetName) {
     elements.defPresetName.addEventListener("input", () => {
       const val = elements.defPresetName.value.trim();
@@ -1435,9 +1742,19 @@ function bindEvents() {
     elements.recalcMonthRatesBtn.addEventListener("click", recalcCurrentMonthRates);
   }
 
-  // Быстрое добавление смены и карточки выплат
+  // Быстрое добавление смены и режим штампа
   if (elements.quickAddShiftBtn) {
     elements.quickAddShiftBtn.addEventListener("click", handleQuickAddShift);
+  }
+  if (elements.stampModeToggleBtn) {
+    elements.stampModeToggleBtn.addEventListener("click", () => {
+      setStampMode(!isStampMode);
+      triggerHaptic(12);
+      render();
+      if (isStampMode) {
+        showToast("Режим штампа: нажимайте на дни календаря", "info", null, 2500);
+      }
+    });
   }
   if (elements.timerTabDay) {
     elements.timerTabDay.addEventListener("click", () => setTimerPreset("day"));
@@ -1448,31 +1765,30 @@ function bindEvents() {
   if (elements.timerTabExtra) {
     elements.timerTabExtra.addEventListener("click", () => setTimerPreset("extra"));
   }
+
+  // Карточки графика выплат (click + keyboard Enter/Space)
   if (elements.payoutAdvanceCard) {
-    elements.payoutAdvanceCard.addEventListener("click", () => {
-      setSegmentedValue("shiftsFilterSegmented", "shiftsFilter", "advance");
-      renderShiftList({
-        listEl: elements.shiftList,
-        wrapperEl: elements.shiftListWrapper,
-        monthShifts: currentMonthShiftsCache,
-        year: currentDate.getFullYear(),
-        month: currentDate.getMonth(),
-        filter: "advance",
-        settings,
-        onShiftClick: openShiftModal,
-      });
-      openModal("shiftsModal");
+    const openAdvance = () => openShiftsModal("advance");
+    elements.payoutAdvanceCard.addEventListener("click", openAdvance);
+    elements.payoutAdvanceCard.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        openAdvance();
+      }
     });
   }
   if (elements.payoutSalaryCard) {
-    elements.payoutSalaryCard.addEventListener("click", () => {
-      if (!lastPayoutSchedule) return;
-      const p = lastPayoutSchedule;
-      const curr = settings.currency || "₽";
-      const prevMonthName = MONTH_NAMES[p.incomingPrevSalary.sourceMonth];
-      const curMonthName = MONTH_NAMES[currentDate.getMonth()];
-      const msg = `ЗП за ${prevMonthName} (${p.incomingPrevSalary.fromDay}–${p.incomingPrevSalary.toDay}): ${p.incomingPrevSalary.amount.toLocaleString("ru-RU")} ${curr}\nАванс за ${curMonthName} (${p.advance.fromDay}–${p.advance.toDay}): ${p.advance.amount.toLocaleString("ru-RU")} ${curr}\nВсего поступит в этом месяце: ${p.totalIncomingInMonth.toLocaleString("ru-RU")} ${curr}`;
-      showToast(msg, "info", null, 5000);
+    const openPrevSalary = () => {
+      if (!lastPayoutSchedule?.incomingPrevSalary) return;
+      const { sourceYear, sourceMonth } = lastPayoutSchedule.incomingPrevSalary;
+      openShiftsModal("salary", sourceYear, sourceMonth);
+    };
+    elements.payoutSalaryCard.addEventListener("click", openPrevSalary);
+    elements.payoutSalaryCard.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        openPrevSalary();
+      }
     });
   }
 
@@ -1499,11 +1815,11 @@ function bindEvents() {
 
   // Установка PWA
   if (elements.installPwaBtn) {
-    elements.installPwaBtn.addEventListener('click', async () => {
+    elements.installPwaBtn.addEventListener("click", async () => {
       if (!deferredPrompt) return;
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
+      if (outcome === "accepted") {
         deferredPrompt = null;
       }
     });
@@ -1528,18 +1844,19 @@ function bindEvents() {
     elements.settingsModal,
     elements.shiftsModal,
     elements.restoreModal,
-  ].filter(Boolean).forEach((overlay) => {
-    overlay.addEventListener("click", (e) => {
-      if (e.target === overlay) closeModal(overlay.id);
+  ]
+    .filter(Boolean)
+    .forEach((overlay) => {
+      overlay.addEventListener("click", (e) => {
+        if (e.target === overlay) closeModal(overlay.id);
+      });
     });
-  });
 
+  // Выход из режима штампа по Escape, если нет открытых модалок
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") {
-      closeModal("shiftModal");
-      closeModal("settingsModal");
-      closeModal("shiftsModal");
-      closeModal("restoreModal");
+    if (e.key === "Escape" && isStampMode && !document.querySelector(".modal-overlay.active")) {
+      setStampMode(false);
+      render();
     }
   });
 }
@@ -1550,6 +1867,7 @@ function bindEvents() {
 applyTheme(currentTheme);
 initTemplateStylePickers();
 initSegmentedControls();
+initArrowKeyNavigation();
 updateTimerPresetTabsUI();
 requestPersistentStorage();
 bindEvents();

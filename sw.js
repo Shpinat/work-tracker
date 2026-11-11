@@ -1,4 +1,4 @@
-const CACHE_NAME = 'worktrack-v3.3';
+const CACHE_NAME = 'worktrack-v3.4';
 
 // Относительные пути (корректно работают в GitHub Pages подкаталогах)
 const ASSETS_TO_CACHE = [
@@ -24,7 +24,6 @@ const ASSETS_TO_CACHE = [
 ];
 
 self.addEventListener('install', (event) => {
-    self.skipWaiting();
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE))
     );
@@ -45,35 +44,36 @@ self.addEventListener('activate', (event) => {
     );
 });
 
-// Стратегия Network First с откатом в кэш и офлайн-фоллбэком
+// Стратегия Network First с безопасным офлайн-фоллбэком
 self.addEventListener('fetch', (event) => {
     if (event.request.method !== 'GET') return;
+
+    const reqUrl = new URL(event.request.url);
+    const isSameOrigin = reqUrl.origin === self.location.origin;
+    const isNavigate = event.request.mode === 'navigate';
 
     event.respondWith(
         fetch(event.request)
             .then((networkResponse) => {
-                // Если сеть ответила нормально, обновляем кэш
-                if (networkResponse && networkResponse.status === 200) {
+                // Кэшируем только корректные ответы same-origin (без captive-portal подмен и редиректов)
+                if (isSameOrigin && networkResponse && networkResponse.status === 200 && !networkResponse.redirected) {
                     const resClone = networkResponse.clone();
-                    // Защита от Captive Portals: не кэшируем HTML ответ вместо скриптов/стилей
                     const reqDest = event.request.destination;
                     const resType = resClone.headers.get('content-type') || '';
                     const isHtml = resType.includes('text/html');
 
-                    if ((reqDest === 'script' || reqDest === 'style' || reqDest === 'image') && isHtml) {
-                         // Captive portal detected, don't put in cache
-                    } else if (networkResponse.redirected) {
-                         // Captive portal might redirect
-                    } else {
-                         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, resClone));
+                    if (!((reqDest === 'script' || reqDest === 'style' || reqDest === 'image') && isHtml)) {
+                        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, resClone));
                     }
                 }
                 return networkResponse;
             })
             .catch(() => {
-                // В офлайне отдаем кэш, если есть — иначе фоллбэк на index.html
+                // В офлайне отдаем кэш; фоллбэк на index.html только для навигации
                 return caches.match(event.request, { ignoreSearch: true }).then((cached) => {
-                    return cached || caches.match('./index.html');
+                    if (cached) return cached;
+                    if (isNavigate) return caches.match('./index.html');
+                    return Response.error();
                 });
             })
     );
@@ -81,7 +81,7 @@ self.addEventListener('fetch', (event) => {
 
 // Слушаем команду на мгновенную активацию
 self.addEventListener('message', (event) => {
-    if (event.data && event.data.action === 'skipWaiting') {
+    if (event.data && (event.data.action === 'skipWaiting' || event.data.type === 'SKIP_WAITING')) {
         self.skipWaiting();
     }
 });

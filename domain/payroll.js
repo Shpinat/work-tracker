@@ -22,23 +22,36 @@ export function formatDateKey(yearOrDate, month, day) {
   return `${yearOrDate}-${String(Number(month) + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
+const TIME_HHMM_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+function isValidTimeHHMM(val) {
+  return typeof val === "string" && TIME_HHMM_RE.test(val.trim());
+}
+
+function toFiniteNonNeg(val, fallback = 0) {
+  const n = Number(val);
+  return Number.isFinite(n) && n >= 0 ? n : fallback;
+}
+
 /**
- * Расчет часов к оплате с учетом ночных смен (перехода через полночь) и перерывов
+ * Расчет часов к оплате с учетом ночных смен (перехода через полночь) и перерывов.
+ * При start === end длительность считается 0 ч (чтобы не искажать ввод новой смены).
  * @param {string} start "HH:MM"
  * @param {string} end "HH:MM"
  * @param {number|string} [breakMins=0]
  * @returns {number} часы с округлением до сотых
  */
 export function calcHoursDiff(start, end, breakMins = 0) {
-  if (!start || !end) return 0;
-  const [sh, sm] = start.split(":").map(Number);
-  const [eh, em] = end.split(":").map(Number);
-  let startMins = sh * 60 + sm;
+  if (!isValidTimeHHMM(start) || !isValidTimeHHMM(end)) return 0;
+  const [sh, sm] = start.trim().split(":").map(Number);
+  const [eh, em] = end.trim().split(":").map(Number);
+  const startMins = sh * 60 + sm;
   let endMins = eh * 60 + em;
   if (endMins < startMins) {
     endMins += 24 * 60; // Переход через полночь
   }
-  const netMins = Math.max(0, endMins - startMins - (Number(breakMins) || 0));
+  const safeBreak = toFiniteNonNeg(breakMins, 0);
+  const netMins = Math.max(0, endMins - startMins - safeBreak);
   return Math.round((netMins / 60) * 100) / 100;
 }
 
@@ -53,10 +66,10 @@ export function calcHoursDiff(start, end, breakMins = 0) {
  * @returns {number} ночные часы к доплате с округлением до сотых
  */
 export function calcNightHours(start, end, breakMins = 0, nightStart = "22:00", nightEnd = "06:00") {
-  if (!start || !end) return 0;
-  const [sh, sm] = start.split(":").map(Number);
-  const [eh, em] = end.split(":").map(Number);
-  let sMins = sh * 60 + sm;
+  if (!isValidTimeHHMM(start) || !isValidTimeHHMM(end)) return 0;
+  const [sh, sm] = start.trim().split(":").map(Number);
+  const [eh, em] = end.trim().split(":").map(Number);
+  const sMins = sh * 60 + sm;
   let eMins = eh * 60 + em;
   if (eMins < sMins) {
     eMins += 24 * 60; // Переход через полночь
@@ -64,20 +77,24 @@ export function calcNightHours(start, end, breakMins = 0, nightStart = "22:00", 
   const grossShiftMins = eMins - sMins;
   if (grossShiftMins <= 0) return 0;
 
-  const [nsh, nsm] = (nightStart || "22:00").split(":").map(Number);
-  const [neh, nem] = (nightEnd || "06:00").split(":").map(Number);
+  const safeNightStart = isValidTimeHHMM(nightStart) ? nightStart.trim() : "22:00";
+  const safeNightEnd = isValidTimeHHMM(nightEnd) ? nightEnd.trim() : "06:00";
+  const [nsh, nsm] = safeNightStart.split(":").map(Number);
+  const [neh, nem] = safeNightEnd.split(":").map(Number);
   const ns = nsh * 60 + nsm;
   const ne = neh * 60 + nem;
 
   // Формируем ночные интервалы для временной оси [0, 2880] (до 48 часов)
-  // Окно 1: утро текущего дня [0, ne]
-  // Окно 2: ночь текущего дня [ns, ne + 1440]
-  // Окно 3: ночь следующего дня [ns + 1440, 2880]
-  const intervals = [
-    [0, ne],
-    [ns, ne + 1440],
-    [ns + 1440, 2880],
-  ];
+  const intervals = ns > ne
+    ? [
+        [0, ne],
+        [ns, ne + 1440],
+        [ns + 1440, 2880],
+      ]
+    : [
+        [ns, ne],
+        [ns + 1440, ne + 1440],
+      ];
 
   let rawNightMins = 0;
   for (const [winStart, winEnd] of intervals) {
@@ -89,7 +106,7 @@ export function calcNightHours(start, end, breakMins = 0, nightStart = "22:00", 
   }
 
   // Пропорциональный вычет перерыва
-  const bMins = Math.max(0, Number(breakMins) || 0);
+  const bMins = toFiniteNonNeg(breakMins, 0);
   const breakDeduction = (grossShiftMins > 0 && bMins > 0)
     ? (rawNightMins / grossShiftMins) * bMins
     : 0;
@@ -108,12 +125,12 @@ export function calcNightHours(start, end, breakMins = 0, nightStart = "22:00", 
  * @returns {number}
  */
 export function calcShiftPay(hours, rate, payMode = "hourly", bonus = 0, nightBonus = 0) {
-  const h = Number(hours) || 0;
-  const r = Number(rate) || 0;
-  const b = Number(bonus) || 0;
-  const nb = Number(nightBonus) || 0;
+  const h = toFiniteNonNeg(hours, 0);
+  const r = toFiniteNonNeg(rate, 0);
+  const b = toFiniteNonNeg(bonus, 0);
+  const nb = toFiniteNonNeg(nightBonus, 0);
   const basePay = payMode === "hourly" ? h * r : r;
-  return Math.round(basePay + b + nb);
+  return Math.max(0, Math.round(basePay + b + nb));
 }
 
 /**
@@ -225,6 +242,8 @@ export function calcMonthSummary(shifts, year, month, cutoffDay = 15, referenceD
  */
 export function recalcMonthShifts(shifts, year, month, newRate, newPayMode) {
   const updatedShifts = { ...shifts };
+  const safeRate = toFiniteNonNeg(newRate, 0);
+  const safePayMode = newPayMode === "fixed" ? "fixed" : "hourly";
   let count = 0;
 
   // Bolt Оптимизация: Прямая выборка из хэш-мапы по дням месяца (О(1)) вместо полного обхода ключей (O(N))
@@ -233,12 +252,12 @@ export function recalcMonthShifts(shifts, year, month, newRate, newPayMode) {
     const key = formatDateKey(year, month, day);
     if (updatedShifts[key]) {
       const s = { ...updatedShifts[key] };
-      s.rate = newRate;
-      s.payMode = newPayMode;
-      const h = Number(s.hours) || 0;
-      const bonus = Number(s.bonus) || 0;
-      const basePay = newPayMode === "hourly" ? h * newRate : newRate;
-      s.totalPay = Math.round(basePay + bonus);
+      s.rate = safeRate;
+      s.payMode = safePayMode;
+      const h = toFiniteNonNeg(s.hours, 0);
+      const bonus = toFiniteNonNeg(s.bonus, 0);
+      const nightBonus = toFiniteNonNeg(s.nightBonus, 0);
+      s.totalPay = calcShiftPay(h, safeRate, safePayMode, bonus, nightBonus);
       updatedShifts[key] = s;
       count++;
     }
@@ -362,7 +381,11 @@ export function calcPayoutSchedule(
   const nextDate = new Date(year, month + 1, 1);
   const nextYear = nextDate.getFullYear();
   const nextMonth = nextDate.getMonth();
+  const nextDaysInMonth = new Date(nextYear, nextMonth + 1, 0).getDate();
   const curDaysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const hasCurSecondHalf = safeCutoff < curDaysInMonth;
+  const hasPrevSecondHalf = safeCutoff < prevDaysInMonth;
 
   return {
     cutoffDay: safeCutoff,
@@ -374,7 +397,7 @@ export function calcPayoutSchedule(
       hours: currentSummary.advanceHours,
       shiftsCount: currentSummary.advanceShiftsCount,
       fromDay: 1,
-      toDay: safeCutoff,
+      toDay: Math.min(safeCutoff, curDaysInMonth),
       payDay: Math.min(safeAdvancePayDay, curDaysInMonth),
       payMonth: month,
       payYear: year,
@@ -383,9 +406,10 @@ export function calcPayoutSchedule(
       amount: currentSummary.salaryIncome,
       hours: currentSummary.salaryHours,
       shiftsCount: currentSummary.salaryShiftsCount,
-      fromDay: safeCutoff + 1,
-      toDay: curDaysInMonth,
-      payDay: safeSalaryPayDay,
+      hasRange: hasCurSecondHalf,
+      fromDay: hasCurSecondHalf ? safeCutoff + 1 : null,
+      toDay: hasCurSecondHalf ? curDaysInMonth : null,
+      payDay: Math.min(safeSalaryPayDay, nextDaysInMonth),
       payMonth: nextMonth,
       payYear: nextYear,
     },
@@ -394,8 +418,9 @@ export function calcPayoutSchedule(
       amount: prevSummary.salaryIncome,
       hours: prevSummary.salaryHours,
       shiftsCount: prevSummary.salaryShiftsCount,
-      fromDay: safeCutoff + 1,
-      toDay: prevDaysInMonth,
+      hasRange: hasPrevSecondHalf,
+      fromDay: hasPrevSecondHalf ? safeCutoff + 1 : null,
+      toDay: hasPrevSecondHalf ? prevDaysInMonth : null,
       sourceMonth: prevMonth,
       sourceYear: prevYear,
       payDay: Math.min(safeSalaryPayDay, curDaysInMonth),

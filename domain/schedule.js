@@ -4,7 +4,7 @@
  * Чистые функции без привязки к DOM.
  */
 
-import { formatDateKey, calcHoursDiff, calcNightHours, calcShiftPay } from "./payroll.js";
+import { formatDateKey, calcHoursDiff, calcShiftPay } from "./payroll.js";
 
 export const SCHEDULE_PATTERNS = {
   "2-2-day": {
@@ -64,14 +64,26 @@ export function calculateScheduleDates({
   skipExisting = true,
   shifts = {},
 }) {
-  if (!startDateStr) return [];
+  if (!startDateStr || !/^\d{4}-\d{2}-\d{2}$/.test(startDateStr)) return [];
 
   const [sy, sm, sd] = startDateStr.split("-").map(Number);
   const startDate = new Date(sy, sm - 1, sd);
-  const pattern = SCHEDULE_PATTERNS[patternKey] || SCHEDULE_PATTERNS["2-2-day"];
+  if (
+    startDate.getFullYear() !== sy ||
+    startDate.getMonth() !== sm - 1 ||
+    startDate.getDate() !== sd
+  ) {
+    return [];
+  }
 
-  const endDate = new Date(startDate);
-  endDate.setMonth(endDate.getMonth() + durationMonths);
+  const pattern = SCHEDULE_PATTERNS[patternKey] || SCHEDULE_PATTERNS["2-2-day"];
+  const safeDuration = Math.max(1, parseInt(durationMonths, 10) || 1);
+
+  const targetMonthIndex = (sm - 1) + safeDuration;
+  const targetYear = sy + Math.floor(targetMonthIndex / 12);
+  const targetMonth = ((targetMonthIndex % 12) + 12) % 12;
+  const daysInTargetMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+  const endDate = new Date(targetYear, targetMonth, Math.min(sd, daysInTargetMonth));
   endDate.setDate(endDate.getDate() - 1);
 
   const cycle = patternKey === "custom" ? customCycle : (pattern.cycle || []);
@@ -123,10 +135,13 @@ export function calculateScheduleDates({
  * @returns {Object}
  */
 export function buildShiftFromPreset(type, settings) {
-  const preset = settings.presets?.[type] || { start: "09:00", end: "21:00" };
+  const preset = settings?.presets?.[type] || { start: "09:00", end: "21:00" };
   const hours = calcHoursDiff(preset.start, preset.end, 0);
-  const payMode = preset.payMode || settings.payMode || "hourly";
-  const rate = preset.rate !== undefined && preset.rate !== "" ? Number(preset.rate) : Number(settings.defaultRate || settings.rate || 0);
+  const payMode = preset.payMode || settings?.payMode || "hourly";
+  const rawRate = preset.rate !== undefined && preset.rate !== ""
+    ? Number(preset.rate)
+    : Number(settings?.rate ?? settings?.defaultRate ?? 0);
+  const rate = Number.isFinite(rawRate) && rawRate >= 0 ? rawRate : 0;
   const totalPay = calcShiftPay(hours, rate, payMode, 0);
 
   return {

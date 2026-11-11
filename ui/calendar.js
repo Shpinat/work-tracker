@@ -1,12 +1,198 @@
 /**
  * ui/calendar.js
- * Рендеринг календарной сетки, генерация ячеек дней и обработка свайп-жестов переключения месяцев.
+ * Рендеринг календарной сетки, генерация ячеек дней, делегирование событий
+ * и обработка свайп-жестов переключения месяцев.
  */
 
 import { formatDateKey } from "../domain/payroll.js";
-import { getShiftIconSvg, DEFAULT_TEMPLATE_STYLE } from "./icons.js";
+import {
+  getShiftIconSvg,
+  DEFAULT_TEMPLATE_STYLE,
+  MONTH_NAMES_GENITIVE,
+  HEX_COLOR_RE,
+} from "./icons.js";
+
+const WEEKDAY_NAMES_FULL = [
+  "воскресенье",
+  "понедельник",
+  "вторник",
+  "среда",
+  "четверг",
+  "пятница",
+  "суббота",
+];
+
+const PRESET_FALLBACK_NAMES = {
+  day: "День",
+  night: "Ночь",
+  extra: "Подработка",
+};
 
 let isSwipingMonth = false;
+const delegatedGrids = new WeakSet();
+const gridHandlers = new WeakMap();
+
+function prefersReducedMotion() {
+  return (
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
+
+/**
+ * Формирует доступный aria-label для ячейки календаря
+ */
+export function buildDayAriaLabel({
+  year,
+  month,
+  day,
+  isOtherMonth = false,
+  isToday = false,
+  shift = null,
+  settings = null,
+}) {
+  const weekdayIdx = new Date(year, month, day).getDay();
+  const weekday = WEEKDAY_NAMES_FULL[weekdayIdx] || "";
+  const monthName = MONTH_NAMES_GENITIVE[month] || "";
+  const parts = [`${day} ${monthName}`, weekday];
+
+  if (isToday) parts.push("сегодня");
+  if (isOtherMonth) parts.push("другой месяц");
+
+  if (shift) {
+    const typeName =
+      settings?.presets?.[shift.type]?.name ||
+      PRESET_FALLBACK_NAMES[shift.type] ||
+      "Смена";
+    parts.push(`смена: ${typeName}, ${shift.hours} ч`);
+    const note = typeof shift.note === "string" ? shift.note.trim() : "";
+    if (note) {
+      parts.push(`заметка: ${note}`);
+    }
+  }
+
+  return parts.join(", ");
+}
+
+/**
+ * Привязывает делегированные обработчики событий к контейнеру сетки календаря (однократно)
+ * @param {HTMLElement} grid
+ */
+function ensureCalendarDelegation(grid) {
+  if (!grid || delegatedGrids.has(grid)) return;
+  delegatedGrids.add(grid);
+
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let longPressTimeout = null;
+  let longPressResetTimer = null;
+  let isLongPressTriggered = false;
+  let activeDateKey = null;
+
+  const cancelLongPress = () => {
+    if (longPressTimeout) {
+      clearTimeout(longPressTimeout);
+      longPressTimeout = null;
+    }
+    activeDateKey = null;
+  };
+
+  grid.addEventListener(
+    "touchstart",
+    (e) => {
+      if (e.touches.length !== 1 || isSwipingMonth) return;
+      const cell = e.target.closest(".calendar__day-cell[data-date-key]");
+      if (!cell) return;
+
+      const dateKey = cell.dataset.dateKey;
+      const state = gridHandlers.get(grid);
+      if (!dateKey || state?.shifts?.[dateKey]) return;
+
+      isLongPressTriggered = false;
+      activeDateKey = dateKey;
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+
+      if (longPressTimeout) clearTimeout(longPressTimeout);
+      longPressTimeout = setTimeout(() => {
+        longPressTimeout = null;
+        if (isSwipingMonth || !activeDateKey) return;
+        const currentState = gridHandlers.get(grid);
+        if (currentState?.shifts?.[activeDateKey]) return;
+        isLongPressTriggered = true;
+        currentState?.onDayLongPress?.(activeDateKey);
+        if (longPressResetTimer) clearTimeout(longPressResetTimer);
+        longPressResetTimer = setTimeout(() => {
+          isLongPressTriggered = false;
+        }, 600);
+      }, 420);
+    },
+    { passive: true },
+  );
+
+  grid.addEventListener(
+    "touchmove",
+    (e) => {
+      if (!longPressTimeout) return;
+      if (isSwipingMonth || e.touches.length !== 1) {
+        cancelLongPress();
+        return;
+      }
+      const dx = Math.abs(e.touches[0].clientX - touchStartX);
+      const dy = Math.abs(e.touches[0].clientY - touchStartY);
+      if (dx > 10 || dy > 10) {
+        cancelLongPress();
+      }
+    },
+    { passive: true },
+  );
+
+  grid.addEventListener("touchend", cancelLongPress, { passive: true });
+  grid.addEventListener("touchcancel", cancelLongPress, { passive: true });
+
+  grid.addEventListener("contextmenu", (e) => {
+    const cell = e.target.closest(".calendar__day-cell[data-date-key]");
+    if (!cell) return;
+    const dateKey = cell.dataset.dateKey;
+    const state = gridHandlers.get(grid);
+    if (!dateKey || state?.shifts?.[dateKey]) return;
+    e.preventDefault();
+    state?.onDayLongPress?.(dateKey);
+  });
+
+  grid.addEventListener("click", (e) => {
+    const cell = e.target.closest(".calendar__day-cell[data-date-key]");
+    if (!cell) return;
+    if (isLongPressTriggered) {
+      isLongPressTriggered = false;
+      return;
+    }
+    const dateKey = cell.dataset.dateKey;
+    const state = gridHandlers.get(grid);
+    if (!dateKey || !state) return;
+    if (typeof state.onDayStamp === "function") {
+      state.onDayStamp(dateKey);
+    } else {
+      state.onDayClick?.(dateKey);
+    }
+  });
+
+  grid.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const cell = e.target.closest(".calendar__day-cell[data-date-key]");
+    if (!cell) return;
+    e.preventDefault();
+    const dateKey = cell.dataset.dateKey;
+    const state = gridHandlers.get(grid);
+    if (!dateKey || !state) return;
+    if (typeof state.onDayStamp === "function") {
+      state.onDayStamp(dateKey);
+    } else {
+      state.onDayClick?.(dateKey);
+    }
+  });
+}
 
 /**
  * Создает DOM-элемент ячейки дня
@@ -47,13 +233,15 @@ export function createDayCell({
       cell.classList.add("calendar__day-cell--extra");
     }
 
-    const presetColor =
+    const rawColor =
       settings?.presets?.[shift.type]?.color ||
       DEFAULT_TEMPLATE_STYLE[shift.type]?.color ||
       DEFAULT_TEMPLATE_STYLE.day.color;
-    if (presetColor) {
-      cell.style.setProperty("--shift-color", presetColor);
-    }
+    const presetColor =
+      typeof rawColor === "string" && HEX_COLOR_RE.test(rawColor.trim())
+        ? rawColor.trim()
+        : DEFAULT_TEMPLATE_STYLE.day.color;
+    cell.style.setProperty("--shift-color", presetColor);
 
     const iconWrapper = document.createElement("div");
     iconWrapper.className = "calendar__day-icons";
@@ -64,11 +252,12 @@ export function createDayCell({
     iconSpan.innerHTML = getShiftIconSvg(shift.type, settings);
     iconWrapper.appendChild(iconSpan);
 
-    const hasNote = Boolean(shift.note && shift.note.trim());
-    if (hasNote) {
+    const noteText = typeof shift.note === "string" ? shift.note.trim() : "";
+    if (noteText) {
       const dot = document.createElement("span");
       dot.className = "calendar__tag-dot";
-      dot.title = shift.note;
+      dot.title = noteText;
+      dot.setAttribute("aria-hidden", "true");
       iconWrapper.appendChild(dot);
     }
 
@@ -87,67 +276,64 @@ export function createDayCell({
   cell.setAttribute("tabindex", "0");
   if (ariaLabel) cell.setAttribute("aria-label", ariaLabel);
 
-  let touchStartX = 0;
-  let touchStartY = 0;
-  let longPressTimeout = null;
-  let isLongPressTriggered = false;
+  // Обратная совместимость при прямом вызове createDayCell вне renderCalendarGrid
+  if (onDayClick || onDayLongPress) {
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let longPressTimeout = null;
+    let isLongPressTriggered = false;
 
-  const startLongPress = (e) => {
-    if (shift) return;
-    isLongPressTriggered = false;
-    const touch = e.touches ? e.touches[0] : e;
-    touchStartX = touch.clientX;
-    touchStartY = touch.clientY;
-
-    longPressTimeout = setTimeout(() => {
-      isLongPressTriggered = true;
-      if (onDayLongPress) onDayLongPress(dateKey);
-    }, 420);
-  };
-
-  const cancelLongPress = () => {
-    if (longPressTimeout) {
-      clearTimeout(longPressTimeout);
-      longPressTimeout = null;
-    }
-  };
-
-  const moveLongPress = (e) => {
-    if (!longPressTimeout) return;
-    const touch = e.touches ? e.touches[0] : e;
-    const dx = Math.abs(touch.clientX - touchStartX);
-    const dy = Math.abs(touch.clientY - touchStartY);
-    if (dx > 10 || dy > 10) {
-      cancelLongPress();
-    }
-  };
-
-  cell.addEventListener("touchstart", startLongPress, { passive: true });
-  cell.addEventListener("touchmove", moveLongPress, { passive: true });
-  cell.addEventListener("touchend", cancelLongPress, { passive: true });
-  cell.addEventListener("touchcancel", cancelLongPress, { passive: true });
-
-  cell.addEventListener("contextmenu", (e) => {
-    if (!shift) {
-      e.preventDefault();
-      if (onDayLongPress) onDayLongPress(dateKey);
-    }
-  });
-
-  cell.addEventListener("click", () => {
-    if (isLongPressTriggered) {
+    const startLongPress = (e) => {
+      if (shift) return;
       isLongPressTriggered = false;
-      return;
-    }
-    if (onDayClick) onDayClick(dateKey);
-  });
+      const touch = e.touches ? e.touches[0] : e;
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+      longPressTimeout = setTimeout(() => {
+        isLongPressTriggered = true;
+        onDayLongPress?.(dateKey);
+      }, 420);
+    };
 
-  cell.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      if (onDayClick) onDayClick(dateKey);
-    }
-  });
+    const cancelLongPress = () => {
+      if (longPressTimeout) {
+        clearTimeout(longPressTimeout);
+        longPressTimeout = null;
+      }
+    };
+
+    const moveLongPress = (e) => {
+      if (!longPressTimeout) return;
+      const touch = e.touches ? e.touches[0] : e;
+      if (Math.abs(touch.clientX - touchStartX) > 10 || Math.abs(touch.clientY - touchStartY) > 10) {
+        cancelLongPress();
+      }
+    };
+
+    cell.addEventListener("touchstart", startLongPress, { passive: true });
+    cell.addEventListener("touchmove", moveLongPress, { passive: true });
+    cell.addEventListener("touchend", cancelLongPress, { passive: true });
+    cell.addEventListener("touchcancel", cancelLongPress, { passive: true });
+    cell.addEventListener("contextmenu", (e) => {
+      if (!shift) {
+        e.preventDefault();
+        onDayLongPress?.(dateKey);
+      }
+    });
+    cell.addEventListener("click", () => {
+      if (isLongPressTriggered) {
+        isLongPressTriggered = false;
+        return;
+      }
+      onDayClick?.(dateKey);
+    });
+    cell.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onDayClick?.(dateKey);
+      }
+    });
+  }
 
   return cell;
 }
@@ -162,8 +348,17 @@ export function renderCalendarGrid(grid, {
   settings = null,
   onDayClick,
   onDayLongPress,
+  onDayStamp = null,
 }) {
   if (!grid) return;
+
+  ensureCalendarDelegation(grid);
+  gridHandlers.set(grid, {
+    shifts: shifts || {},
+    onDayClick,
+    onDayLongPress,
+    onDayStamp,
+  });
 
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -173,7 +368,7 @@ export function renderCalendarGrid(grid, {
   const todayKey = formatDateKey(
     today.getFullYear(),
     today.getMonth(),
-    today.getDate()
+    today.getDate(),
   );
 
   const fragment = document.createDocumentFragment();
@@ -189,6 +384,8 @@ export function renderCalendarGrid(grid, {
     const dateKey = formatDateKey(prevMonthYear, prevMonthIdx, prevDay);
     const colIndex = startOffset - 1 - i;
     const isWeekend = colIndex === 5 || colIndex === 6;
+    const shift = shifts?.[dateKey] || null;
+    const isToday = dateKey === todayKey;
 
     fragment.appendChild(
       createDayCell({
@@ -196,13 +393,19 @@ export function renderCalendarGrid(grid, {
         dateKey,
         isOtherMonth: true,
         isWeekend,
-        isToday: dateKey === todayKey,
-        shift: shifts[dateKey] || null,
+        isToday,
+        shift,
         settings,
-        ariaLabel: `Предыдущий месяц, ${prevDay}`,
-        onDayClick,
-        onDayLongPress,
-      })
+        ariaLabel: buildDayAriaLabel({
+          year: prevMonthYear,
+          month: prevMonthIdx,
+          day: prevDay,
+          isOtherMonth: true,
+          isToday,
+          shift,
+          settings,
+        }),
+      }),
     );
   }
 
@@ -211,6 +414,8 @@ export function renderCalendarGrid(grid, {
     const dateKey = formatDateKey(year, month, day);
     const dayOfWeek = (startOffset + day - 1) % 7;
     const isWeekend = dayOfWeek === 5 || dayOfWeek === 6;
+    const shift = shifts?.[dateKey] || null;
+    const isToday = dateKey === todayKey;
 
     fragment.appendChild(
       createDayCell({
@@ -218,13 +423,19 @@ export function renderCalendarGrid(grid, {
         dateKey,
         isOtherMonth: false,
         isWeekend,
-        isToday: dateKey === todayKey,
-        shift: shifts[dateKey] || null,
+        isToday,
+        shift,
         settings,
-        ariaLabel: "",
-        onDayClick,
-        onDayLongPress,
-      })
+        ariaLabel: buildDayAriaLabel({
+          year,
+          month,
+          day,
+          isOtherMonth: false,
+          isToday,
+          shift,
+          settings,
+        }),
+      }),
     );
   }
 
@@ -239,6 +450,8 @@ export function renderCalendarGrid(grid, {
     const dateKey = formatDateKey(nextMonthYear, nextMonthIdx, d);
     const colIndex = (totalCells + d - 1) % 7;
     const isWeekend = colIndex === 5 || colIndex === 6;
+    const shift = shifts?.[dateKey] || null;
+    const isToday = dateKey === todayKey;
 
     fragment.appendChild(
       createDayCell({
@@ -246,13 +459,19 @@ export function renderCalendarGrid(grid, {
         dateKey,
         isOtherMonth: true,
         isWeekend,
-        isToday: dateKey === todayKey,
-        shift: shifts[dateKey] || null,
+        isToday,
+        shift,
         settings,
-        ariaLabel: `Следующий месяц, ${d}`,
-        onDayClick,
-        onDayLongPress,
-      })
+        ariaLabel: buildDayAriaLabel({
+          year: nextMonthYear,
+          month: nextMonthIdx,
+          day: d,
+          isOtherMonth: true,
+          isToday,
+          shift,
+          settings,
+        }),
+      }),
     );
   }
 
@@ -262,14 +481,30 @@ export function renderCalendarGrid(grid, {
 
 /**
  * Анимированный переход между месяцами
+ * Плавно продолжает движение с текущей позиции свайпа и учитывает prefers-reduced-motion.
  */
 export function animateMonthSwipe(grid, delta, onSwitchMonth) {
   if (isSwipingMonth) return;
-  if (!grid) {
-    if (onSwitchMonth) onSwitchMonth();
+  if (!grid || prefersReducedMotion()) {
+    try {
+      onSwitchMonth?.();
+    } catch (err) {
+      console.error("Month switch callback error:", err);
+    } finally {
+      if (grid) {
+        grid.style.transition = "";
+        grid.style.transform = "";
+        grid.style.opacity = "";
+      }
+      isSwipingMonth = false;
+    }
     return;
   }
+
   isSwipingMonth = true;
+
+  // Фиксируем текущее состояние transform (например, после живого drag), чтобы переход не прыгал в 0
+  void window.getComputedStyle(grid).transform;
 
   const outX = delta === 1 ? -100 : 100;
   const inX = delta === 1 ? 100 : -100;
@@ -280,7 +515,7 @@ export function animateMonthSwipe(grid, delta, onSwitchMonth) {
 
   setTimeout(() => {
     try {
-      if (onSwitchMonth) onSwitchMonth();
+      onSwitchMonth?.();
     } catch (err) {
       console.error("Month switch callback error:", err);
     } finally {
@@ -323,7 +558,7 @@ export function initCalendarSwipe(calendarContainer, grid, { onSwipeLeft, onSwip
   calendarContainer.addEventListener(
     "touchstart",
     (e) => {
-      if (isSwipingMonth) return;
+      if (isSwipingMonth || e.touches.length !== 1) return;
       touchStartX = e.touches[0].clientX;
       touchStartY = e.touches[0].clientY;
       isTracking = true;
@@ -335,7 +570,7 @@ export function initCalendarSwipe(calendarContainer, grid, { onSwipeLeft, onSwip
   calendarContainer.addEventListener(
     "touchmove",
     (e) => {
-      if (!isTracking || isSwipingMonth) return;
+      if (!isTracking || isSwipingMonth || e.touches.length !== 1) return;
 
       const touchX = e.touches[0].clientX;
       const touchY = e.touches[0].clientY;
@@ -361,37 +596,39 @@ export function initCalendarSwipe(calendarContainer, grid, { onSwipeLeft, onSwip
     { passive: true },
   );
 
-  calendarContainer.addEventListener(
-    "touchend",
-    (e) => {
-      if (!isTracking || isSwipingMonth) return;
-      isTracking = false;
+  const resetOrCancel = (e) => {
+    if (!isTracking || isSwipingMonth) return;
+    isTracking = false;
 
-      if (!isHorizontal) return;
-      isHorizontal = false;
+    if (!isHorizontal) return;
+    isHorizontal = false;
 
-      const touchEndX = e.changedTouches[0].clientX;
-      const touchEndY = e.changedTouches[0].clientY;
-      const dx = touchEndX - touchStartX;
-      const dy = touchEndY - touchStartY;
+    const changed = e.changedTouches?.[0];
+    const dx = changed ? changed.clientX - touchStartX : 0;
+    const dy = changed ? changed.clientY - touchStartY : 0;
 
-      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
-        if (dx > 0) {
-          if (onSwipeRight) onSwipeRight();
-        } else {
-          if (onSwipeLeft) onSwipeLeft();
-        }
+    if (e.type === "touchend" && Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+      if (dx > 0) {
+        onSwipeRight?.();
       } else {
-        grid.style.transition = "transform 0.18s ease-out, opacity 0.18s ease-out";
-        grid.style.transform = "translateX(0)";
-        grid.style.opacity = "1";
-        setTimeout(() => {
-          grid.style.transition = "";
-          grid.style.transform = "";
-          grid.style.opacity = "";
-        }, 190);
+        onSwipeLeft?.();
       }
-    },
-    { passive: true },
-  );
+    } else if (prefersReducedMotion()) {
+      grid.style.transition = "";
+      grid.style.transform = "";
+      grid.style.opacity = "";
+    } else {
+      grid.style.transition = "transform 0.18s ease-out, opacity 0.18s ease-out";
+      grid.style.transform = "translateX(0)";
+      grid.style.opacity = "1";
+      setTimeout(() => {
+        grid.style.transition = "";
+        grid.style.transform = "";
+        grid.style.opacity = "";
+      }, 190);
+    }
+  };
+
+  calendarContainer.addEventListener("touchend", resetOrCancel, { passive: true });
+  calendarContainer.addEventListener("touchcancel", resetOrCancel, { passive: true });
 }
